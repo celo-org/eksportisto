@@ -1,44 +1,43 @@
 package main
 
 import (
+	"context"
 	"flag"
-	"math/rand"
 	"os"
 	"time"
 
-	"github.com/celo-org/eksportisto/metrics"
+	"github.com/celo-org/eksportisto/monitor"
 	"github.com/celo-org/eksportisto/server"
-	"github.com/docker/distribution/context"
-	"github.com/ethereum/go-ethereum/log"
-)
+	"github.com/celo-org/kliento/utils/service"
 
-var (
-	addr              = flag.String("listen-address", ":8080", "The address to listen on for HTTP requests.")
-	uniformDomain     = flag.Float64("uniform.domain", 0.0002, "The domain for the uniform distribution.")
-	normDomain        = flag.Float64("normal.domain", 0.0002, "The domain for the normal distribution.")
-	normMean          = flag.Float64("normal.mean", 0.00001, "The mean for the normal distribution.")
-	oscillationPeriod = flag.Duration("oscillation-period", 10*time.Minute, "The duration of the rate oscillation period.")
+	"github.com/ethereum/go-ethereum/log"
+	"golang.org/x/sync/errgroup"
 )
 
 func main() {
+	var httpConfig server.HttpServerConfig
+	flag.UintVar(&httpConfig.Port, "port", 8080, "Listening port for http server")
+	flag.StringVar(&httpConfig.Interface, "address", "", "Listening address for http server")
+	flag.DurationVar(&httpConfig.RequestTimeout, "reqTimeout", 25*time.Second, "Timeout when serving a request")
+
+	var monitorConfig monitor.Config
+	flag.StringVar(&monitorConfig.NodeUri, "nodeUri", "http://localhost:8545", "Connection string for celo-blockchain node")
 
 	flag.Parse()
 
+	// TODO Validate parameters
+
 	log.Root().SetHandler(log.LvlFilterHandler(log.LvlInfo, log.StreamHandler(os.Stderr, log.TerminalFormat(true))))
 
-	ctx := context.Background()
+	ctx := service.WithExitSignals(context.Background())
+	group, ctx := errgroup.WithContext(ctx)
 
-	go func() {
-		for {
-			v := rand.ExpFloat64() / 1e6
-			metrics.TotalCUSDSupply.Observe(v)
-			time.Sleep(5 * time.Second)
-		}
-	}()
+	group.Go(func() error { return monitor.Start(ctx, &monitorConfig) })
+	group.Go(func() error { return server.Start(ctx, &httpConfig) })
 
-	server.Start(ctx, &server.HttpServerConfig{
-		Port:           8080,
-		Interface:      "localhost",
-		RequestTimeout: 25 * time.Second,
-	})
+	err := group.Wait()
+	if err != nil && err != context.Canceled {
+		log.Error("Error while running", "err", err)
+		os.Exit(1)
+	}
 }
