@@ -45,6 +45,25 @@ func Start(ctx context.Context, cfg *Config) error {
 	return g.Wait()
 }
 
+func stableTokenProcessor(ctx context.Context, cc *client.CeloClient, logger log.Logger, opts *bind.CallOpts, registry *wrappers.RegistryWrapper) error {
+	stAddress, err := registry.GetAddressForString(opts, "StableToken")
+	if err == client.ErrContractNotDeployed || err == wrappers.ErrRegistryNotDeployed {
+		return nil
+	} else if err != nil {
+		return err
+	}
+
+	stableToken, err := contracts.NewStableToken(stAddress, cc.Eth)
+	if err != nil {
+		return err
+	}
+
+	totalSupply, err := stableToken.TotalSupply(opts)
+	logger.Info("StateView", "totalSupply", totalSupply)
+	metrics.TotalCUSDSupply.Observe(float64(totalSupply.Uint64()))
+	return nil
+}
+
 func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *client.CeloClient, logger log.Logger, dbWriter db.RosettaDBWriter) error {
 	logger = logger.New("pipe", "processor")
 
@@ -69,21 +88,9 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 			Context:     ctx,
 		}
 
-		stAddress, err := registry.GetAddressForString(opts, "StableToken")
-		if err == client.ErrContractNotDeployed || err == wrappers.ErrRegistryNotDeployed {
-			continue
-		} else if err != nil {
+		if err := stableTokenProcessor(ctx, cc, logger, opts, registry); err != nil {
 			return err
 		}
-
-		stableToken, err := contracts.NewStableToken(stAddress, cc.Eth)
-		if err != nil {
-			return err
-		}
-
-		totalSupply, err := stableToken.TotalSupply(opts)
-		logger.Info("t", "t", totalSupply)
-		metrics.TotalCUSDSupply.Observe(float64(totalSupply.Uint64()))
 
 		if err := dbWriter.ApplyChanges(ctx, h.Number); err != nil {
 			return err
