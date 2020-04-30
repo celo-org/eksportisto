@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/celo-org/eksportisto/db"
+	"github.com/celo-org/eksportisto/metrics"
 	"github.com/celo-org/kliento/client"
 	"github.com/celo-org/kliento/contracts"
 	kliento_mon "github.com/celo-org/kliento/monitor"
@@ -101,6 +102,30 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 			return err
 		}
 
+		exchangeAddress, err := registry.GetAddressForString(opts, "Exchange")
+		if err == client.ErrContractNotDeployed || err == wrappers.ErrRegistryNotDeployed {
+			return nil
+		} else if err != nil {
+			return err
+		}
+
+		exchange, err := contracts.NewExchange(exchangeAddress, cc.Eth)
+		if err != nil {
+			return err
+		}
+
+		reserveAddress, err := registry.GetAddressForString(opts, "Reserve")
+		if err == client.ErrContractNotDeployed || err == wrappers.ErrRegistryNotDeployed {
+			return nil
+		} else if err != nil {
+			return err
+		}
+
+		reserve, err := contracts.NewReserve(reserveAddress, cc.Eth)
+		if err != nil {
+			return err
+		}
+
 		stAddress, err := registry.GetAddressForString(opts, "StableToken")
 		if err == client.ErrContractNotDeployed || err == wrappers.ErrRegistryNotDeployed {
 			return nil
@@ -113,7 +138,14 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 			return err
 		}
 
-		if err := stableTokenStateViewCalls(ctx, logger, opts, stableToken); err != nil {
+		stableTokenProcessor := NewStableTokenProcessor(ctx, logger, stAddress, stableToken)
+		electionProcessor := NewElectionProcessor(ctx, logger, electionAddress, election)
+		stabilityProcessor := NewStabilityProcessor(ctx, logger, exchange, reserve)
+
+		if err := stableTokenProcessor.ObserveState(opts); err != nil {
+			return err
+		}
+		if err := stabilityProcessor.ObserveState(opts); err != nil {
 			return err
 		}
 
@@ -126,13 +158,15 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 			txLogger := getTxLogger(logger, receipt, header)
 			logTransaction(txLogger)
 			for _, eventLog := range receipt.Logs {
-				electionLogProcessor(ctx, txLogger, electionAddress, election, eventLog)
+				electionProcessor.HandleLog(eventLog)
 			}
 		}
 
 		if err := dbWriter.ApplyChanges(ctx, h.Number); err != nil {
 			return err
 		}
+
+		metrics.LastBlockProcessed.Set(float64(h.Number.Int64()))
 	}
 }
 

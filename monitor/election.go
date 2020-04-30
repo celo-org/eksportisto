@@ -9,10 +9,30 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 )
 
-func electionLogProcessor(ctx context.Context, logger log.Logger, electionAddress common.Address, election *contracts.Election, eventLog *types.Log) {
-	logger = logger.New("contract", "Election")
-	if eventLog.Address == electionAddress {
-		eventName, eventRaw, ok, err := election.TryParseLog(*eventLog)
+type electionProcessor struct {
+	ctx             context.Context
+	logger          log.Logger
+	electionAddress common.Address
+	election        *contracts.Election
+}
+
+func NewElectionProcessor(ctx context.Context, logger log.Logger, electionAddress common.Address, election *contracts.Election) *electionProcessor {
+	return &electionProcessor{
+		ctx:             ctx,
+		logger:          logger,
+		electionAddress: electionAddress,
+		election:        election,
+	}
+}
+
+func (p electionProcessor) ObserveState() {
+	return
+}
+
+func (p electionProcessor) HandleLog(eventLog *types.Log) {
+	logger := p.logger.New("contract", "Election")
+	if eventLog.Address == p.electionAddress {
+		eventName, eventRaw, ok, err := p.election.TryParseLog(*eventLog)
 		if err != nil {
 			logger.Warn("Ignoring event: Error parsing election event", "err", err, "eventId", eventLog.Topics[0].Hex())
 			return
