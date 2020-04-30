@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 
 	"github.com/celo-org/eksportisto/db"
-	"github.com/celo-org/eksportisto/metrics"
 	"github.com/celo-org/kliento/client"
 	"github.com/celo-org/kliento/contracts"
 	kliento_mon "github.com/celo-org/kliento/monitor"
@@ -23,7 +22,7 @@ type Config struct {
 }
 
 func Start(ctx context.Context, cfg *Config) error {
-	handler := log.StreamHandler(os.Stdout, log.JSONFormat())
+	handler := log.LvlFilterHandler(log.LvlInfo, log.StreamHandler(os.Stdout, log.JSONFormat()))
 	logger := log.New()
 	logger.SetHandler(handler)
 	cc, err := client.Dial(cfg.NodeUri)
@@ -45,28 +44,23 @@ func Start(ctx context.Context, cfg *Config) error {
 	return g.Wait()
 }
 
-func stableTokenProcessor(ctx context.Context, cc *client.CeloClient, logger log.Logger, opts *bind.CallOpts, registry *wrappers.RegistryWrapper) error {
-	stAddress, err := registry.GetAddressForString(opts, "StableToken")
-	if err == client.ErrContractNotDeployed || err == wrappers.ErrRegistryNotDeployed {
-		return nil
-	} else if err != nil {
-		return err
-	}
+// func getElectionAddrAndContract(cc *client.CeloClient, opts *bind.CallOpts, registry *wrappers.RegistryWrapper) (common.Address, contracts.Election, error) {
+// 	electionAddress, err := registry.GetAddressForString(opts, "Election")
+// 	if err == client.ErrContractNotDeployed || err == wrappers.ErrRegistryNotDeployed {
+// 		return nil, nil, nil
+// 	} else if err != nil {
+// 		return nil, nil, err
+// 	}
 
-	stableToken, err := contracts.NewStableToken(stAddress, cc.Eth)
-	if err != nil {
-		return err
-	}
+// 	election, err := contracts.NewElection(electionAddress, cc.Eth)
+// 	if err != nil {
+// 		return nil, nil, err
+// 	}
 
-	totalSupply, err := stableToken.TotalSupply(opts)
-	logger.Info("StateView", "totalSupply", totalSupply)
-	metrics.TotalCUSDSupply.Observe(float64(totalSupply.Uint64()))
-	return nil
-}
+// 	return electionAddress, election, nil
+// }
 
 func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *client.CeloClient, logger log.Logger, dbWriter db.RosettaDBWriter) error {
-	logger = logger.New("pipe", "processor")
-
 	registry, err := wrappers.NewRegistry(cc)
 	if err != nil {
 		return err
@@ -81,15 +75,59 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 		case h = <-headers:
 		}
 
-		logger.Info("BlockHeader", "number", h.Number)
+		logHeader(logger, h)
 
 		opts := &bind.CallOpts{
 			BlockNumber: h.Number,
 			Context:     ctx,
 		}
 
-		if err := stableTokenProcessor(ctx, cc, logger, opts, registry); err != nil {
+		header, err := cc.Eth.HeaderAndTxnHashesByHash(ctx, h.Hash())
+		if err != nil {
 			return err
+		}
+
+		// Todo: Use Rosetta's db to detect election contract address changes mid block
+		// Todo: Right now this assumes that the only interesting events happen after all the core contracts are available
+		electionAddress, err := registry.GetAddressForString(opts, "Election")
+		if err == client.ErrContractNotDeployed || err == wrappers.ErrRegistryNotDeployed {
+			return nil
+		} else if err != nil {
+			return err
+		}
+
+		election, err := contracts.NewElection(electionAddress, cc.Eth)
+		if err != nil {
+			return err
+		}
+
+		stAddress, err := registry.GetAddressForString(opts, "StableToken")
+		if err == client.ErrContractNotDeployed || err == wrappers.ErrRegistryNotDeployed {
+			return nil
+		} else if err != nil {
+			return err
+		}
+
+		stableToken, err := contracts.NewStableToken(stAddress, cc.Eth)
+		if err != nil {
+			return err
+		}
+
+		if err := stableTokenStateViewCalls(ctx, logger, opts, stableToken); err != nil {
+			return err
+		}
+
+		for _, txHash := range header.Transactions {
+			receipt, err := cc.Eth.TransactionReceipt(ctx, txHash)
+			if err != nil {
+				return err
+			}
+
+			txLogger := getTxLogger(logger, receipt, header)
+			logTransaction(txLogger)
+			for _, eventLog := range receipt.Logs {
+				electionLogProcessor(ctx, txLogger, electionAddress, election, eventLog)
+			}
 		}
 
 		if err := dbWriter.ApplyChanges(ctx, h.Number); err != nil {
