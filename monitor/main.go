@@ -2,14 +2,15 @@ package monitor
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
+	"os"
+	"os/user"
+	"path/filepath"
 
+	"github.com/celo-org/eksportisto/db"
 	"github.com/celo-org/eksportisto/metrics"
 	"github.com/celo-org/kliento/client"
 	"github.com/celo-org/kliento/contracts"
 	kliento_mon "github.com/celo-org/kliento/monitor"
-	"github.com/celo-org/kliento/utils/bn"
 	"github.com/celo-org/kliento/wrappers"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -22,22 +23,29 @@ type Config struct {
 }
 
 func Start(ctx context.Context, cfg *Config) error {
-	logger := log.New("module", "monitor")
+	handler := log.StreamHandler(os.Stdout, log.JSONFormat())
+	logger := log.New()
+	logger.SetHandler(handler)
 	cc, err := client.Dial(cfg.NodeUri)
 	if err != nil {
 		return err
 	}
 
+	// Todo: Make this configurable
+	datadir := filepath.Join(homeDir(), ".eksportisto")
+	sqlitePath := filepath.Join(datadir, "state.db")
+	store, err := db.NewSqliteDb(sqlitePath)
+	startBlock, err := store.LastPersistedBlock(ctx)
+
 	headers := make(chan *types.Header, 10)
 
-	logger.Info("Starting monitor")
 	g, ctx := errgroup.WithContext(ctx)
-	g.Go(func() error { return kliento_mon.HeaderListener(ctx, headers, cc, logger, bn.Big1) })
-	g.Go(func() error { return blockProcessor(ctx, headers, cc, logger) })
+	g.Go(func() error { return kliento_mon.HeaderListener(ctx, headers, cc, logger, startBlock) })
+	g.Go(func() error { return blockProcessor(ctx, headers, cc, logger, store) })
 	return g.Wait()
 }
 
-func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *client.CeloClient, logger log.Logger) error {
+func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *client.CeloClient, logger log.Logger, dbWriter db.RosettaDBWriter) error {
 	logger = logger.New("pipe", "processor")
 
 	registry, err := wrappers.NewRegistry(cc)
@@ -54,13 +62,8 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 		case h = <-headers:
 		}
 
-		logger.Info("Got new header")
+		logger.Info("BlockHeader", "number", h.Number)
 
-		marshalledHeader, err := json.Marshal(h)
-		if err != nil {
-			return err
-		}
-		fmt.Println(string(marshalledHeader))
 		opts := &bind.CallOpts{
 			BlockNumber: h.Number,
 			Context:     ctx,
@@ -79,7 +82,21 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 		}
 
 		totalSupply, err := stableToken.TotalSupply(opts)
+		logger.Info("t", "t", totalSupply)
 		metrics.TotalCUSDSupply.Observe(float64(totalSupply.Uint64()))
 
+		if err := dbWriter.ApplyChanges(ctx, h.Number); err != nil {
+			return err
+		}
 	}
+}
+
+func homeDir() string {
+	if home := os.Getenv("HOME"); home != "" {
+		return home
+	}
+	if usr, err := user.Current(); err == nil {
+		return usr.HomeDir
+	}
+	return ""
 }

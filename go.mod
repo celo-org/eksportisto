@@ -9,6 +9,8 @@ require (
 	github.com/felixge/httpsnoop v1.0.1
 	github.com/google/addlicense v0.0.0-20200422172452-68a83edd47bc // indirect
 	github.com/gorilla/mux v1.7.4
+	github.com/mattn/go-sqlite3 v2.0.3+incompatible
+	github.com/onsi/gomega v1.9.0
 	github.com/prometheus/client_golang v1.5.1
 	github.com/stretchr/testify v1.5.1 // indirect
 	golang.org/x/sync v0.0.0-20200317015054-43a5402ce75a
