@@ -54,7 +54,6 @@ func Start(ctx context.Context, cfg *Config) error {
 // 	} else if err != nil {
 // 		return nil, nil, err
 // 	}
-
 // 	election, err := contracts.NewElection(electionAddress, cc.Eth)
 // 	if err != nil {
 // 		return nil, nil, err
