@@ -51,6 +51,11 @@ func (p stabilityProcessor) ObserveState(opts *bind.CallOpts) error {
 
 	logStateViewCall(p.logger, "contract", "Reserve", "method", "getUnfrozenReserveGoldBalance", "vaule", goldBucketSize)
 
+	// If the unfrozen balance is 0, ignore for now
+	if unfrozenReserveGoldBalance.Cmp(big.NewInt(0)) == 0 {
+		return nil
+	}
+
 	res := big.Float{}
 	res.Quo(new(big.Float).SetInt(goldBucketSize), new(big.Float).SetInt(unfrozenReserveGoldBalance))
 

@@ -2,9 +2,11 @@ package monitor
 
 import (
 	"context"
+	"math/big"
 	"os"
 	"os/user"
 	"path/filepath"
+	"time"
 
 	"github.com/celo-org/eksportisto/db"
 	"github.com/celo-org/eksportisto/metrics"
@@ -78,6 +80,8 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 
 		logHeader(logger, h)
 
+		logger = logger.New("blockTimestamp", time.Unix(int64(h.Time), 0).Format(time.RFC3339), "blockNumber", h.Number)
+
 		opts := &bind.CallOpts{
 			BlockNumber: h.Number,
 			Context:     ctx,
@@ -92,7 +96,7 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 		// Todo: Right now this assumes that the only interesting events happen after all the core contracts are available
 		electionAddress, err := registry.GetAddressForString(opts, "Election")
 		if err == client.ErrContractNotDeployed || err == wrappers.ErrRegistryNotDeployed {
-			return nil
+			continue
 		} else if err != nil {
 			return err
 		}
@@ -104,7 +108,7 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 
 		exchangeAddress, err := registry.GetAddressForString(opts, "Exchange")
 		if err == client.ErrContractNotDeployed || err == wrappers.ErrRegistryNotDeployed {
-			return nil
+			continue
 		} else if err != nil {
 			return err
 		}
@@ -116,7 +120,7 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 
 		reserveAddress, err := registry.GetAddressForString(opts, "Reserve")
 		if err == client.ErrContractNotDeployed || err == wrappers.ErrRegistryNotDeployed {
-			return nil
+			continue
 		} else if err != nil {
 			return err
 		}
@@ -126,9 +130,21 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 			return err
 		}
 
+		governanceAddress, err := registry.GetAddressForString(opts, "Governance")
+		if err == client.ErrContractNotDeployed || err == wrappers.ErrRegistryNotDeployed {
+			continue
+		} else if err != nil {
+			return err
+		}
+
+		governance, err := contracts.NewGovernance(governanceAddress, cc.Eth)
+		if err != nil {
+			return err
+		}
+
 		stAddress, err := registry.GetAddressForString(opts, "StableToken")
 		if err == client.ErrContractNotDeployed || err == wrappers.ErrRegistryNotDeployed {
-			return nil
+			continue
 		} else if err != nil {
 			return err
 		}
@@ -138,16 +154,17 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 			return err
 		}
 
-		stableTokenProcessor := NewStableTokenProcessor(ctx, logger, stAddress, stableToken)
+		_ = NewStableTokenProcessor(ctx, logger, stAddress, stableToken)
 		electionProcessor := NewElectionProcessor(ctx, logger, electionAddress, election)
-		stabilityProcessor := NewStabilityProcessor(ctx, logger, exchange, reserve)
+		governanceProcessor := NewGovernanceProcessor(ctx, logger, governanceAddress, governance)
+		_ = NewStabilityProcessor(ctx, logger, exchange, reserve)
 
-		if err := stableTokenProcessor.ObserveState(opts); err != nil {
-			return err
-		}
-		if err := stabilityProcessor.ObserveState(opts); err != nil {
-			return err
-		}
+		// if err := stableTokenProcessor.ObserveState(opts); err != nil {
+		// 	return err
+		// }
+		// if err := stabilityProcessor.ObserveState(opts); err != nil {
+		// 	return err
+		// }
 
 		for _, txHash := range header.Transactions {
 			receipt, err := cc.Eth.TransactionReceipt(ctx, txHash)
@@ -159,6 +176,7 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 			logTransaction(txLogger)
 			for _, eventLog := range receipt.Logs {
 				electionProcessor.HandleLog(eventLog)
+				governanceProcessor.HandleLog(eventLog)
 			}
 		}
 

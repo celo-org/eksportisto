@@ -19,7 +19,7 @@ func logHeader(logger log.Logger, header *types.Header) {
 }
 
 func logTransaction(logger log.Logger) {
-	logger.Info("RECEIVED_TRANSACTION")
+	logger.Debug("RECEIVED_TRANSACTION")
 }
 
 func logStateViewCall(logger log.Logger, params ...interface{}) {
