@@ -2,7 +2,6 @@ package monitor
 
 import (
 	"context"
-	"math/big"
 	"os"
 	"os/user"
 	"path/filepath"
@@ -15,6 +14,7 @@ import (
 	kliento_mon "github.com/celo-org/kliento/monitor"
 	"github.com/celo-org/kliento/wrappers"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/log"
 	"golang.org/x/sync/errgroup"
@@ -69,6 +69,21 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 		return err
 	}
 
+	var election *contracts.Election
+	var electionAddress common.Address
+
+	var governance *contracts.Governance
+	var governanceAddress common.Address
+
+	var stableToken *contracts.StableToken
+	var stableTokenAddress common.Address
+
+	var reserve *contracts.Reserve
+	var reserveAddress common.Address
+
+	var exchange *contracts.Exchange
+	var exchangeAddress common.Address
+
 	var h *types.Header
 
 	for {
@@ -94,67 +109,78 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 
 		// Todo: Use Rosetta's db to detect election contract address changes mid block
 		// Todo: Right now this assumes that the only interesting events happen after all the core contracts are available
-		electionAddress, err := registry.GetAddressForString(opts, "Election")
-		if err == client.ErrContractNotDeployed || err == wrappers.ErrRegistryNotDeployed {
-			continue
-		} else if err != nil {
-			return err
+		// Todo: Right now we  are assuming that core contract addresses do not change which allows us to avoid having to check the registry
+		if (electionAddress == common.Address{}) {
+			electionAddress, err = registry.GetAddressForString(opts, "Election")
+			if err == client.ErrContractNotDeployed || err == wrappers.ErrRegistryNotDeployed {
+				continue
+			} else if err != nil {
+				return err
+			}
+
+			election, err = contracts.NewElection(electionAddress, cc.Eth)
+			if err != nil {
+				return err
+			}
 		}
 
-		election, err := contracts.NewElection(electionAddress, cc.Eth)
-		if err != nil {
-			return err
+		if (exchangeAddress == common.Address{}) {
+			exchangeAddress, err = registry.GetAddressForString(opts, "Exchange")
+			if err == client.ErrContractNotDeployed || err == wrappers.ErrRegistryNotDeployed {
+				continue
+			} else if err != nil {
+				return err
+			}
+
+			exchange, err = contracts.NewExchange(exchangeAddress, cc.Eth)
+			if err != nil {
+				return err
+			}
 		}
 
-		exchangeAddress, err := registry.GetAddressForString(opts, "Exchange")
-		if err == client.ErrContractNotDeployed || err == wrappers.ErrRegistryNotDeployed {
-			continue
-		} else if err != nil {
-			return err
+		if (reserveAddress == common.Address{}) {
+			reserveAddress, err = registry.GetAddressForString(opts, "Reserve")
+			if err == client.ErrContractNotDeployed || err == wrappers.ErrRegistryNotDeployed {
+				continue
+			} else if err != nil {
+				return err
+			}
+			reserve, err = contracts.NewReserve(reserveAddress, cc.Eth)
+
+			if err != nil {
+				return err
+			}
 		}
 
-		exchange, err := contracts.NewExchange(exchangeAddress, cc.Eth)
-		if err != nil {
-			return err
+		if (stableTokenAddress == common.Address{}) {
+			stableTokenAddress, err = registry.GetAddressForString(opts, "StableToken")
+			if err == client.ErrContractNotDeployed || err == wrappers.ErrRegistryNotDeployed {
+				continue
+			} else if err != nil {
+				return err
+			}
+
+			stableToken, err = contracts.NewStableToken(stableTokenAddress, cc.Eth)
+			if err != nil {
+				return err
+			}
 		}
 
-		reserveAddress, err := registry.GetAddressForString(opts, "Reserve")
-		if err == client.ErrContractNotDeployed || err == wrappers.ErrRegistryNotDeployed {
-			continue
-		} else if err != nil {
-			return err
+		if (governanceAddress == common.Address{}) {
+			governanceAddress, err = registry.GetAddressForString(opts, "Governance")
+			if err == client.ErrContractNotDeployed || err == wrappers.ErrRegistryNotDeployed {
+				continue
+			} else if err != nil {
+				return err
+			}
+
+			governance, err = contracts.NewGovernance(governanceAddress, cc.Eth)
+			if err != nil {
+				return err
+			}
 		}
 
-		reserve, err := contracts.NewReserve(reserveAddress, cc.Eth)
-		if err != nil {
-			return err
-		}
-
-		governanceAddress, err := registry.GetAddressForString(opts, "Governance")
-		if err == client.ErrContractNotDeployed || err == wrappers.ErrRegistryNotDeployed {
-			continue
-		} else if err != nil {
-			return err
-		}
-
-		governance, err := contracts.NewGovernance(governanceAddress, cc.Eth)
-		if err != nil {
-			return err
-		}
-
-		stAddress, err := registry.GetAddressForString(opts, "StableToken")
-		if err == client.ErrContractNotDeployed || err == wrappers.ErrRegistryNotDeployed {
-			continue
-		} else if err != nil {
-			return err
-		}
-
-		stableToken, err := contracts.NewStableToken(stAddress, cc.Eth)
-		if err != nil {
-			return err
-		}
-
-		_ = NewStableTokenProcessor(ctx, logger, stAddress, stableToken)
+		_ = NewStableTokenProcessor(ctx, logger, stableTokenAddress, stableToken)
 		electionProcessor := NewElectionProcessor(ctx, logger, electionAddress, election)
 		governanceProcessor := NewGovernanceProcessor(ctx, logger, governanceAddress, governance)
 		_ = NewStabilityProcessor(ctx, logger, exchange, reserve)
