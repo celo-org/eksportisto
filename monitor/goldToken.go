@@ -27,7 +27,6 @@ func NewGoldTokenProcessor(ctx context.Context, logger log.Logger, goldTokenAddr
 }
 
 func (p goldTokenProcessor) ObserveState(opts *bind.CallOpts) error {
-	// Not super important right now
 	logger := p.logger.New("contract", "GoldToken")
 
 	totalSupply, err := p.goldToken.TotalSupply(opts)
@@ -35,8 +34,7 @@ func (p goldTokenProcessor) ObserveState(opts *bind.CallOpts) error {
 		return err
 	}
 
-	// metrics.TotalCUSDSupply.Observe(float64(totalSupply.Uint64()))
-	logStateViewCall(logger, "method", "totalSupply", "totalSupply", totalSupply)
+	logStateViewCall(logger, "method", "totalSupply", "totalSupply", totalSupply.Uint64())
 
 	return nil
 }

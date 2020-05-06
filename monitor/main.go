@@ -9,6 +9,7 @@ import (
 
 	"github.com/celo-org/eksportisto/db"
 	"github.com/celo-org/eksportisto/metrics"
+	"github.com/celo-org/eksportisto/utils"
 	"github.com/celo-org/kliento/client"
 	"github.com/celo-org/kliento/contracts"
 	kliento_mon "github.com/celo-org/kliento/monitor"
@@ -23,6 +24,8 @@ import (
 type Config struct {
 	NodeUri string
 }
+
+var EpochSize = uint64(17280)
 
 func Start(ctx context.Context, cfg *Config) error {
 	handler := log.LvlFilterHandler(log.LvlInfo, log.StreamHandler(os.Stdout, log.JSONFormat()))
@@ -46,21 +49,6 @@ func Start(ctx context.Context, cfg *Config) error {
 	g.Go(func() error { return blockProcessor(ctx, headers, cc, logger, store) })
 	return g.Wait()
 }
-
-// func getElectionAddrAndContract(cc *client.CeloClient, opts *bind.CallOpts, registry *wrappers.RegistryWrapper) (common.Address, contracts.Election, error) {
-// 	electionAddress, err := registry.GetAddressForString(opts, "Election")
-// 	if err == client.ErrContractNotDeployed || err == wrappers.ErrRegistryNotDeployed {
-// 		return nil, nil, nil
-// 	} else if err != nil {
-// 		return nil, nil, err
-// 	}
-// 	election, err := contracts.NewElection(electionAddress, cc.Eth)
-// 	if err != nil {
-// 		return nil, nil, err
-// 	}
-
-// 	return electionAddress, election, nil
-// }
 
 func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *client.CeloClient, logger log.Logger, dbWriter db.RosettaDBWriter) error {
 	registry, err := wrappers.NewRegistry(cc)
@@ -93,6 +81,7 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 	var stableTokenAddress common.Address
 
 	var h *types.Header
+	var lastBlockOfEpoch bool
 
 	for {
 		select {
@@ -103,6 +92,10 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 		logHeader(logger, h)
 
 		logger = logger.New("blockTimestamp", time.Unix(int64(h.Time), 0).Format(time.RFC3339), "blockNumber", h.Number)
+		chainParams := utils.ChainParameters{
+			EpochSize: EpochSize,
+		}
+		lastBlockOfEpoch = chainParams.IsLastBlockOfEpoch(h.Number.Uint64())
 
 		opts := &bind.CallOpts{
 			BlockNumber: h.Number,
@@ -237,7 +230,11 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 		stabilityProcessor := NewStabilityProcessor(ctx, logger, exchange, reserve)
 		stableTokenProcessor := NewStableTokenProcessor(ctx, logger, stableTokenAddress, stableToken)
 
-		if err := electionProcessor.ObserveState(opts); err != nil {
+		if err := electionProcessor.ObserveState(opts, lastBlockOfEpoch); err != nil {
+			return err
+		}
+
+		if err := epochRewardsProcessor.ObserveState(opts, lastBlockOfEpoch); err != nil {
 			return err
 		}
 

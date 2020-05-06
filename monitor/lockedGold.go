@@ -35,7 +35,7 @@ func (p lockedGoldProcessor) ObserveState(opts *bind.CallOpts) error {
 		return err
 	}
 
-	logStateViewCall(logger, "method", "getNonvotingLockedGold", "totalNonvoting", totalNonvoting)
+	logStateViewCall(logger, "method", "getNonvotingLockedGold", "totalNonvoting", totalNonvoting.Uint64())
 
 	// LockedGold.getTotalLockedGold
 	totalLockedGold, err := p.lockedGold.GetTotalLockedGold(opts)
@@ -43,7 +43,7 @@ func (p lockedGoldProcessor) ObserveState(opts *bind.CallOpts) error {
 		return err
 	}
 
-	logStateViewCall(logger, "method", "getTotalLockedGold", "totalLockedGold", totalLockedGold)
+	logStateViewCall(logger, "method", "getTotalLockedGold", "totalLockedGold", totalLockedGold.Uint64())
 
 	return nil
 }

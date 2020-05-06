@@ -26,7 +26,7 @@ func NewElectionProcessor(ctx context.Context, logger log.Logger, electionAddres
 	}
 }
 
-func (p electionProcessor) ObserveState(opts *bind.CallOpts) error {
+func (p electionProcessor) ObserveState(opts *bind.CallOpts, lastBlockOfEpoch bool) error {
 	logger := p.logger.New("contract", "Election")
 
 	// Election.getActiveVotes
@@ -35,7 +35,7 @@ func (p electionProcessor) ObserveState(opts *bind.CallOpts) error {
 		return err
 	}
 
-	logStateViewCall(logger, "method", "getActiveVotes", "activeVotes", activeVotes)
+	logStateViewCall(logger, "method", "getActiveVotes", "activeVotes", activeVotes.Uint64())
 
 	// Election.getTotalVotes
 	totalVotes, err := p.election.GetTotalVotes(opts)
@@ -43,9 +43,10 @@ func (p electionProcessor) ObserveState(opts *bind.CallOpts) error {
 		return err
 	}
 
-	logStateViewCall(logger, "method", "getTotalVotes", "totalVotes", totalVotes)
+	logStateViewCall(logger, "method", "getTotalVotes", "totalVotes", totalVotes.Uint64())
 
 	// Election.getTotalVotesForEligibleValidatorGroups
+	// TODO: outputs 2 arrays ([address],[votes])
 	totalVotesForEligibleValidatorGroups, err := p.election.GetTotalVotesForEligibleValidatorGroups(opts)
 	if err != nil {
 		return err
@@ -53,6 +54,26 @@ func (p electionProcessor) ObserveState(opts *bind.CallOpts) error {
 
 	logStateViewCall(logger, "method", "getTotalVotesForEligibleValidatorGroups", "totalVotesForEligibleValidatorGroups", totalVotesForEligibleValidatorGroups)
 
+	if lastBlockOfEpoch {
+		// Election.getElectableValidators
+		electableValidatorsMin, electableValidatorsMax, err := p.election.GetElectableValidators(opts)
+		if err != nil {
+			return err
+		}
+
+		logStateViewCall(logger, "method", "getElectableValidators", "electableValidatorsMin", electableValidatorsMin.Uint64())
+		logStateViewCall(logger, "method", "getElectableValidators", "electableValidatorsMax", electableValidatorsMax.Uint64())
+
+		// Election.getEligibleValidatorGroups
+		// TODO: outputs an array of addresses
+		eligibleValidatorGroups, err := p.election.GetEligibleValidatorGroups(opts)
+		if err != nil {
+			return err
+		}
+
+		logStateViewCall(logger, "method", "getEligibleValidatorGroups", "eligibleValidatorGroups", eligibleValidatorGroups)
+
+	}
 	return nil
 }
 
