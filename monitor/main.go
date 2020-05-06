@@ -71,17 +71,26 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 	var election *contracts.Election
 	var electionAddress common.Address
 
+	var epochRewards *contracts.EpochRewards
+	var epochRewardsAddress common.Address
+
+	var exchange *contracts.Exchange
+	var exchangeAddress common.Address
+
+	var goldToken *contracts.GoldToken
+	var goldTokenAddress common.Address
+
 	var governance *contracts.Governance
 	var governanceAddress common.Address
 
-	var stableToken *contracts.StableToken
-	var stableTokenAddress common.Address
+	var lockedGold *contracts.LockedGold
+	var lockedGoldAddress common.Address
 
 	var reserve *contracts.Reserve
 	var reserveAddress common.Address
 
-	var exchange *contracts.Exchange
-	var exchangeAddress common.Address
+	var stableToken *contracts.StableToken
+	var stableTokenAddress common.Address
 
 	var h *types.Header
 
@@ -91,7 +100,6 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 			return ctx.Err()
 		case h = <-headers:
 		}
-
 		logHeader(logger, h)
 
 		logger = logger.New("blockTimestamp", time.Unix(int64(h.Time), 0).Format(time.RFC3339), "blockNumber", h.Number)
@@ -123,6 +131,20 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 			}
 		}
 
+		if (epochRewardsAddress == common.Address{}) {
+			epochRewardsAddress, err = registry.GetAddressForString(opts, "EpochRewards")
+			if err == client.ErrContractNotDeployed || err == wrappers.ErrRegistryNotDeployed {
+				continue
+			} else if err != nil {
+				return err
+			}
+
+			epochRewards, err = contracts.NewEpochRewards(epochRewardsAddress, cc.Eth)
+			if err != nil {
+				return err
+			}
+		}
+
 		if (exchangeAddress == common.Address{}) {
 			exchangeAddress, err = registry.GetAddressForString(opts, "Exchange")
 			if err == client.ErrContractNotDeployed || err == wrappers.ErrRegistryNotDeployed {
@@ -132,6 +154,48 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 			}
 
 			exchange, err = contracts.NewExchange(exchangeAddress, cc.Eth)
+			if err != nil {
+				return err
+			}
+		}
+
+		if (goldTokenAddress == common.Address{}) {
+			goldTokenAddress, err = registry.GetAddressForString(opts, "GoldToken")
+			if err == client.ErrContractNotDeployed || err == wrappers.ErrRegistryNotDeployed {
+				continue
+			} else if err != nil {
+				return err
+			}
+
+			goldToken, err = contracts.NewGoldToken(goldTokenAddress, cc.Eth)
+			if err != nil {
+				return err
+			}
+		}
+
+		if (governanceAddress == common.Address{}) {
+			governanceAddress, err = registry.GetAddressForString(opts, "Governance")
+			if err == client.ErrContractNotDeployed || err == wrappers.ErrRegistryNotDeployed {
+				continue
+			} else if err != nil {
+				return err
+			}
+
+			governance, err = contracts.NewGovernance(governanceAddress, cc.Eth)
+			if err != nil {
+				return err
+			}
+		}
+
+		if (lockedGoldAddress == common.Address{}) {
+			lockedGoldAddress, err = registry.GetAddressForString(opts, "LockedGold")
+			if err == client.ErrContractNotDeployed || err == wrappers.ErrRegistryNotDeployed {
+				continue
+			} else if err != nil {
+				return err
+			}
+			lockedGold, err = contracts.NewLockedGold(lockedGoldAddress, cc.Eth)
+
 			if err != nil {
 				return err
 			}
@@ -165,31 +229,33 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 			}
 		}
 
-		if (governanceAddress == common.Address{}) {
-			governanceAddress, err = registry.GetAddressForString(opts, "Governance")
-			if err == client.ErrContractNotDeployed || err == wrappers.ErrRegistryNotDeployed {
-				continue
-			} else if err != nil {
-				return err
-			}
+		electionProcessor := NewElectionProcessor(ctx, logger, electionAddress, election)
+		epochRewardsProcessor := NewEpochRewardsProcessor(ctx, logger, epochRewardsAddress, epochRewards)
+		goldTokenProcessor := NewGoldTokenProcessor(ctx, logger, goldTokenAddress, goldToken)
+		governanceProcessor := NewGovernanceProcessor(ctx, logger, governanceAddress, governance)
+		lockedGoldProcessor := NewLockedGoldProcessor(ctx, logger, lockedGoldAddress, lockedGold)
+		stabilityProcessor := NewStabilityProcessor(ctx, logger, exchange, reserve)
+		stableTokenProcessor := NewStableTokenProcessor(ctx, logger, stableTokenAddress, stableToken)
 
-			governance, err = contracts.NewGovernance(governanceAddress, cc.Eth)
-			if err != nil {
-				return err
-			}
+		if err := electionProcessor.ObserveState(opts); err != nil {
+			return err
 		}
 
-		_ = NewStableTokenProcessor(ctx, logger, stableTokenAddress, stableToken)
-		electionProcessor := NewElectionProcessor(ctx, logger, electionAddress, election)
-		governanceProcessor := NewGovernanceProcessor(ctx, logger, governanceAddress, governance)
-		_ = NewStabilityProcessor(ctx, logger, exchange, reserve)
+		if err := goldTokenProcessor.ObserveState(opts); err != nil {
+			return err
+		}
 
-		// if err := stableTokenProcessor.ObserveState(opts); err != nil {
-		// 	return err
-		// }
-		// if err := stabilityProcessor.ObserveState(opts); err != nil {
-		// 	return err
-		// }
+		if err := lockedGoldProcessor.ObserveState(opts); err != nil {
+			return err
+		}
+
+		if err := stableTokenProcessor.ObserveState(opts); err != nil {
+			return err
+		}
+
+		if err := stabilityProcessor.ObserveState(opts); err != nil {
+			return err
+		}
 
 		for _, txHash := range header.Transactions {
 			receipt, err := cc.Eth.TransactionReceipt(ctx, txHash)
@@ -201,6 +267,7 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 			logTransaction(txLogger)
 			for _, eventLog := range receipt.Logs {
 				electionProcessor.HandleLog(eventLog)
+				epochRewardsProcessor.HandleLog(eventLog)
 				governanceProcessor.HandleLog(eventLog)
 			}
 		}
