@@ -91,7 +91,7 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 		}
 		logHeader(logger, h)
 
-		logger = logger.New("blockTimestamp", time.Unix(int64(h.Time), 0).Format(time.RFC3339), "blockNumber", h.Number)
+		logger = logger.New("blockTimestamp", time.Unix(int64(h.Time), 0).Format(time.RFC3339), "blockNumber", h.Number.Uint64())
 		chainParams := utils.ChainParameters{
 			EpochSize: EpochSize,
 		}

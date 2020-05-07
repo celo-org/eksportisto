@@ -36,7 +36,7 @@ func (p epochRewardsProcessor) ObserveState(opts *bind.CallOpts, lastBlockOfEpoc
 			return err
 		}
 
-		logStateViewCall(logger, "method", "getTargetGoldTotalSupply", "targetGoldTotalSupply", targetGoldTotalSupply.Uint64())
+		logStateViewCall(logger, "method", "getTargetGoldTotalSupply", "targetGoldTotalSupply", targetGoldTotalSupply)
 
 		// EpochRewards.getTargetVoterRewards
 		targetVoterRewards, err := p.epochRewards.GetTargetVoterRewards(opts)
@@ -44,7 +44,7 @@ func (p epochRewardsProcessor) ObserveState(opts *bind.CallOpts, lastBlockOfEpoc
 			return err
 		}
 
-		logStateViewCall(logger, "method", "getTargetVoterRewards", "targetVoterRewards", targetVoterRewards.Uint64())
+		logStateViewCall(logger, "method", "getTargetVoterRewards", "targetVoterRewards", targetVoterRewards)
 
 		// EpochRewards.getRewardsMultiplier
 		rewardsMultiplier, err := p.epochRewards.GetRewardsMultiplier(opts)
@@ -55,23 +55,25 @@ func (p epochRewardsProcessor) ObserveState(opts *bind.CallOpts, lastBlockOfEpoc
 		logStateViewCall(logger, "method", "getRewardsMultiplier", "rewardsMultiplier", rewardsMultiplier.Uint64())
 
 		// EpochRewards.getVotingGoldFraction
-		votingGoldFraction, err := p.epochRewards.GetVotingGoldFraction(opts)
+		_, err = p.epochRewards.GetVotingGoldFraction(opts)
 		if err != nil {
 			return err
 		}
 
-		logStateViewCall(logger, "method", "getVotingGoldFraction", "votingGoldFraction", votingGoldFraction.Uint64())
+		// Todo: This is a fraction and therefore not actually a uint
+		// logStateViewCall(logger, "method", "getVotingGoldFraction", "votingGoldFraction", votingGoldFraction.Uint64())
 
+		// TODO: this is actually all fractions and thus not very useful to log
 		// EpochRewards.calculateTargetEpochRewards
-		validatorTargetEpochRewards, voterTargetEpochRewards, communityTargetEpochRewards, carbonOffsettingTargetEpochRewards, err := p.epochRewards.CalculateTargetEpochRewards(opts)
+		_, _, _, _, err = p.epochRewards.CalculateTargetEpochRewards(opts)
 		if err != nil {
 			return err
 		}
 
-		logStateViewCall(logger, "method", "calculateTargetEpochRewards", "validatorTargetEpochRewards", validatorTargetEpochRewards.Uint64())
-		logStateViewCall(logger, "method", "calculateTargetEpochRewards", "voterTargetEpochRewards", voterTargetEpochRewards.Uint64())
-		logStateViewCall(logger, "method", "calculateTargetEpochRewards", "communityTargetEpochRewards", communityTargetEpochRewards.Uint64())
-		logStateViewCall(logger, "method", "calculateTargetEpochRewards", "carbonOffsettingTargetEpochRewards", carbonOffsettingTargetEpochRewards.Uint64())
+		// logStateViewCall(logger, "method", "calculateTargetEpochRewards", "validatorTargetEpochRewards", validatorTargetEpochRewards.Uint64())
+		// logStateViewCall(logger, "method", "calculateTargetEpochRewards", "voterTargetEpochRewards", voterTargetEpochRewards.Uint64())
+		// logStateViewCall(logger, "method", "calculateTargetEpochRewards", "communityTargetEpochRewards", communityTargetEpochRewards.Uint64())
+		// logStateViewCall(logger, "method", "calculateTargetEpochRewards", "carbonOffsettingTargetEpochRewards", carbonOffsettingTargetEpochRewards.Uint64())
 	}
 	return nil
 }

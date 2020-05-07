@@ -35,7 +35,7 @@ func (p electionProcessor) ObserveState(opts *bind.CallOpts, lastBlockOfEpoch bo
 		return err
 	}
 
-	logStateViewCall(logger, "method", "getActiveVotes", "activeVotes", activeVotes.Uint64())
+	logStateViewCall(logger, "method", "getActiveVotes", "activeVotes", activeVotes)
 
 	// Election.getTotalVotes
 	totalVotes, err := p.election.GetTotalVotes(opts)
@@ -43,16 +43,7 @@ func (p electionProcessor) ObserveState(opts *bind.CallOpts, lastBlockOfEpoch bo
 		return err
 	}
 
-	logStateViewCall(logger, "method", "getTotalVotes", "totalVotes", totalVotes.Uint64())
-
-	// Election.getTotalVotesForEligibleValidatorGroups
-	// TODO: outputs 2 arrays ([address],[votes])
-	totalVotesForEligibleValidatorGroups, err := p.election.GetTotalVotesForEligibleValidatorGroups(opts)
-	if err != nil {
-		return err
-	}
-
-	logStateViewCall(logger, "method", "getTotalVotesForEligibleValidatorGroups", "totalVotesForEligibleValidatorGroups", totalVotesForEligibleValidatorGroups)
+	logStateViewCall(logger, "method", "getTotalVotes", "totalVotes", totalVotes)
 
 	if lastBlockOfEpoch {
 		// Election.getElectableValidators

@@ -36,7 +36,7 @@ func (p stableTokenProcessor) ObserveState(opts *bind.CallOpts) error {
 	}
 
 	// metrics.TotalCUSDSupply.Observe(float64(totalSupply.Uint64()))
-	logStateViewCall(logger, "method", "totalSupply", "totalSupply", totalSupply.Uint64())
+	logStateViewCall(logger, "method", "totalSupply", "totalSupply", totalSupply)
 
 	return nil
 }

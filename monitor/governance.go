@@ -44,25 +44,25 @@ func (p governanceProcessor) HandleLog(eventLog *types.Log) {
 		switch eventName {
 		case "ProposalVoted":
 			event := eventRaw.(*contracts.GovernanceProposalVoted)
-			logEventLog(logger, "eventName", eventName, "account", event.Account, "voteValue", event.Value, "weight", event.Weight, "proposalId", event.ProposalId)
+			logEventLog(logger, "eventName", eventName, "account", event.Account, "voteValue", event.Value, "weight", event.Weight, "proposalId", event.ProposalId.Uint64())
 		case "ProposalUpvoted":
 			event := eventRaw.(*contracts.GovernanceProposalUpvoted)
-			logEventLog(logger, "eventName", eventName, "account", event.Account, "upvotes", event.Upvotes, "proposalId", event.ProposalId)
+			logEventLog(logger, "eventName", eventName, "account", event.Account, "upvotes", event.Upvotes, "proposalId", event.ProposalId.Uint64())
 		case "ProposalApproved":
 			event := eventRaw.(*contracts.GovernanceProposalApproved)
-			logEventLog(logger, "eventName", eventName, "proposalId", event.ProposalId)
+			logEventLog(logger, "eventName", eventName, "proposalId", event.ProposalId.Uint64())
 		case "ProposalExecuted":
 			event := eventRaw.(*contracts.GovernanceProposalExecuted)
-			logEventLog(logger, "eventName", eventName, "proposalId", event.ProposalId)
+			logEventLog(logger, "eventName", eventName, "proposalId", event.ProposalId.Uint64())
 		case "ProposalDequeued":
 			event := eventRaw.(*contracts.GovernanceProposalDequeued)
-			logEventLog(logger, "eventName", eventName, "proposalId", event.ProposalId)
+			logEventLog(logger, "eventName", eventName, "proposalId", event.ProposalId.Uint64())
 		case "ProposalQueued":
 			event := eventRaw.(*contracts.GovernanceProposalQueued)
-			logEventLog(logger, "eventName", eventName, "proposalId", event.ProposalId)
+			logEventLog(logger, "eventName", eventName, "proposalId", event.ProposalId.Uint64())
 		case "ProposalExpired":
 			event := eventRaw.(*contracts.GovernanceProposalExpired)
-			logEventLog(logger, "eventName", eventName, "proposalId", event.ProposalId)
+			logEventLog(logger, "eventName", eventName, "proposalId", event.ProposalId.Uint64())
 		}
 
 	}

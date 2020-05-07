@@ -34,7 +34,7 @@ func (p goldTokenProcessor) ObserveState(opts *bind.CallOpts) error {
 		return err
 	}
 
-	logStateViewCall(logger, "method", "totalSupply", "totalSupply", totalSupply.Uint64())
+	logStateViewCall(logger, "method", "totalSupply", "totalSupply", totalSupply)
 
 	return nil
 }

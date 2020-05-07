@@ -23,5 +23,5 @@ func logTransaction(logger log.Logger) {
 }
 
 func logStateViewCall(logger log.Logger, params ...interface{}) {
-	logger.Debug("STATE_VIEW_CALL", params...)
+	logger.Info("STATE_VIEW_CALL", params...)
 }
