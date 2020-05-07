@@ -242,7 +242,7 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 			return err
 		}
 
-		if err := lockedGoldProcessor.ObserveState(opts); err != nil {
+		if err := lockedGoldProcessor.ObserveState(opts, lastBlockOfEpoch); err != nil {
 			return err
 		}
 
@@ -250,7 +250,7 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 			return err
 		}
 
-		if err := stabilityProcessor.ObserveState(opts); err != nil {
+		if err := stabilityProcessor.ObserveState(opts, lastBlockOfEpoch); err != nil {
 			return err
 		}
 

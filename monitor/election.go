@@ -29,23 +29,23 @@ func NewElectionProcessor(ctx context.Context, logger log.Logger, electionAddres
 func (p electionProcessor) ObserveState(opts *bind.CallOpts, lastBlockOfEpoch bool) error {
 	logger := p.logger.New("contract", "Election")
 
-	// Election.getActiveVotes
-	activeVotes, err := p.election.GetActiveVotes(opts)
-	if err != nil {
-		return err
-	}
-
-	logStateViewCall(logger, "method", "getActiveVotes", "activeVotes", activeVotes)
-
-	// Election.getTotalVotes
-	totalVotes, err := p.election.GetTotalVotes(opts)
-	if err != nil {
-		return err
-	}
-
-	logStateViewCall(logger, "method", "getTotalVotes", "totalVotes", totalVotes)
-
 	if lastBlockOfEpoch {
+		// Election.getActiveVotes
+		activeVotes, err := p.election.GetActiveVotes(opts)
+		if err != nil {
+			return err
+		}
+
+		logStateViewCall(logger, "method", "getActiveVotes", "activeVotes", activeVotes)
+
+		// Election.getTotalVotes
+		totalVotes, err := p.election.GetTotalVotes(opts)
+		if err != nil {
+			return err
+		}
+
+		logStateViewCall(logger, "method", "getTotalVotes", "totalVotes", totalVotes)
+
 		// Election.getElectableValidators
 		electableValidatorsMin, electableValidatorsMax, err := p.election.GetElectableValidators(opts)
 		if err != nil {
