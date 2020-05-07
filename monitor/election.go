@@ -57,12 +57,12 @@ func (p electionProcessor) ObserveState(opts *bind.CallOpts, lastBlockOfEpoch bo
 
 		// Election.getEligibleValidatorGroups
 		// TODO: outputs an array of addresses
-		eligibleValidatorGroups, err := p.election.GetEligibleValidatorGroups(opts)
-		if err != nil {
-			return err
-		}
+		// eligibleValidatorGroups, err := p.election.GetEligibleValidatorGroups(opts)
+		// if err != nil {
+		// 	return err
+		// }
 
-		logStateViewCall(logger, "method", "getEligibleValidatorGroups", "eligibleValidatorGroups", eligibleValidatorGroups)
+		// logStateViewCall(logger, "method", "getEligibleValidatorGroups", "eligibleValidatorGroups", eligibleValidatorGroups)
 
 	}
 	return nil

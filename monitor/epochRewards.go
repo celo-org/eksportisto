@@ -65,10 +65,10 @@ func (p epochRewardsProcessor) ObserveState(opts *bind.CallOpts, lastBlockOfEpoc
 
 		// TODO: this is actually all fractions and thus not very useful to log
 		// EpochRewards.calculateTargetEpochRewards
-		_, _, _, _, err = p.epochRewards.CalculateTargetEpochRewards(opts)
-		if err != nil {
-			return err
-		}
+		// _, _, _, _, err = p.epochRewards.CalculateTargetEpochRewards(opts)
+		// if err != nil {
+		// 	return err
+		// }
 
 		// logStateViewCall(logger, "method", "calculateTargetEpochRewards", "validatorTargetEpochRewards", validatorTargetEpochRewards.Uint64())
 		// logStateViewCall(logger, "method", "calculateTargetEpochRewards", "voterTargetEpochRewards", voterTargetEpochRewards.Uint64())
