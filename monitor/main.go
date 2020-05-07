@@ -26,6 +26,7 @@ type Config struct {
 }
 
 var EpochSize = uint64(17280)
+var BlocksPerHour = uint64(1200)
 
 func Start(ctx context.Context, cfg *Config) error {
 	handler := log.LvlFilterHandler(log.LvlInfo, log.StreamHandler(os.Stdout, log.JSONFormat()))
@@ -82,6 +83,7 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 
 	var h *types.Header
 	var lastBlockOfEpoch bool
+	var lastBlockOfHour bool
 
 	for {
 		select {
@@ -92,10 +94,17 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 		logHeader(logger, h)
 
 		logger = logger.New("blockTimestamp", time.Unix(int64(h.Time), 0).Format(time.RFC3339), "blockNumber", h.Number.Uint64())
-		chainParams := utils.ChainParameters{
+
+		epochChainParams := utils.ChainParameters{
 			EpochSize: EpochSize,
 		}
-		lastBlockOfEpoch = chainParams.IsLastBlockOfEpoch(h.Number.Uint64())
+
+		lastBlockOfEpoch = epochChainParams.IsLastBlockOfEpoch(h.Number.Uint64())
+
+		hourChainParams := utils.ChainParameters{
+			EpochSize: BlocksPerHour,
+		}
+		lastBlockOfHour = hourChainParams.IsLastBlockOfEpoch(h.Number.Uint64())
 
 		opts := &bind.CallOpts{
 			BlockNumber: h.Number,
@@ -238,7 +247,7 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 			return err
 		}
 
-		if err := goldTokenProcessor.ObserveState(opts); err != nil {
+		if err := goldTokenProcessor.ObserveState(opts, lastBlockOfHour); err != nil {
 			return err
 		}
 
@@ -246,7 +255,7 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 			return err
 		}
 
-		if err := stableTokenProcessor.ObserveState(opts); err != nil {
+		if err := stableTokenProcessor.ObserveState(opts, lastBlockOfHour); err != nil {
 			return err
 		}
 
