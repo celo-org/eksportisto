@@ -81,6 +81,9 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 	var stableToken *contracts.StableToken
 	var stableTokenAddress common.Address
 
+	var validators *contracts.Validators
+	var validatorsAddress common.Address
+
 	var h *types.Header
 	var lastBlockOfEpoch bool
 	var lastBlockOfHour bool
@@ -231,13 +234,29 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 			}
 		}
 
+		if (validatorsAddress == common.Address{}) {
+			validatorsAddress, err = registry.GetAddressForString(opts, "Validators")
+			if err == client.ErrContractNotDeployed || err == wrappers.ErrRegistryNotDeployed {
+				continue
+			} else if err != nil {
+				return err
+			}
+
+			validators, err = contracts.NewValidators(validatorsAddress, cc.Eth)
+			if err != nil {
+				return err
+			}
+		}
+
 		electionProcessor := NewElectionProcessor(ctx, logger, electionAddress, election)
 		epochRewardsProcessor := NewEpochRewardsProcessor(ctx, logger, epochRewardsAddress, epochRewards)
 		goldTokenProcessor := NewGoldTokenProcessor(ctx, logger, goldTokenAddress, goldToken)
 		governanceProcessor := NewGovernanceProcessor(ctx, logger, governanceAddress, governance)
 		lockedGoldProcessor := NewLockedGoldProcessor(ctx, logger, lockedGoldAddress, lockedGold)
+		reserveProcessor := NewReserveProcessor(ctx, logger, reserveAddress, reserve)
 		stabilityProcessor := NewStabilityProcessor(ctx, logger, exchange, reserve)
 		stableTokenProcessor := NewStableTokenProcessor(ctx, logger, stableTokenAddress, stableToken)
+		validatorsProcessor := NewValidatorsProcessor(ctx, logger, validatorsAddress, validators)
 
 		if err := electionProcessor.ObserveState(opts, lastBlockOfEpoch); err != nil {
 			return err
@@ -252,6 +271,10 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 		}
 
 		if err := lockedGoldProcessor.ObserveState(opts, lastBlockOfEpoch); err != nil {
+			return err
+		}
+
+		if err := reserveProcessor.ObserveState(opts, lastBlockOfHour); err != nil {
 			return err
 		}
 
@@ -275,6 +298,7 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 				electionProcessor.HandleLog(eventLog)
 				epochRewardsProcessor.HandleLog(eventLog)
 				governanceProcessor.HandleLog(eventLog)
+				validatorsProcessor.HandleLog(eventLog)
 			}
 		}
 

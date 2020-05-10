@@ -3,6 +3,7 @@ package monitor
 import (
 	"context"
 
+	"github.com/celo-org/eksportisto/utils"
 	"github.com/celo-org/kliento/contracts"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
@@ -52,7 +53,7 @@ func (p epochRewardsProcessor) ObserveState(opts *bind.CallOpts, lastBlockOfEpoc
 			return err
 		}
 
-		logStateViewCall(logger, "method", "getRewardsMultiplier", "rewardsMultiplier", rewardsMultiplier.Uint64())
+		logStateViewCall(logger, "method", "getRewardsMultiplier", "rewardsMultiplier", utils.FromFixed(rewardsMultiplier))
 
 		// EpochRewards.getVotingGoldFraction
 		_, err = p.epochRewards.GetVotingGoldFraction(opts)
@@ -93,7 +94,7 @@ func (p epochRewardsProcessor) HandleLog(eventLog *types.Log) {
 		switch eventName {
 		case "TargetVotingYieldUpdated":
 			event := eventRaw.(*contracts.EpochRewardsTargetVotingYieldUpdated)
-			logEventLog(logger, "eventName", eventName, "fraction", event.Fraction)
+			logEventLog(logger, "eventName", eventName, "fraction", utils.FromFixed(event.Fraction))
 		}
 	}
 }
