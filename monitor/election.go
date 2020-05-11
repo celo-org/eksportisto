@@ -90,9 +90,6 @@ func (p electionProcessor) HandleLog(eventLog *types.Log) {
 		case "EpochRewardsDistributedToVoters":
 			event := eventRaw.(*contracts.ElectionEpochRewardsDistributedToVoters)
 			logEventLog(logger, "eventName", eventName, "group", event.Group, "value", event.Value)
-		case "ValidatorEpochPaymentDistributed":
-			event := eventRaw.(*contracts.ValidatorsValidatorEpochPaymentDistributed)
-			logEventLog(logger, "eventName", eventName, "validator", event.Validator, "validatorPayment", event.ValidatorPayment, "group", event.Group, "groupPayment", event.GroupPayment)
 		}
 	}
 }

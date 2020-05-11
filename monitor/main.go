@@ -14,6 +14,7 @@ import (
 	"github.com/celo-org/kliento/contracts"
 	kliento_mon "github.com/celo-org/kliento/monitor"
 	"github.com/celo-org/kliento/wrappers"
+	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -89,6 +90,7 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 	var lastBlockOfHour bool
 
 	for {
+		start := time.Now()
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
@@ -286,7 +288,26 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 			return err
 		}
 
+		if lastBlockOfEpoch {
+			filterLogs, err := cc.Eth.FilterLogs(ctx, ethereum.FilterQuery{
+				FromBlock: h.Number,
+				ToBlock:   h.Number,
+			})
+			if err != nil {
+				return err
+			}
+
+			for _, epochLog := range filterLogs {
+				electionProcessor.HandleLog(&epochLog)
+				epochRewardsProcessor.HandleLog(&epochLog)
+				governanceProcessor.HandleLog(&epochLog)
+				validatorsProcessor.HandleLog(&epochLog)
+				goldTokenProcessor.HandleLog(&epochLog)
+			}
+		}
+
 		for _, txHash := range header.Transactions {
+
 			receipt, err := cc.Eth.TransactionReceipt(ctx, txHash)
 			if err != nil {
 				return err
@@ -307,6 +328,8 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 		}
 
 		metrics.LastBlockProcessed.Set(float64(h.Number.Int64()))
+		elapsed := time.Since(start)
+		logger.Info("STATS", "elapsed", elapsed)
 	}
 }
 
