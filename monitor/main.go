@@ -90,7 +90,7 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 	var lastBlockOfHour bool
 
 	for {
-		start := time.Now()
+		// start := time.Now()
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
@@ -328,8 +328,8 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 		}
 
 		metrics.LastBlockProcessed.Set(float64(h.Number.Int64()))
-		elapsed := time.Since(start)
-		logger.Info("STATS", "elapsed", elapsed)
+		// elapsed := time.Since(start)
+		// logger.Info("STATS", "elapsed", elapsed)
 	}
 }
 
