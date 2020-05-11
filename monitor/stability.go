@@ -30,6 +30,7 @@ func NewStabilityProcessor(ctx context.Context, logger log.Logger, exchange *con
 func (p stabilityProcessor) ObserveState(opts *bind.CallOpts, lastBlockOfEpoch bool) error {
 	// Not super important right now
 	if lastBlockOfEpoch {
+
 		// Exchange.ReserveFraction
 		_, err := p.exchange.ReserveFraction(opts)
 		if err != nil {

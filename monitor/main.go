@@ -258,33 +258,25 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 		stableTokenProcessor := NewStableTokenProcessor(ctx, logger, stableTokenAddress, stableToken)
 		validatorsProcessor := NewValidatorsProcessor(ctx, logger, validatorsAddress, validators)
 
-		if err := electionProcessor.ObserveState(opts, lastBlockOfEpoch); err != nil {
-			return err
+		g, ctx := errgroup.WithContext(opts.Context)
+
+		opts = &bind.CallOpts{
+			BlockNumber: opts.BlockNumber,
+			Context:     ctx,
 		}
 
-		if err := epochRewardsProcessor.ObserveState(opts, lastBlockOfEpoch); err != nil {
-			return err
+		if lastBlockOfEpoch {
+			g.Go(func() error { return electionProcessor.ObserveState(opts, lastBlockOfEpoch) })
+			g.Go(func() error { return epochRewardsProcessor.ObserveState(opts, lastBlockOfEpoch) })
+			g.Go(func() error { return lockedGoldProcessor.ObserveState(opts, lastBlockOfEpoch) })
 		}
 
-		if err := goldTokenProcessor.ObserveState(opts, lastBlockOfHour); err != nil {
-			return err
-		}
+		g.Go(func() error { return goldTokenProcessor.ObserveState(opts, lastBlockOfHour) })
+		g.Go(func() error { return reserveProcessor.ObserveState(opts, lastBlockOfHour) })
+		g.Go(func() error { return stableTokenProcessor.ObserveState(opts, lastBlockOfHour) })
+		g.Go(func() error { return stabilityProcessor.ObserveState(opts, lastBlockOfEpoch) })
 
-		if err := lockedGoldProcessor.ObserveState(opts, lastBlockOfEpoch); err != nil {
-			return err
-		}
-
-		if err := reserveProcessor.ObserveState(opts, lastBlockOfHour); err != nil {
-			return err
-		}
-
-		if err := stableTokenProcessor.ObserveState(opts, lastBlockOfHour); err != nil {
-			return err
-		}
-
-		if err := stabilityProcessor.ObserveState(opts, lastBlockOfEpoch); err != nil {
-			return err
-		}
+		err = g.Wait()
 
 		for _, txHash := range header.Transactions {
 			receipt, err := cc.Eth.TransactionReceipt(ctx, txHash)

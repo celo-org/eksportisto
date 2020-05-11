@@ -8,6 +8,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/log"
+	"golang.org/x/sync/errgroup"
 )
 
 type electionProcessor struct {
@@ -30,30 +31,47 @@ func (p electionProcessor) ObserveState(opts *bind.CallOpts, lastBlockOfEpoch bo
 	logger := p.logger.New("contract", "Election")
 
 	if lastBlockOfEpoch {
-		// Election.getActiveVotes
-		activeVotes, err := p.election.GetActiveVotes(opts)
-		if err != nil {
-			return err
+
+		g, ctx := errgroup.WithContext(opts.Context)
+
+		opts = &bind.CallOpts{
+			BlockNumber: opts.BlockNumber,
+			Context:     ctx,
 		}
 
-		logStateViewCall(logger, "method", "getActiveVotes", "activeVotes", activeVotes)
+		g.Go(func() error {
+			// Election.getActiveVotes
+			activeVotes, err := p.election.GetActiveVotes(opts)
+			if err != nil {
+				return err
+			}
 
-		// Election.getTotalVotes
-		totalVotes, err := p.election.GetTotalVotes(opts)
-		if err != nil {
-			return err
-		}
+			logStateViewCall(logger, "method", "getActiveVotes", "activeVotes", activeVotes)
+			return nil
+		})
 
-		logStateViewCall(logger, "method", "getTotalVotes", "totalVotes", totalVotes)
+		g.Go(func() error {
+			// Election.getTotalVotes
+			totalVotes, err := p.election.GetTotalVotes(opts)
+			if err != nil {
+				return err
+			}
 
-		// Election.getElectableValidators
-		electableValidatorsMin, electableValidatorsMax, err := p.election.GetElectableValidators(opts)
-		if err != nil {
-			return err
-		}
+			logStateViewCall(logger, "method", "getTotalVotes", "totalVotes", totalVotes)
+			return nil
+		})
 
-		logStateViewCall(logger, "method", "getElectableValidators", "electableValidatorsMin", electableValidatorsMin.Uint64())
-		logStateViewCall(logger, "method", "getElectableValidators", "electableValidatorsMax", electableValidatorsMax.Uint64())
+		g.Go(func() error {
+			// Election.getElectableValidators
+			electableValidatorsMin, electableValidatorsMax, err := p.election.GetElectableValidators(opts)
+			if err != nil {
+				return err
+			}
+
+			logStateViewCall(logger, "method", "getElectableValidators", "electableValidatorsMin", electableValidatorsMin.Uint64())
+			logStateViewCall(logger, "method", "getElectableValidators", "electableValidatorsMax", electableValidatorsMax.Uint64())
+			return nil
+		})
 
 		// Election.getEligibleValidatorGroups
 		// TODO: outputs an array of addresses
@@ -63,7 +81,7 @@ func (p electionProcessor) ObserveState(opts *bind.CallOpts, lastBlockOfEpoch bo
 		// }
 
 		// logStateViewCall(logger, "method", "getEligibleValidatorGroups", "eligibleValidatorGroups", eligibleValidatorGroups)
-
+		return g.Wait()
 	}
 	return nil
 }
