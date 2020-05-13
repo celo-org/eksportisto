@@ -26,45 +26,43 @@ func NewElectionProcessor(ctx context.Context, logger log.Logger, electionAddres
 	}
 }
 
-func (p electionProcessor) ObserveState(opts *bind.CallOpts, lastBlockOfEpoch bool) error {
+func (p electionProcessor) ObserveState(opts *bind.CallOpts) error {
 	logger := p.logger.New("contract", "Election")
 
-	if lastBlockOfEpoch {
-		// Election.getActiveVotes
-		activeVotes, err := p.election.GetActiveVotes(opts)
-		if err != nil {
-			return err
-		}
-
-		logStateViewCall(logger, "method", "getActiveVotes", "activeVotes", activeVotes)
-
-		// Election.getTotalVotes
-		totalVotes, err := p.election.GetTotalVotes(opts)
-		if err != nil {
-			return err
-		}
-
-		logStateViewCall(logger, "method", "getTotalVotes", "totalVotes", totalVotes)
-
-		// Election.getElectableValidators
-		electableValidatorsMin, electableValidatorsMax, err := p.election.GetElectableValidators(opts)
-		if err != nil {
-			return err
-		}
-
-		logStateViewCall(logger, "method", "getElectableValidators", "electableValidatorsMin", electableValidatorsMin.Uint64())
-		logStateViewCall(logger, "method", "getElectableValidators", "electableValidatorsMax", electableValidatorsMax.Uint64())
-
-		// Election.getEligibleValidatorGroups
-		// TODO: outputs an array of addresses
-		// eligibleValidatorGroups, err := p.election.GetEligibleValidatorGroups(opts)
-		// if err != nil {
-		// 	return err
-		// }
-
-		// logStateViewCall(logger, "method", "getEligibleValidatorGroups", "eligibleValidatorGroups", eligibleValidatorGroups)
-
+	// Election.getActiveVotes
+	activeVotes, err := p.election.GetActiveVotes(opts)
+	if err != nil {
+		return err
 	}
+
+	logStateViewCall(logger, "method", "getActiveVotes", "activeVotes", activeVotes)
+
+	// Election.getTotalVotes
+	totalVotes, err := p.election.GetTotalVotes(opts)
+	if err != nil {
+		return err
+	}
+
+	logStateViewCall(logger, "method", "getTotalVotes", "totalVotes", totalVotes)
+
+	// Election.getElectableValidators
+	electableValidatorsMin, electableValidatorsMax, err := p.election.GetElectableValidators(opts)
+	if err != nil {
+		return err
+	}
+
+	logStateViewCall(logger, "method", "getElectableValidators", "electableValidatorsMin", electableValidatorsMin.Uint64())
+	logStateViewCall(logger, "method", "getElectableValidators", "electableValidatorsMax", electableValidatorsMax.Uint64())
+
+	// Election.getEligibleValidatorGroups
+	// TODO: outputs an array of addresses
+	// eligibleValidatorGroups, err := p.election.GetEligibleValidatorGroups(opts)
+	// if err != nil {
+	// 	return err
+	// }
+
+	// logStateViewCall(logger, "method", "getEligibleValidatorGroups", "eligibleValidatorGroups", eligibleValidatorGroups)
+
 	return nil
 }
 

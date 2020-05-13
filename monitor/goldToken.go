@@ -26,16 +26,14 @@ func NewGoldTokenProcessor(ctx context.Context, logger log.Logger, goldTokenAddr
 	}
 }
 
-func (p goldTokenProcessor) ObserveState(opts *bind.CallOpts, lastBlockOfHour bool) error {
+func (p goldTokenProcessor) ObserveState(opts *bind.CallOpts) error {
 	logger := p.logger.New("contract", "GoldToken")
-	if lastBlockOfHour {
-		totalSupply, err := p.goldToken.TotalSupply(opts)
-		if err != nil {
-			return err
-		}
-
-		logStateViewCall(logger, "method", "totalSupply", "totalSupply", totalSupply)
+	totalSupply, err := p.goldToken.TotalSupply(opts)
+	if err != nil {
+		return err
 	}
+
+	logStateViewCall(logger, "method", "totalSupply", "totalSupply", totalSupply)
 
 	return nil
 }

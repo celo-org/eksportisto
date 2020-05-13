@@ -27,55 +27,53 @@ func NewEpochRewardsProcessor(ctx context.Context, logger log.Logger, epochRewar
 	}
 }
 
-func (p epochRewardsProcessor) ObserveState(opts *bind.CallOpts, lastBlockOfEpoch bool) error {
+func (p epochRewardsProcessor) ObserveState(opts *bind.CallOpts) error {
 	logger := p.logger.New("contract", "EpochRewards")
 
-	if lastBlockOfEpoch {
-		// EpochRewards.getTargetGoldTotalSupply
-		targetGoldTotalSupply, err := p.epochRewards.GetTargetGoldTotalSupply(opts)
-		if err != nil {
-			return err
-		}
-
-		logStateViewCall(logger, "method", "getTargetGoldTotalSupply", "targetGoldTotalSupply", targetGoldTotalSupply)
-
-		// EpochRewards.getTargetVoterRewards
-		targetVoterRewards, err := p.epochRewards.GetTargetVoterRewards(opts)
-		if err != nil {
-			return err
-		}
-
-		logStateViewCall(logger, "method", "getTargetVoterRewards", "targetVoterRewards", targetVoterRewards)
-
-		// EpochRewards.getRewardsMultiplier
-		rewardsMultiplier, err := p.epochRewards.GetRewardsMultiplier(opts)
-		if err != nil {
-			return err
-		}
-
-		logStateViewCall(logger, "method", "getRewardsMultiplier", "rewardsMultiplier", utils.FromFixed(rewardsMultiplier))
-
-		// EpochRewards.getVotingGoldFraction
-		_, err = p.epochRewards.GetVotingGoldFraction(opts)
-		if err != nil {
-			return err
-		}
-
-		// Todo: This is a fraction and therefore not actually a uint
-		// logStateViewCall(logger, "method", "getVotingGoldFraction", "votingGoldFraction", votingGoldFraction.Uint64())
-
-		// TODO: this is actually all fractions and thus not very useful to log
-		// EpochRewards.calculateTargetEpochRewards
-		// _, _, _, _, err = p.epochRewards.CalculateTargetEpochRewards(opts)
-		// if err != nil {
-		// 	return err
-		// }
-
-		// logStateViewCall(logger, "method", "calculateTargetEpochRewards", "validatorTargetEpochRewards", validatorTargetEpochRewards.Uint64())
-		// logStateViewCall(logger, "method", "calculateTargetEpochRewards", "voterTargetEpochRewards", voterTargetEpochRewards.Uint64())
-		// logStateViewCall(logger, "method", "calculateTargetEpochRewards", "communityTargetEpochRewards", communityTargetEpochRewards.Uint64())
-		// logStateViewCall(logger, "method", "calculateTargetEpochRewards", "carbonOffsettingTargetEpochRewards", carbonOffsettingTargetEpochRewards.Uint64())
+	// EpochRewards.getTargetGoldTotalSupply
+	targetGoldTotalSupply, err := p.epochRewards.GetTargetGoldTotalSupply(opts)
+	if err != nil {
+		return err
 	}
+
+	logStateViewCall(logger, "method", "getTargetGoldTotalSupply", "targetGoldTotalSupply", targetGoldTotalSupply)
+
+	// EpochRewards.getTargetVoterRewards
+	targetVoterRewards, err := p.epochRewards.GetTargetVoterRewards(opts)
+	if err != nil {
+		return err
+	}
+
+	logStateViewCall(logger, "method", "getTargetVoterRewards", "targetVoterRewards", targetVoterRewards)
+
+	// EpochRewards.getRewardsMultiplier
+	rewardsMultiplier, err := p.epochRewards.GetRewardsMultiplier(opts)
+	if err != nil {
+		return err
+	}
+
+	logStateViewCall(logger, "method", "getRewardsMultiplier", "rewardsMultiplier", utils.FromFixed(rewardsMultiplier))
+
+	// EpochRewards.getVotingGoldFraction
+	_, err = p.epochRewards.GetVotingGoldFraction(opts)
+	if err != nil {
+		return err
+	}
+
+	// Todo: This is a fraction and therefore not actually a uint
+	// logStateViewCall(logger, "method", "getVotingGoldFraction", "votingGoldFraction", votingGoldFraction.Uint64())
+
+	// TODO: this is actually all fractions and thus not very useful to log
+	// EpochRewards.calculateTargetEpochRewards
+	// _, _, _, _, err = p.epochRewards.CalculateTargetEpochRewards(opts)
+	// if err != nil {
+	// 	return err
+	// }
+
+	// logStateViewCall(logger, "method", "calculateTargetEpochRewards", "validatorTargetEpochRewards", validatorTargetEpochRewards.Uint64())
+	// logStateViewCall(logger, "method", "calculateTargetEpochRewards", "voterTargetEpochRewards", voterTargetEpochRewards.Uint64())
+	// logStateViewCall(logger, "method", "calculateTargetEpochRewards", "communityTargetEpochRewards", communityTargetEpochRewards.Uint64())
+	// logStateViewCall(logger, "method", "calculateTargetEpochRewards", "carbonOffsettingTargetEpochRewards", carbonOffsettingTargetEpochRewards.Uint64())
 	return nil
 }
 

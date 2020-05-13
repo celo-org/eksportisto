@@ -27,16 +27,14 @@ func NewReserveProcessor(ctx context.Context, logger log.Logger, reserveAddress 
 	}
 }
 
-func (p reserveProcessor) ObserveState(opts *bind.CallOpts, lastBlockOfHour bool) error {
+func (p reserveProcessor) ObserveState(opts *bind.CallOpts) error {
 	logger := p.logger.New("contract", "Reserve")
-	if lastBlockOfHour {
-		reserveRatio, err := p.reserve.GetReserveRatio(opts)
-		if err != nil {
-			return err
-		}
-
-		logStateViewCall(logger, "method", "getReserveRatio", "reserveRatio", utils.FromFixed(reserveRatio))
+	reserveRatio, err := p.reserve.GetReserveRatio(opts)
+	if err != nil {
+		return err
 	}
+
+	logStateViewCall(logger, "method", "getReserveRatio", "reserveRatio", utils.FromFixed(reserveRatio))
 
 	return nil
 }

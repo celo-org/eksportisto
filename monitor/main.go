@@ -27,7 +27,7 @@ type Config struct {
 }
 
 var EpochSize = uint64(17280)
-var BlocksPerHour = uint64(1200)
+var BlocksPerHour = uint64(720)
 
 func Start(ctx context.Context, cfg *Config) error {
 	handler := log.LvlFilterHandler(log.LvlInfo, log.StreamHandler(os.Stdout, log.JSONFormat()))
@@ -86,11 +86,8 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 	var validatorsAddress common.Address
 
 	var h *types.Header
-	var lastBlockOfEpoch bool
-	var lastBlockOfHour bool
 
 	for {
-		// start := time.Now()
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
@@ -98,27 +95,17 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 		}
 		logHeader(logger, h)
 
+		start := time.Now()
 		logger = logger.New("blockTimestamp", time.Unix(int64(h.Time), 0).Format(time.RFC3339), "blockNumber", h.Number.Uint64())
-
-		epochChainParams := utils.ChainParameters{
-			EpochSize: EpochSize,
-		}
-
-		lastBlockOfEpoch = epochChainParams.IsLastBlockOfEpoch(h.Number.Uint64())
-
-		hourChainParams := utils.ChainParameters{
-			EpochSize: BlocksPerHour,
-		}
-		lastBlockOfHour = hourChainParams.IsLastBlockOfEpoch(h.Number.Uint64())
-
-		opts := &bind.CallOpts{
-			BlockNumber: h.Number,
-			Context:     ctx,
-		}
 
 		header, err := cc.Eth.HeaderAndTxnHashesByHash(ctx, h.Hash())
 		if err != nil {
 			return err
+		}
+
+		opts := &bind.CallOpts{
+			BlockNumber: h.Number,
+			Context:     ctx,
 		}
 
 		// Todo: Use Rosetta's db to detect election contract address changes mid block
@@ -260,35 +247,25 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 		stableTokenProcessor := NewStableTokenProcessor(ctx, logger, stableTokenAddress, stableToken)
 		validatorsProcessor := NewValidatorsProcessor(ctx, logger, validatorsAddress, validators)
 
-		if err := electionProcessor.ObserveState(opts, lastBlockOfEpoch); err != nil {
-			return err
+		g, ctxProcessor := errgroup.WithContext(opts.Context)
+
+		opts = &bind.CallOpts{
+			BlockNumber: opts.BlockNumber,
+			Context:     ctxProcessor,
 		}
 
-		if err := epochRewardsProcessor.ObserveState(opts, lastBlockOfEpoch); err != nil {
-			return err
+		if utils.ShouldSample(h.Number.Uint64(), BlocksPerHour) {
+			g.Go(func() error { return goldTokenProcessor.ObserveState(opts) })
+			g.Go(func() error { return reserveProcessor.ObserveState(opts) })
+			g.Go(func() error { return stableTokenProcessor.ObserveState(opts) })
 		}
 
-		if err := goldTokenProcessor.ObserveState(opts, lastBlockOfHour); err != nil {
-			return err
-		}
+		if utils.ShouldSample(h.Number.Uint64(), EpochSize) {
+			g.Go(func() error { return electionProcessor.ObserveState(opts) })
+			g.Go(func() error { return epochRewardsProcessor.ObserveState(opts) })
+			g.Go(func() error { return lockedGoldProcessor.ObserveState(opts) })
+			g.Go(func() error { return stabilityProcessor.ObserveState(opts) })
 
-		if err := lockedGoldProcessor.ObserveState(opts, lastBlockOfEpoch); err != nil {
-			return err
-		}
-
-		if err := reserveProcessor.ObserveState(opts, lastBlockOfHour); err != nil {
-			return err
-		}
-
-		if err := stableTokenProcessor.ObserveState(opts, lastBlockOfHour); err != nil {
-			return err
-		}
-
-		if err := stabilityProcessor.ObserveState(opts, lastBlockOfEpoch); err != nil {
-			return err
-		}
-
-		if lastBlockOfEpoch {
 			filterLogs, err := cc.Eth.FilterLogs(ctx, ethereum.FilterQuery{
 				FromBlock: h.Number,
 				ToBlock:   h.Number,
@@ -304,6 +281,11 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 				validatorsProcessor.HandleLog(&epochLog)
 				goldTokenProcessor.HandleLog(&epochLog)
 			}
+		}
+
+		err = g.Wait()
+		if err != nil {
+			return err
 		}
 
 		for _, txHash := range header.Transactions {
@@ -328,8 +310,8 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 		}
 
 		metrics.LastBlockProcessed.Set(float64(h.Number.Int64()))
-		// elapsed := time.Since(start)
-		// logger.Info("STATS", "elapsed", elapsed)
+		elapsed := time.Since(start)
+		logger.Debug("STATS", "elapsed", elapsed)
 	}
 }
 

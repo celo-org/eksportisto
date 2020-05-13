@@ -26,19 +26,17 @@ func NewStableTokenProcessor(ctx context.Context, logger log.Logger, stableToken
 	}
 }
 
-func (p stableTokenProcessor) ObserveState(opts *bind.CallOpts, lastBlockOfHour bool) error {
+func (p stableTokenProcessor) ObserveState(opts *bind.CallOpts) error {
 	// Not super important right now
 	logger := p.logger.New("contract", "StableToken")
 
-	if lastBlockOfHour {
-		totalSupply, err := p.stableToken.TotalSupply(opts)
-		if err != nil {
-			return err
-		}
-
-		// metrics.TotalCUSDSupply.Observe(float64(totalSupply.Uint64()))
-		logStateViewCall(logger, "method", "totalSupply", "totalSupply", totalSupply)
+	totalSupply, err := p.stableToken.TotalSupply(opts)
+	if err != nil {
+		return err
 	}
+
+	// metrics.TotalCUSDSupply.Observe(float64(totalSupply.Uint64()))
+	logStateViewCall(logger, "method", "totalSupply", "totalSupply", totalSupply)
 
 	return nil
 }
