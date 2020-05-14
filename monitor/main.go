@@ -81,6 +81,9 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 	var reserve *contracts.Reserve
 	var reserveAddress common.Address
 
+	var sortedOracles *contracts.SortedOracles
+	var sortedOraclesAddress common.Address
+
 	var stableToken *contracts.StableToken
 	var stableTokenAddress common.Address
 
@@ -211,6 +214,20 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 			}
 		}
 
+		if (sortedOraclesAddress == common.Address{}) {
+			sortedOraclesAddress, err = registry.GetAddressForString(opts, "SortedOracles")
+			if err == client.ErrContractNotDeployed || err == wrappers.ErrRegistryNotDeployed {
+				continue
+			} else if err != nil {
+				return err
+			}
+
+			sortedOracles, err = contracts.NewSortedOracles(sortedOraclesAddress, cc.Eth)
+			if err != nil {
+				return err
+			}
+		}
+
 		if (stableTokenAddress == common.Address{}) {
 			stableTokenAddress, err = registry.GetAddressForString(opts, "StableToken")
 			if err == client.ErrContractNotDeployed || err == wrappers.ErrRegistryNotDeployed {
@@ -245,6 +262,7 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 		governanceProcessor := NewGovernanceProcessor(ctx, logger, governanceAddress, governance)
 		lockedGoldProcessor := NewLockedGoldProcessor(ctx, logger, lockedGoldAddress, lockedGold)
 		reserveProcessor := NewReserveProcessor(ctx, logger, reserveAddress, reserve)
+		sortedOraclesProcessor := NewSortedOraclesProcessor(ctx, logger, sortedOraclesAddress, sortedOracles)
 		stabilityProcessor := NewStabilityProcessor(ctx, logger, exchange, reserve)
 		stableTokenProcessor := NewStableTokenProcessor(ctx, logger, stableTokenAddress, stableToken)
 		validatorsProcessor := NewValidatorsProcessor(ctx, logger, validatorsAddress, validators)
@@ -267,6 +285,7 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 			g.Go(func() error { return goldTokenProcessor.ObserveState(opts) })
 			g.Go(func() error { return reserveProcessor.ObserveState(opts) })
 			g.Go(func() error { return stableTokenProcessor.ObserveState(opts) })
+			g.Go(func() error { return sortedOraclesProcessor.ObserveState(opts) })
 		}
 
 		if utils.ShouldSample(h.Number.Uint64(), EpochSize) {

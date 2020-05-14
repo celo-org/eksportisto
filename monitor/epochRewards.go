@@ -60,15 +60,15 @@ func (p epochRewardsProcessor) ObserveState(opts *bind.CallOpts) error {
 
 	// TODO: this is actually all fractions and thus not very useful to log
 	// EpochRewards.calculateTargetEpochRewards
-	// _, _, _, _, err = p.epochRewards.CalculateTargetEpochRewards(opts)
-	// if err != nil {
-	// 	return err
-	// }
+	validatorTargetEpochRewards, voterTargetEpochRewards, communityTargetEpochRewards, carbonOffsettingTargetEpochRewards, err := p.epochRewards.CalculateTargetEpochRewards(opts)
+	if err != nil {
+		return err
+	}
 
-	// logStateViewCall(logger, "method", "calculateTargetEpochRewards", "validatorTargetEpochRewards", validatorTargetEpochRewards.Uint64())
-	// logStateViewCall(logger, "method", "calculateTargetEpochRewards", "voterTargetEpochRewards", voterTargetEpochRewards.Uint64())
-	// logStateViewCall(logger, "method", "calculateTargetEpochRewards", "communityTargetEpochRewards", communityTargetEpochRewards.Uint64())
-	// logStateViewCall(logger, "method", "calculateTargetEpochRewards", "carbonOffsettingTargetEpochRewards", carbonOffsettingTargetEpochRewards.Uint64())
+	logStateViewCall(logger, "method", "calculateTargetEpochRewards", "validatorTargetEpochRewards", validatorTargetEpochRewards.Uint64())
+	logStateViewCall(logger, "method", "calculateTargetEpochRewards", "voterTargetEpochRewards", voterTargetEpochRewards.Uint64())
+	logStateViewCall(logger, "method", "calculateTargetEpochRewards", "communityTargetEpochRewards", communityTargetEpochRewards.Uint64())
+	logStateViewCall(logger, "method", "calculateTargetEpochRewards", "carbonOffsettingTargetEpochRewards", carbonOffsettingTargetEpochRewards.Uint64())
 	return nil
 }
 
