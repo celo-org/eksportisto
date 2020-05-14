@@ -3,10 +3,17 @@ package metrics
 import "github.com/prometheus/client_golang/prometheus"
 
 var (
-	TotalCUSDSupply = prometheus.NewHistogram(prometheus.HistogramOpts{
-		Name:    "cusd_supply",
-		Help:    "Total cUSD supply",
-		Buckets: prometheus.LinearBuckets(20, 5, 5), // 5 buckets, each 5 centigrade wide.
+	TotalCGLDSupply = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "cgld_supply",
+		Help: "Total cGLD supply",
+	})
+	TotalCUSDSupply = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "cusd_supply",
+		Help: "Total cUSD supply",
+	})
+	VotingGoldFraction = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "epochrewards_votinggoldfraction",
+		Help: "Voting Gold Fraction",
 	})
 	ExchangeGoldBucketRatio = prometheus.NewHistogram(prometheus.HistogramOpts{
 		Name:    "exchange_gold_bucket_ratio",
@@ -21,7 +28,9 @@ var (
 
 func init() {
 	// Register the summary and the histogram with Prometheus's default registry.
+	prometheus.MustRegister(TotalCGLDSupply)
 	prometheus.MustRegister(TotalCUSDSupply)
+	prometheus.MustRegister(VotingGoldFraction)
 	prometheus.MustRegister(ExchangeGoldBucketRatio)
 	prometheus.MustRegister(LastBlockProcessed)
 	// Add Go module build info.

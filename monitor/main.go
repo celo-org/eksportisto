@@ -2,6 +2,7 @@ package monitor
 
 import (
 	"context"
+	"math/big"
 	"os"
 	"os/user"
 	"path/filepath"
@@ -28,6 +29,10 @@ type Config struct {
 
 var EpochSize = uint64(17280)
 var BlocksPerHour = uint64(720)
+var TipGap = big.NewInt(50)
+
+// var EpochSize = uint64(1)
+// var BlocksPerHour = uint64(1)
 
 func Start(ctx context.Context, cfg *Config) error {
 	handler := log.LvlFilterHandler(log.LvlInfo, log.StreamHandler(os.Stdout, log.JSONFormat()))
@@ -47,6 +52,7 @@ func Start(ctx context.Context, cfg *Config) error {
 	headers := make(chan *types.Header, 10)
 
 	g, ctx := errgroup.WithContext(ctx)
+
 	g.Go(func() error { return kliento_mon.HeaderListener(ctx, headers, cc, logger, startBlock) })
 	g.Go(func() error { return blockProcessor(ctx, headers, cc, logger, store) })
 	return g.Wait()
@@ -99,6 +105,7 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 		logger = logger.New("blockTimestamp", time.Unix(int64(h.Time), 0).Format(time.RFC3339), "blockNumber", h.Number.Uint64())
 
 		header, err := cc.Eth.HeaderAndTxnHashesByHash(ctx, h.Hash())
+
 		if err != nil {
 			return err
 		}
@@ -309,10 +316,23 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 			return err
 		}
 
+		if isTipMode(ctx, cc, h.Number) {
+			stabilityProcessor.ObserveMetric(opts)
+			goldTokenProcessor.ObserveMetric(opts)
+			stableTokenProcessor.ObserveMetric(opts)
+		}
 		metrics.LastBlockProcessed.Set(float64(h.Number.Int64()))
 		elapsed := time.Since(start)
 		logger.Debug("STATS", "elapsed", elapsed)
 	}
+}
+
+func isTipMode(ctx context.Context, cc *client.CeloClient, currentBlockNumber *big.Int) bool {
+	latestHeader, err := cc.Eth.HeaderByNumber(ctx, nil)
+	if err != nil {
+		return false
+	}
+	return new(big.Int).Sub(latestHeader.Number, currentBlockNumber).Cmp(TipGap) < 0
 }
 
 func homeDir() string {

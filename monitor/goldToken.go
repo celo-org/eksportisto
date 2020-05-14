@@ -3,6 +3,7 @@ package monitor
 import (
 	"context"
 
+	"github.com/celo-org/eksportisto/metrics"
 	"github.com/celo-org/kliento/contracts"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
@@ -35,6 +36,15 @@ func (p goldTokenProcessor) ObserveState(opts *bind.CallOpts) error {
 
 	logStateViewCall(logger, "method", "totalSupply", "totalSupply", totalSupply)
 
+	return nil
+}
+
+func (p goldTokenProcessor) ObserveMetric(opts *bind.CallOpts) error {
+	totalSupply, err := p.goldToken.TotalSupply(opts)
+	if err != nil {
+		return err
+	}
+	metrics.TotalCGLDSupply.Set(float64(totalSupply.Uint64()))
 	return nil
 }
 

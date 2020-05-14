@@ -35,7 +35,7 @@ func (p stabilityProcessor) ObserveState(opts *bind.CallOpts) error {
 	}
 
 	// TODO: This is a fraction and not actually an uint
-	// logStateViewCall(p.logger, "contract", "Exchange", "method", "reserveFraction", "fraction", reserveFraction.Uint64())
+	logStateViewCall(p.logger, "contract", "Exchange", "method", "reserveFraction", "fraction", reserveFraction.Uint64())
 
 	// Exchange.goldBucket
 	goldBucketSize, err := p.exchange.GoldBucket(opts)
@@ -85,6 +85,20 @@ func (p stabilityProcessor) ObserveState(opts *bind.CallOpts) error {
 
 	logStateViewCall(p.logger, "contract", "Reserve", "method", "getUnfrozenReserveGoldBalance", "value", unfrozenReserveGoldBalance)
 
+	return nil
+}
+
+func (p stabilityProcessor) ObserveMetric(opts *bind.CallOpts) error {
+	goldBucketSize, err := p.exchange.GoldBucket(opts)
+	if err != nil {
+		return err
+	}
+
+	unfrozenReserveGoldBalance, err := p.reserve.GetUnfrozenReserveGoldBalance(opts)
+	if err != nil {
+		return err
+	}
+
 	// If the unfrozen balance is 0, ignore for now
 	if unfrozenReserveGoldBalance.Cmp(big.NewInt(0)) == 0 {
 		return nil
@@ -95,7 +109,6 @@ func (p stabilityProcessor) ObserveState(opts *bind.CallOpts) error {
 
 	ret, _ := res.Float64()
 	metrics.ExchangeGoldBucketRatio.Observe(ret)
-
 	return nil
 }
 

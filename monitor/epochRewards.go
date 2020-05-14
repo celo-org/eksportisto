@@ -3,6 +3,7 @@ package monitor
 import (
 	"context"
 
+	"github.com/celo-org/eksportisto/metrics"
 	"github.com/celo-org/eksportisto/utils"
 	"github.com/celo-org/kliento/contracts"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -54,12 +55,6 @@ func (p epochRewardsProcessor) ObserveState(opts *bind.CallOpts) error {
 
 	logStateViewCall(logger, "method", "getRewardsMultiplier", "rewardsMultiplier", utils.FromFixed(rewardsMultiplier))
 
-	// EpochRewards.getVotingGoldFraction
-	_, err = p.epochRewards.GetVotingGoldFraction(opts)
-	if err != nil {
-		return err
-	}
-
 	// Todo: This is a fraction and therefore not actually a uint
 	// logStateViewCall(logger, "method", "getVotingGoldFraction", "votingGoldFraction", votingGoldFraction.Uint64())
 
@@ -74,6 +69,16 @@ func (p epochRewardsProcessor) ObserveState(opts *bind.CallOpts) error {
 	// logStateViewCall(logger, "method", "calculateTargetEpochRewards", "voterTargetEpochRewards", voterTargetEpochRewards.Uint64())
 	// logStateViewCall(logger, "method", "calculateTargetEpochRewards", "communityTargetEpochRewards", communityTargetEpochRewards.Uint64())
 	// logStateViewCall(logger, "method", "calculateTargetEpochRewards", "carbonOffsettingTargetEpochRewards", carbonOffsettingTargetEpochRewards.Uint64())
+	return nil
+}
+
+func (p epochRewardsProcessor) ObserveMetric(opts *bind.CallOpts) error {
+	// EpochRewards.getVotingGoldFraction
+	votingGoldFraction, err := p.epochRewards.GetVotingGoldFraction(opts)
+	if err != nil {
+		return err
+	}
+	metrics.VotingGoldFraction.Set(float64(votingGoldFraction.Uint64()))
 	return nil
 }
 
