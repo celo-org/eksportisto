@@ -29,7 +29,7 @@ func NewStabilityProcessor(ctx context.Context, logger log.Logger, exchange *con
 
 func (p stabilityProcessor) ObserveState(opts *bind.CallOpts) error {
 	// Exchange.ReserveFraction
-	_, err := p.exchange.ReserveFraction(opts)
+	reserveFraction, err := p.exchange.ReserveFraction(opts)
 	if err != nil {
 		return err
 	}
