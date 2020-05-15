@@ -285,7 +285,7 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 			g.Go(func() error { return goldTokenProcessor.ObserveState(opts) })
 			g.Go(func() error { return reserveProcessor.ObserveState(opts) })
 			g.Go(func() error { return stableTokenProcessor.ObserveState(opts) })
-			g.Go(func() error { return sortedOraclesProcessor.ObserveState(opts) })
+			g.Go(func() error { return sortedOraclesProcessor.ObserveState(opts, stableTokenAddress) })
 		}
 
 		if utils.ShouldSample(h.Number.Uint64(), EpochSize) {
@@ -330,6 +330,7 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 				epochRewardsProcessor.HandleLog(eventLog)
 				governanceProcessor.HandleLog(eventLog)
 				validatorsProcessor.HandleLog(eventLog)
+				sortedOraclesProcessor.HandleLog(eventLog)
 			}
 		}
 
