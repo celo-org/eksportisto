@@ -27,7 +27,28 @@ func NewValidatorsProcessor(ctx context.Context, logger log.Logger, validatorsAd
 	}
 }
 
-func (p validatorsProcessor) ObserveState(opts *bind.CallOpts, lastBlockOfEpoch bool) error {
+func (p validatorsProcessor) ObserveState(opts *bind.CallOpts) error {
+	logger := p.logger.New("contract", "Validators")
+
+	// Validators.GetRegisteredValidators
+	registeredValidators, err := p.validators.GetRegisteredValidators(opts)
+	if err != nil {
+		return err
+	}
+
+	for i, registeredValidator := range registeredValidators {
+		logStateViewCall(logger, "method", "GetRegisteredValidators", "registeredValidator", registeredValidator, "index", i)
+	}
+
+	// Validators.GetRegisteredValidatorGroups
+	registeredValidatorGroups, err := p.validators.GetRegisteredValidatorGroups(opts)
+	if err != nil {
+		return err
+	}
+
+	for i, registeredValidatorGroup := range registeredValidatorGroups {
+		logStateViewCall(logger, "method", "GetRegisteredValidatorGroups", "registeredValidatorGroup", registeredValidatorGroup, "index", i)
+	}
 	return nil
 }
 

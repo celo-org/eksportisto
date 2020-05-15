@@ -63,6 +63,26 @@ func (p sortedOraclesProcessor) ObserveState(opts *bind.CallOpts, stableTokenAdd
 
 	logStateViewCall(logger, "method", "MedianTimestamp", "medianTimestamp", medianTimestamp)
 
+	// SortedOracles.GetRates
+	rateAddresses, rateValues, medianRelations, err := p.sortedOracles.GetRates(opts, stableTokenAddress)
+	if err != nil {
+		return err
+	}
+
+	for i, rateAddress := range rateAddresses {
+		logStateViewCall(logger, "method", "GetRates", "rateAddress", rateAddress, "rateValue", rateValues[i], "medianRelation", medianRelations[i], "index", i)
+	}
+
+	// SortedOracles.GetTimestamps
+	timestampAddresses, timestamp, medianRelations, err := p.sortedOracles.GetTimestamps(opts, stableTokenAddress)
+	if err != nil {
+		return err
+	}
+
+	for i, timestampAddress := range timestampAddresses {
+		logStateViewCall(logger, "method", "GetTimestamps", "timestampAddress", timestampAddress, "timestamp", timestamp[i], "medianRelation", medianRelations[i], "index", i)
+	}
+
 	return nil
 }
 

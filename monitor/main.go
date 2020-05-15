@@ -27,8 +27,8 @@ type Config struct {
 	NodeUri string
 }
 
-var EpochSize = uint64(17280)
-var BlocksPerHour = uint64(720)
+var EpochSize = uint64(17280)   // 17280 = 12 * 60 * 24
+var BlocksPerHour = uint64(720) // 720 = 12 * 60
 var TipGap = big.NewInt(50)
 
 func Start(ctx context.Context, cfg *Config) error {
@@ -293,6 +293,7 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 			g.Go(func() error { return epochRewardsProcessor.ObserveState(opts) })
 			g.Go(func() error { return lockedGoldProcessor.ObserveState(opts) })
 			g.Go(func() error { return stabilityProcessor.ObserveState(opts) })
+			g.Go(func() error { return validatorsProcessor.ObserveState(opts) })
 
 			filterLogs, err := cc.Eth.FilterLogs(ctx, ethereum.FilterQuery{
 				FromBlock: h.Number,
