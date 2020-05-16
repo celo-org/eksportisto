@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/celo-org/kliento/contracts"
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/log"
@@ -25,8 +26,35 @@ func NewElectionProcessor(ctx context.Context, logger log.Logger, electionAddres
 	}
 }
 
-func (p electionProcessor) ObserveState() {
-	return
+func (p electionProcessor) ObserveState(opts *bind.CallOpts) error {
+	logger := p.logger.New("contract", "Election")
+
+	// Election.getActiveVotes
+	activeVotes, err := p.election.GetActiveVotes(opts)
+	if err != nil {
+		return err
+	}
+
+	logStateViewCall(logger, "method", "getActiveVotes", "activeVotes", activeVotes)
+
+	// Election.getTotalVotes
+	totalVotes, err := p.election.GetTotalVotes(opts)
+	if err != nil {
+		return err
+	}
+
+	logStateViewCall(logger, "method", "getTotalVotes", "totalVotes", totalVotes)
+
+	// Election.getElectableValidators
+	electableValidatorsMin, electableValidatorsMax, err := p.election.GetElectableValidators(opts)
+	if err != nil {
+		return err
+	}
+
+	logStateViewCall(logger, "method", "getElectableValidators", "electableValidatorsMin", electableValidatorsMin.Uint64())
+	logStateViewCall(logger, "method", "getElectableValidators", "electableValidatorsMax", electableValidatorsMax.Uint64())
+
+	return nil
 }
 
 func (p electionProcessor) HandleLog(eventLog *types.Log) {
@@ -48,6 +76,9 @@ func (p electionProcessor) HandleLog(eventLog *types.Log) {
 		case "ValidatorGroupVoteActivated":
 			event := eventRaw.(*contracts.ElectionValidatorGroupVoteActivated)
 			logEventLog(logger, "eventName", eventName, "account", event.Account, "group", event.Group, "value", event.Value)
+		case "EpochRewardsDistributedToVoters":
+			event := eventRaw.(*contracts.ElectionEpochRewardsDistributedToVoters)
+			logEventLog(logger, "eventName", eventName, "group", event.Group, "value", event.Value)
 		}
 	}
 }

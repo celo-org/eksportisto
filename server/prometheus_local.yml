@@ -1,0 +1,6 @@
+scrape_configs:
+- job_name: eksportisto
+  scrape_interval: 1s
+  static_configs:
+  - targets:
+    - localhost:8080

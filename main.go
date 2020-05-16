@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"os"
+	"runtime/pprof"
 	"time"
 
 	"github.com/celo-org/eksportisto/monitor"
@@ -23,6 +24,8 @@ func main() {
 	var monitorConfig monitor.Config
 	flag.StringVar(&monitorConfig.NodeUri, "nodeUri", "http://localhost:8545", "Connection string for celo-blockchain node")
 
+	var cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
+
 	flag.Parse()
 
 	// TODO Validate parameters
@@ -31,6 +34,15 @@ func main() {
 
 	ctx := service.WithExitSignals(context.Background())
 	group, ctx := errgroup.WithContext(ctx)
+
+	if *cpuprofile != "" {
+		f, err := os.Create(*cpuprofile)
+		if err != nil {
+			log.Error("Error while profiling", "err", err)
+		}
+		pprof.StartCPUProfile(f)
+		defer pprof.StopCPUProfile()
+	}
 
 	group.Go(func() error { return monitor.Start(ctx, &monitorConfig) })
 	group.Go(func() error { return server.Start(ctx, &httpConfig) })
