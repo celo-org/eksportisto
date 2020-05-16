@@ -54,26 +54,6 @@ func (p electionProcessor) ObserveState(opts *bind.CallOpts) error {
 	logStateViewCall(logger, "method", "getElectableValidators", "electableValidatorsMin", electableValidatorsMin.Uint64())
 	logStateViewCall(logger, "method", "getElectableValidators", "electableValidatorsMax", electableValidatorsMax.Uint64())
 
-	// Election.getEligibleValidatorGroups
-	eligibleValidatorGroups, err := p.election.GetEligibleValidatorGroups(opts)
-	if err != nil {
-		return err
-	}
-
-	for i, eligibleValidatorGroup := range eligibleValidatorGroups {
-		logStateViewCall(logger, "method", "getEligibleValidatorGroups", "eligibleValidatorGroup", eligibleValidatorGroup, "index", i)
-	}
-
-	// Election.GetTotalVotesForEligibleValidatorGroups
-	totalVotesForEligibleValidatorGroups, err := p.election.GetTotalVotesForEligibleValidatorGroups(opts)
-	if err != nil {
-		return err
-	}
-
-	for i, vote := range totalVotesForEligibleValidatorGroups.Values {
-		group := totalVotesForEligibleValidatorGroups.Groups[i]
-		logStateViewCall(logger, "method", "getTotalVotesForEligibleValidatorGroups", "vote", vote, "group", group, "index", i)
-	}
 	return nil
 }
 
