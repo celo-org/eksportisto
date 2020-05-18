@@ -62,13 +62,12 @@ func (p epochRewardsProcessor) ObserveState(opts *bind.CallOpts) error {
 	// EpochRewards.calculateTargetEpochRewards
 	validatorTargetEpochRewards, voterTargetEpochRewards, communityTargetEpochRewards, carbonOffsettingTargetEpochRewards, err := p.epochRewards.CalculateTargetEpochRewards(opts)
 	if err != nil {
-		return err
+		// TODO: This will error when contract still frozen
+		return nil
 	}
 
-	logStateViewCall(logger, "method", "calculateTargetEpochRewards", "validatorTargetEpochRewards", validatorTargetEpochRewards.Uint64())
-	logStateViewCall(logger, "method", "calculateTargetEpochRewards", "voterTargetEpochRewards", voterTargetEpochRewards.Uint64())
-	logStateViewCall(logger, "method", "calculateTargetEpochRewards", "communityTargetEpochRewards", communityTargetEpochRewards.Uint64())
-	logStateViewCall(logger, "method", "calculateTargetEpochRewards", "carbonOffsettingTargetEpochRewards", carbonOffsettingTargetEpochRewards.Uint64())
+	logStateViewCall(logger, "method", "calculateTargetEpochRewards", "validatorTargetEpochRewards", validatorTargetEpochRewards.Uint64(), "voterTargetEpochRewards", voterTargetEpochRewards.Uint64(), "communityTargetEpochRewards", communityTargetEpochRewards.Uint64(), "carbonOffsettingTargetEpochRewards", carbonOffsettingTargetEpochRewards.Uint64())
+
 	return nil
 }
 
