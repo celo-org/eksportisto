@@ -27,8 +27,8 @@ type Config struct {
 	NodeUri string
 }
 
-var EpochSize = uint64(17280)   // 17280 = 12 * 60 * 24
-var BlocksPerHour = uint64(720) // 720 = 12 * 60
+var EpochSize = uint64(1)     // 17280 = 12 * 60 * 24
+var BlocksPerHour = uint64(1) // 720 = 12 * 60
 var TipGap = big.NewInt(50)
 
 func Start(ctx context.Context, cfg *Config) error {
@@ -45,6 +45,7 @@ func Start(ctx context.Context, cfg *Config) error {
 	sqlitePath := filepath.Join(datadir, "state.db")
 	store, err := db.NewSqliteDb(sqlitePath)
 	startBlock, err := store.LastPersistedBlock(ctx)
+	startBlock = big.NewInt(50000)
 
 	headers := make(chan *types.Header, 10)
 
@@ -322,6 +323,10 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 			}
 
 			for _, epochLog := range filterLogs {
+				if epochLog.BlockHash != epochLog.TxHash {
+					// Already handled by TransactionReceipt
+					continue
+				}
 				electionProcessor.HandleLog(&epochLog)
 				epochRewardsProcessor.HandleLog(&epochLog)
 				governanceProcessor.HandleLog(&epochLog)
@@ -343,7 +348,7 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 			}
 
 			txLogger := getTxLogger(logger, receipt, header)
-			logTransaction(txLogger)
+			// logTransaction(txLogger, "gasUsed", receipt.GasUsed)
 			for _, eventLog := range receipt.Logs {
 				attestationsProcessor.HandleLog(eventLog)
 				electionProcessor.HandleLog(eventLog)
@@ -351,6 +356,14 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 				governanceProcessor.HandleLog(eventLog)
 				validatorsProcessor.HandleLog(eventLog)
 				sortedOraclesProcessor.HandleLog(eventLog)
+			}
+
+			internalTransfers, err := cc.Debug.TransactionTransfers(ctx, txHash)
+			if err != nil {
+				return err
+			}
+			for _, internalTransfer := range internalTransfers {
+				logTransaction(txLogger, "method", "transferCGLD", "from", internalTransfer.From, "to", internalTransfer.To, "value", internalTransfer.Value.Uint64())
 			}
 		}
 

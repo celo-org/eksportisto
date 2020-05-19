@@ -7,7 +7,7 @@ import (
 )
 
 func logEventLog(logger log.Logger, params ...interface{}) {
-	logger.Info("RECEIVED_EVENT_LOG", params...)
+	logger.Debug("RECEIVED_EVENT_LOG", params...)
 }
 
 func getTxLogger(logger log.Logger, receipt *types.Receipt, header *ethclient.HeaderAndTxnHashes) log.Logger {
@@ -18,10 +18,10 @@ func logHeader(logger log.Logger, header *types.Header) {
 	logger.Debug("RECEIVED_HEADER", "blockNumber", header.Number)
 }
 
-func logTransaction(logger log.Logger) {
-	logger.Debug("RECEIVED_TRANSACTION")
+func logTransaction(logger log.Logger, params ...interface{}) {
+	logger.Info("RECEIVED_TRANSACTION", params...)
 }
 
 func logStateViewCall(logger log.Logger, params ...interface{}) {
-	logger.Info("STATE_VIEW_CALL", params...)
+	logger.Debug("STATE_VIEW_CALL", params...)
 }

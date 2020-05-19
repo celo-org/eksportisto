@@ -18,13 +18,10 @@ require (
 	github.com/influxdata/influxdb v1.2.3-0.20180221223340-01288bdb0883
 	github.com/jsternberg/zap-logfmt v1.2.0 // indirect
 	github.com/mattn/go-sqlite3 v2.0.3+incompatible
-	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
-	github.com/modern-go/reflect2 v1.0.1 // indirect
 	github.com/onsi/gomega v1.9.0
 	github.com/opencontainers/go-digest v1.0.0-rc1 // indirect
 	github.com/opencontainers/image-spec v1.0.1 // indirect
 	github.com/prometheus/client_golang v1.5.1
-	github.com/prometheus/tsdb v0.7.1 // indirect
 	github.com/stretchr/testify v1.5.1 // indirect
 	golang.org/x/sync v0.0.0-20200317015054-43a5402ce75a
 )
