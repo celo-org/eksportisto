@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/celo-org/eksportisto/metrics"
+	"github.com/celo-org/eksportisto/utils"
 	"github.com/celo-org/kliento/contracts"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
@@ -47,7 +48,7 @@ func (p stableTokenProcessor) ObserveMetric(opts *bind.CallOpts) error {
 		return err
 	}
 
-	metrics.TotalCUSDSupply.Set(float64(totalSupply.Uint64()))
+	metrics.TotalCUSDSupply.Set(utils.ScaleFixed(totalSupply))
 	return nil
 }
 

@@ -322,6 +322,10 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 			}
 
 			for _, epochLog := range filterLogs {
+				if epochLog.BlockHash != epochLog.TxHash {
+					// Already handled by TransactionReceipt
+					continue
+				}
 				electionProcessor.HandleLog(&epochLog)
 				epochRewardsProcessor.HandleLog(&epochLog)
 				governanceProcessor.HandleLog(&epochLog)
@@ -351,6 +355,14 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 				governanceProcessor.HandleLog(eventLog)
 				validatorsProcessor.HandleLog(eventLog)
 				sortedOraclesProcessor.HandleLog(eventLog)
+			}
+
+			internalTransfers, err := cc.Debug.TransactionTransfers(ctx, txHash)
+			if err != nil {
+				return err
+			}
+			for _, internalTransfer := range internalTransfers {
+				logTransfer(txLogger, "currencySymbol", "cGLD", "from", internalTransfer.From, "to", internalTransfer.To, "value", internalTransfer.Value)
 			}
 		}
 

@@ -22,6 +22,10 @@ func logTransaction(logger log.Logger) {
 	logger.Debug("RECEIVED_TRANSACTION")
 }
 
+func logTransfer(logger log.Logger, params ...interface{}) {
+	logger.Info("RECEIVED_TRANSFER", params...)
+}
+
 func logStateViewCall(logger log.Logger, params ...interface{}) {
 	logger.Info("STATE_VIEW_CALL", params...)
 }

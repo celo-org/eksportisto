@@ -20,3 +20,8 @@ func FromFixed(number *big.Int) float32 {
 	retF, _ := ret.Float32()
 	return retF
 }
+
+func ScaleFixed(number *big.Int) float64 {
+	retF, _ := new(big.Float).Quo(new(big.Float).SetInt(number), big.NewFloat(1e18)).Float64()
+	return retF
+}
