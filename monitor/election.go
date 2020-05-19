@@ -75,7 +75,13 @@ func (p electionProcessor) HandleLog(eventLog *types.Log) {
 			logEventLog(logger, "eventName", eventName, "account", event.Account, "group", event.Group, "value", event.Value)
 		case "ValidatorGroupVoteActivated":
 			event := eventRaw.(*contracts.ElectionValidatorGroupVoteActivated)
+			logEventLog(logger, "eventName", eventName, "account", event.Account, "group", event.Group, "value", event.Value, "voteUnits", event.Units)
+		case "ValidatorGroupPendingVoteRevoked":
+			event := eventRaw.(*contracts.ElectionValidatorGroupPendingVoteRevoked)
 			logEventLog(logger, "eventName", eventName, "account", event.Account, "group", event.Group, "value", event.Value)
+		case "ValidatorGroupActiveVoteRevoked":
+			event := eventRaw.(*contracts.ElectionValidatorGroupActiveVoteRevoked)
+			logEventLog(logger, "eventName", eventName, "account", event.Account, "group", event.Group, "value", event.Value, "voteUnits", event.Units)
 		case "EpochRewardsDistributedToVoters":
 			event := eventRaw.(*contracts.ElectionEpochRewardsDistributedToVoters)
 			logEventLog(logger, "eventName", eventName, "group", event.Group, "value", event.Value)
