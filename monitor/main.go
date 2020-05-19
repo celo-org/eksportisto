@@ -362,7 +362,7 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 				return err
 			}
 			for _, internalTransfer := range internalTransfers {
-				logTransfer(txLogger, "method", "transferCGLD", "from", internalTransfer.From, "to", internalTransfer.To, "value", internalTransfer.Value)
+				logTransfer(txLogger, "currencySymbol", "cGLD", "from", internalTransfer.From, "to", internalTransfer.To, "value", internalTransfer.Value)
 			}
 		}
 
