@@ -77,7 +77,7 @@ func (p epochRewardsProcessor) ObserveMetric(opts *bind.CallOpts) error {
 	if err != nil {
 		return err
 	}
-	metrics.VotingGoldFraction.Set(float64(votingGoldFraction.Uint64()))
+	metrics.VotingGoldFraction.Set(float64(utils.FromFixed(votingGoldFraction)))
 	return nil
 }
 
