@@ -347,7 +347,7 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 			}
 
 			txLogger := getTxLogger(logger, receipt, header)
-			// logTransaction(txLogger, "gasUsed", receipt.GasUsed)
+			logTransaction(txLogger)
 			for _, eventLog := range receipt.Logs {
 				attestationsProcessor.HandleLog(eventLog)
 				electionProcessor.HandleLog(eventLog)
@@ -362,7 +362,7 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 				return err
 			}
 			for _, internalTransfer := range internalTransfers {
-				logTransaction(txLogger, "method", "transferCGLD", "from", internalTransfer.From, "to", internalTransfer.To, "value", internalTransfer.Value.Uint64())
+				logTransfer(txLogger, "method", "transferCGLD", "from", internalTransfer.From, "to", internalTransfer.To, "value", internalTransfer.Value)
 			}
 		}
 
