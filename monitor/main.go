@@ -27,8 +27,8 @@ type Config struct {
 	NodeUri string
 }
 
-var EpochSize = uint64(1)     // 17280 = 12 * 60 * 24
-var BlocksPerHour = uint64(1) // 720 = 12 * 60
+var EpochSize = uint64(17280)   // 17280 = 12 * 60 * 24
+var BlocksPerHour = uint64(720) // 720 = 12 * 60
 var TipGap = big.NewInt(50)
 
 func Start(ctx context.Context, cfg *Config) error {
@@ -45,7 +45,6 @@ func Start(ctx context.Context, cfg *Config) error {
 	sqlitePath := filepath.Join(datadir, "state.db")
 	store, err := db.NewSqliteDb(sqlitePath)
 	startBlock, err := store.LastPersistedBlock(ctx)
-	startBlock = big.NewInt(50000)
 
 	headers := make(chan *types.Header, 10)
 
