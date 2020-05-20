@@ -3,6 +3,7 @@ package monitor
 import (
 	"context"
 
+	"github.com/celo-org/eksportisto/utils"
 	"github.com/celo-org/kliento/contracts"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
@@ -70,7 +71,7 @@ func (p sortedOraclesProcessor) ObserveState(opts *bind.CallOpts, stableTokenAdd
 	}
 
 	for i, rateAddress := range rateAddresses {
-		logStateViewCall(logger, "method", "GetRates", "rateAddress", rateAddress, "rateValue", rateValues[i], "medianRelation", medianRelations[i], "index", i)
+		logStateViewCall(logger, "method", "GetRates", "rateAddress", rateAddress, "rateValue", utils.FromFixed(rateValues[i]), "medianRelation", medianRelations[i], "index", i)
 	}
 
 	// SortedOracles.GetTimestamps
