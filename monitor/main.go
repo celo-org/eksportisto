@@ -42,6 +42,7 @@ func Start(ctx context.Context, cfg *Config) error {
 
 	// Todo: Make this configurable
 	datadir := filepath.Join(homeDir(), ".eksportisto")
+	os.MkdirAll(datadir, os.ModePerm)
 	sqlitePath := filepath.Join(datadir, "state.db")
 	store, err := db.NewSqliteDb(sqlitePath)
 	startBlock, err := store.LastPersistedBlock(ctx)
