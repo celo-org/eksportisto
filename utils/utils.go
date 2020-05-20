@@ -25,3 +25,22 @@ func ScaleFixed(number *big.Int) float64 {
 	retF, _ := new(big.Float).Quo(new(big.Float).SetInt(number), big.NewFloat(1e18)).Float64()
 	return retF
 }
+
+func BoolToMetric(value bool) float64 {
+	if value {
+		return 1
+	}
+	return 0
+}
+
+func Mean(xs []*big.Int) float64 {
+	total := 0.0
+	if len(xs) == 0 {
+		return 0.0
+	}
+	for _, v := range xs {
+		val := float64(FromFixed(v))
+		total += val
+	}
+	return total / float64(len(xs))
+}
