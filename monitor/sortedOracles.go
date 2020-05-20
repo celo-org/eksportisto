@@ -80,7 +80,7 @@ func (p sortedOraclesProcessor) ObserveState(opts *bind.CallOpts, stableTokenAdd
 	}
 
 	for i, timestampAddress := range timestampAddresses {
-		logStateViewCall(logger, "method", "GetTimestamps", "timestampAddress", timestampAddress, "timestamp", timestamp[i], "medianRelation", medianRelations[i], "index", i)
+		logStateViewCall(logger, "method", "GetTimestamps", "timestampAddress", timestampAddress, "reportedTimestamp", timestamp[i], "medianRelation", medianRelations[i], "index", i)
 	}
 
 	return nil
