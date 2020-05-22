@@ -109,11 +109,6 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 			return err
 		}
 
-		opts := &bind.CallOpts{
-			BlockNumber: h.Number,
-			Context:     ctx,
-		}
-
 		// Todo: Use Rosetta's db to detect election contract address changes mid block
 		// Todo: Right now this assumes that the only interesting events happen after all the core contracts are available
 		// Todo: Right now we  are assuming that core contract addresses do not change which allows us to avoid having to check the registry
@@ -283,10 +278,10 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 		stableTokenProcessor := NewStableTokenProcessor(ctx, logger, stableTokenAddress, stableToken)
 		validatorsProcessor := NewValidatorsProcessor(ctx, logger, validatorsAddress, validators)
 
-		g, ctxProcessor := errgroup.WithContext(opts.Context)
+		g, ctxProcessor := errgroup.WithContext(ctx)
 
-		opts = &bind.CallOpts{
-			BlockNumber: opts.BlockNumber,
+		opts := &bind.CallOpts{
+			BlockNumber: h.Number,
 			Context:     ctxProcessor,
 		}
 
