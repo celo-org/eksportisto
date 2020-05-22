@@ -2,6 +2,7 @@ package monitor
 
 import (
 	"context"
+	"math"
 	"math/big"
 
 	"github.com/celo-org/eksportisto/metrics"
@@ -89,7 +90,7 @@ func (p sortedOraclesProcessor) ObserveState(opts *bind.CallOpts, stableTokenAdd
 	return nil
 }
 
-func (p sortedOraclesProcessor) ObserveMetric(opts *bind.CallOpts, stableTokenAddress common.Address) error {
+func (p sortedOraclesProcessor) ObserveMetric(opts *bind.CallOpts, stableTokenAddress common.Address, blockTime uint64) error {
 
 	isOldestReportExpired, _, err := p.sortedOracles.IsOldestReportExpired(opts, stableTokenAddress)
 	if err != nil {
@@ -115,20 +116,31 @@ func (p sortedOraclesProcessor) ObserveMetric(opts *bind.CallOpts, stableTokenAd
 		medianRate = new(big.Float).Quo(retN, retD)
 	}
 	medianRateMetric, _ := medianRate.Float64()
+
 	metrics.SortedOraclesMedianRate.Set(medianRateMetric)
 
 	_, rateValues, _, err := p.sortedOracles.GetRates(opts, stableTokenAddress)
 	if err != nil {
 		return err
 	}
-	metrics.SortedOraclesMeanRate.Set(utils.Mean(rateValues))
+
+	mean := utils.Mean(rateValues)
+	maxDiff := 0.0
+
+	for _, rateValue := range rateValues {
+		diff := math.Abs(float64(utils.FromFixed(rateValue))/mean - 1)
+		if diff > maxDiff {
+			maxDiff = diff
+		}
+	}
+	metrics.SortedOraclesMeanRate.Set(maxDiff)
 
 	medianTimestamp, err := p.sortedOracles.MedianTimestamp(opts, stableTokenAddress)
 	if err != nil {
 		return err
 	}
 
-	metrics.SortedOraclesMeanRate.Set(medianTimestamp)
+	metrics.SortedOraclesMeanRate.Set(float64(blockTime - medianTimestamp.Uint64()))
 
 	return nil
 }
