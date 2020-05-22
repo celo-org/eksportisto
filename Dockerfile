@@ -9,7 +9,7 @@ RUN go mod download
 
 # Build project (this prevents re-downloading dependencies when go.mod/sum didn't change)
 COPY . .
-RUN go build -o eksportisto .
+RUN go build -tags musl -o eksportisto .
 
 FROM scratch
 
