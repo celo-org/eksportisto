@@ -13,7 +13,7 @@ import (
 	"github.com/celo-org/kliento/client"
 	"github.com/celo-org/kliento/contracts"
 	kliento_mon "github.com/celo-org/kliento/monitor"
-	"github.com/celo-org/kliento/wrappers"
+	"github.com/celo-org/kliento/registry"
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
@@ -53,7 +53,7 @@ func Start(ctx context.Context, cfg *Config) error {
 }
 
 func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *client.CeloClient, logger log.Logger, dbWriter db.RosettaDBWriter) error {
-	registry, err := wrappers.NewRegistry(cc)
+	r, err := registry.New(cc)
 	if err != nil {
 		return err
 	}
@@ -118,8 +118,8 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 		// Todo: Right now this assumes that the only interesting events happen after all the core contracts are available
 		// Todo: Right now we  are assuming that core contract addresses do not change which allows us to avoid having to check the registry
 		if (attestationsAddress == common.Address{}) {
-			attestationsAddress, err = registry.GetAddressForString(opts, "Attestations")
-			if err == client.ErrContractNotDeployed || err == wrappers.ErrRegistryNotDeployed {
+			attestationsAddress, err = r.GetAddressFor(ctx, h.Number, registry.AttestationsContractID)
+			if err == client.ErrContractNotDeployed || err == registry.ErrRegistryNotDeployed {
 				continue
 			} else if err != nil {
 				return err
@@ -132,8 +132,8 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 		}
 
 		if (electionAddress == common.Address{}) {
-			electionAddress, err = registry.GetAddressForString(opts, "Election")
-			if err == client.ErrContractNotDeployed || err == wrappers.ErrRegistryNotDeployed {
+			electionAddress, err = r.GetAddressFor(ctx, h.Number, registry.ElectionContractID)
+			if err == client.ErrContractNotDeployed || err == registry.ErrRegistryNotDeployed {
 				continue
 			} else if err != nil {
 				return err
@@ -146,8 +146,8 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 		}
 
 		if (epochRewardsAddress == common.Address{}) {
-			epochRewardsAddress, err = registry.GetAddressForString(opts, "EpochRewards")
-			if err == client.ErrContractNotDeployed || err == wrappers.ErrRegistryNotDeployed {
+			epochRewardsAddress, err = r.GetAddressFor(ctx, h.Number, registry.EpochRewardsContractID)
+			if err == client.ErrContractNotDeployed || err == registry.ErrRegistryNotDeployed {
 				continue
 			} else if err != nil {
 				return err
@@ -160,8 +160,8 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 		}
 
 		if (exchangeAddress == common.Address{}) {
-			exchangeAddress, err = registry.GetAddressForString(opts, "Exchange")
-			if err == client.ErrContractNotDeployed || err == wrappers.ErrRegistryNotDeployed {
+			exchangeAddress, err = r.GetAddressFor(ctx, h.Number, registry.ExchangeContractID)
+			if err == client.ErrContractNotDeployed || err == registry.ErrRegistryNotDeployed {
 				continue
 			} else if err != nil {
 				return err
@@ -174,8 +174,8 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 		}
 
 		if (goldTokenAddress == common.Address{}) {
-			goldTokenAddress, err = registry.GetAddressForString(opts, "GoldToken")
-			if err == client.ErrContractNotDeployed || err == wrappers.ErrRegistryNotDeployed {
+			goldTokenAddress, err = r.GetAddressFor(ctx, h.Number, registry.GoldTokenContractID)
+			if err == client.ErrContractNotDeployed || err == registry.ErrRegistryNotDeployed {
 				continue
 			} else if err != nil {
 				return err
@@ -188,8 +188,8 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 		}
 
 		if (governanceAddress == common.Address{}) {
-			governanceAddress, err = registry.GetAddressForString(opts, "Governance")
-			if err == client.ErrContractNotDeployed || err == wrappers.ErrRegistryNotDeployed {
+			governanceAddress, err = r.GetAddressFor(ctx, h.Number, registry.GovernanceContractID)
+			if err == client.ErrContractNotDeployed || err == registry.ErrRegistryNotDeployed {
 				continue
 			} else if err != nil {
 				return err
@@ -202,8 +202,8 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 		}
 
 		if (lockedGoldAddress == common.Address{}) {
-			lockedGoldAddress, err = registry.GetAddressForString(opts, "LockedGold")
-			if err == client.ErrContractNotDeployed || err == wrappers.ErrRegistryNotDeployed {
+			lockedGoldAddress, err = r.GetAddressFor(ctx, h.Number, registry.LockedGoldContractID)
+			if err == client.ErrContractNotDeployed || err == registry.ErrRegistryNotDeployed {
 				continue
 			} else if err != nil {
 				return err
@@ -216,8 +216,8 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 		}
 
 		if (reserveAddress == common.Address{}) {
-			reserveAddress, err = registry.GetAddressForString(opts, "Reserve")
-			if err == client.ErrContractNotDeployed || err == wrappers.ErrRegistryNotDeployed {
+			reserveAddress, err = r.GetAddressFor(ctx, h.Number, registry.ReserveContractID)
+			if err == client.ErrContractNotDeployed || err == registry.ErrRegistryNotDeployed {
 				continue
 			} else if err != nil {
 				return err
@@ -230,8 +230,8 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 		}
 
 		if (sortedOraclesAddress == common.Address{}) {
-			sortedOraclesAddress, err = registry.GetAddressForString(opts, "SortedOracles")
-			if err == client.ErrContractNotDeployed || err == wrappers.ErrRegistryNotDeployed {
+			sortedOraclesAddress, err = r.GetAddressFor(ctx, h.Number, registry.SortedOraclesContractID)
+			if err == client.ErrContractNotDeployed || err == registry.ErrRegistryNotDeployed {
 				continue
 			} else if err != nil {
 				return err
@@ -244,8 +244,8 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 		}
 
 		if (stableTokenAddress == common.Address{}) {
-			stableTokenAddress, err = registry.GetAddressForString(opts, "StableToken")
-			if err == client.ErrContractNotDeployed || err == wrappers.ErrRegistryNotDeployed {
+			stableTokenAddress, err = r.GetAddressFor(ctx, h.Number, registry.StableTokenContractID)
+			if err == client.ErrContractNotDeployed || err == registry.ErrRegistryNotDeployed {
 				continue
 			} else if err != nil {
 				return err
@@ -258,8 +258,8 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 		}
 
 		if (validatorsAddress == common.Address{}) {
-			validatorsAddress, err = registry.GetAddressForString(opts, "Validators")
-			if err == client.ErrContractNotDeployed || err == wrappers.ErrRegistryNotDeployed {
+			validatorsAddress, err = r.GetAddressFor(ctx, h.Number, registry.ValidatorsContractID)
+			if err == client.ErrContractNotDeployed || err == registry.ErrRegistryNotDeployed {
 				continue
 			} else if err != nil {
 				return err
