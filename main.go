@@ -4,6 +4,8 @@ import (
 	"context"
 	"flag"
 	"os"
+	"os/user"
+	"path/filepath"
 	"runtime/pprof"
 	"time"
 
@@ -23,6 +25,7 @@ func main() {
 
 	var monitorConfig monitor.Config
 	flag.StringVar(&monitorConfig.NodeUri, "nodeUri", "http://localhost:8545", "Connection string for celo-blockchain node")
+	flag.StringVar(&monitorConfig.DataDir, "datadir", filepath.Join(homeDir(), ".eksportisto"), "Sqlite data directory, will be created if it doesn't exist")
 
 	var cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
 
@@ -52,4 +55,14 @@ func main() {
 		log.Error("Error while running", "err", err)
 		os.Exit(1)
 	}
+}
+
+func homeDir() string {
+	if home := os.Getenv("HOME"); home != "" {
+		return home
+	}
+	if usr, err := user.Current(); err == nil {
+		return usr.HomeDir
+	}
+	return ""
 }

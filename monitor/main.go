@@ -4,7 +4,6 @@ import (
 	"context"
 	"math/big"
 	"os"
-	"os/user"
 	"path/filepath"
 	"time"
 
@@ -25,6 +24,7 @@ import (
 
 type Config struct {
 	NodeUri string
+	DataDir string
 }
 
 var EpochSize = uint64(17280)   // 17280 = 12 * 60 * 24
@@ -40,9 +40,7 @@ func Start(ctx context.Context, cfg *Config) error {
 		return err
 	}
 
-	// Todo: Make this configurable
-	datadir := filepath.Join(homeDir(), ".eksportisto")
-	sqlitePath := filepath.Join(datadir, "state.db")
+	sqlitePath := filepath.Join(cfg.DataDir, "state.db")
 	store, err := db.NewSqliteDb(sqlitePath)
 	startBlock, err := store.LastPersistedBlock(ctx)
 
@@ -382,14 +380,4 @@ func isTipMode(ctx context.Context, cc *client.CeloClient, currentBlockNumber *b
 		return false
 	}
 	return new(big.Int).Sub(latestHeader.Number, currentBlockNumber).Cmp(TipGap) < 0
-}
-
-func homeDir() string {
-	if home := os.Getenv("HOME"); home != "" {
-		return home
-	}
-	if usr, err := user.Current(); err == nil {
-		return usr.HomeDir
-	}
-	return ""
 }
