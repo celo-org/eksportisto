@@ -40,9 +40,16 @@ func Start(ctx context.Context, cfg *Config) error {
 		return err
 	}
 
+	os.MkdirAll(cfg.DataDir, os.ModePerm)
 	sqlitePath := filepath.Join(cfg.DataDir, "state.db")
 	store, err := db.NewSqliteDb(sqlitePath)
+	if err != nil {
+		return err
+	}
 	startBlock, err := store.LastPersistedBlock(ctx)
+	if err != nil {
+		return err
+	}
 
 	headers := make(chan *types.Header, 10)
 
