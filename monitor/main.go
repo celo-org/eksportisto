@@ -371,25 +371,24 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 			}
 		}
 
-		accountsProcessor := NewAccountsProcessor(ctx, logger, accountsAddress, accounts)
-		attestationsProcessor := NewAttestationsProcessor(ctx, logger, attestationsAddress, attestations)
-		electionProcessor := NewElectionProcessor(ctx, logger, electionAddress, election)
-		epochRewardsProcessor := NewEpochRewardsProcessor(ctx, logger, epochRewardsAddress, epochRewards)
-		goldTokenProcessor := NewGoldTokenProcessor(ctx, logger, goldTokenAddress, goldToken)
-		governanceProcessor := NewGovernanceProcessor(ctx, logger, governanceAddress, governance)
-		lockedGoldProcessor := NewLockedGoldProcessor(ctx, logger, lockedGoldAddress, lockedGold)
-		reserveProcessor := NewReserveProcessor(ctx, logger, reserveAddress, reserve)
-		sortedOraclesProcessor := NewSortedOraclesProcessor(ctx, logger, sortedOraclesAddress, sortedOracles, exchange)
-		stabilityProcessor := NewStabilityProcessor(ctx, logger, exchangeAddress, exchange, reserve)
-		stableTokenProcessor := NewStableTokenProcessor(ctx, logger, stableTokenAddress, stableToken)
-		validatorsProcessor := NewValidatorsProcessor(ctx, logger, validatorsAddress, validators)
-
-		g, ctxProcessor := errgroup.WithContext(ctx)
-
+		g, processorCtx := errgroup.WithContext(context.Background())
 		opts := &bind.CallOpts{
 			BlockNumber: h.Number,
-			Context:     ctxProcessor,
+			Context:     processorCtx,
 		}
+
+		accountsProcessor := NewAccountsProcessor(processorCtx, logger, accountsAddress, accounts)
+		attestationsProcessor := NewAttestationsProcessor(processorCtx, logger, attestationsAddress, attestations)
+		electionProcessor := NewElectionProcessor(processorCtx, logger, electionAddress, election)
+		epochRewardsProcessor := NewEpochRewardsProcessor(processorCtx, logger, epochRewardsAddress, epochRewards)
+		goldTokenProcessor := NewGoldTokenProcessor(processorCtx, logger, goldTokenAddress, goldToken)
+		governanceProcessor := NewGovernanceProcessor(processorCtx, logger, governanceAddress, governance)
+		lockedGoldProcessor := NewLockedGoldProcessor(processorCtx, logger, lockedGoldAddress, lockedGold)
+		reserveProcessor := NewReserveProcessor(processorCtx, logger, reserveAddress, reserve)
+		sortedOraclesProcessor := NewSortedOraclesProcessor(processorCtx, logger, sortedOraclesAddress, sortedOracles, exchange)
+		stabilityProcessor := NewStabilityProcessor(processorCtx, logger, exchangeAddress, exchange, reserve)
+		stableTokenProcessor := NewStableTokenProcessor(processorCtx, logger, stableTokenAddress, stableToken)
+		validatorsProcessor := NewValidatorsProcessor(processorCtx, logger, validatorsAddress, validators)
 
 		if tipMode {
 			g.Go(func() error { return goldTokenProcessor.ObserveMetric(opts) })
@@ -439,9 +438,9 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 			return err
 		}
 
+		transactionCtx := context.Background()
 		for _, txHash := range header.Transactions {
-
-			receipt, err := cc.Eth.TransactionReceipt(ctx, txHash)
+			receipt, err := cc.Eth.TransactionReceipt(transactionCtx, txHash)
 			if err != nil {
 				return err
 			}
@@ -458,7 +457,7 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 				sortedOraclesProcessor.HandleLog(eventLog)
 			}
 
-			internalTransfers, err := cc.Debug.TransactionTransfers(ctx, txHash)
+			internalTransfers, err := cc.Debug.TransactionTransfers(transactionCtx, txHash)
 			if err != nil {
 				return err
 			}
@@ -473,7 +472,7 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 			}
 		}
 
-		if err := dbWriter.ApplyChanges(ctx, h.Number); err != nil {
+		if err := dbWriter.ApplyChanges(transactionCtx, h.Number); err != nil {
 			return err
 		}
 
