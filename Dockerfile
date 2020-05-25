@@ -13,6 +13,6 @@ RUN go build -tags musl -o eksportisto .
 
 FROM scratch
 
-COPY --from=builder /app/eksportisto /app/ekportisto
+COPY --from=builder /app/eksportisto /app/eksportisto
 
 ENTRYPOINT [ "/app/eksportisto" ]
