@@ -38,7 +38,7 @@ var (
 	})
 	SortedOraclesRateMaxDeviation = prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "sortedoracles_rates_mean",
-		Help: "The mean of all rates",
+		Help: "The max deviation of all rates",
 	})
 )
 
