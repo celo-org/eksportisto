@@ -4,26 +4,16 @@
 
 .PHONY: evm all test clean
 
-
 GO ?= latest
-BLS_RS_PATH ?= external/bls-zexe
 CELO_BLOCKCHAIN_PATH?=../celo-blockchain
 CELO_MONOREPO_PATH?=../celo-monorepo
 GITHUB_ORG?=celo-org
 GITHUB_REPO?=monitor
 
-CARGO_exists := $(shell command -v cargo 2> /dev/null)
 LSB_exists := $(shell command -v lsb_release 2> /dev/null)
 GOLANGCI_exists := $(shell command -v golangci-lint 2> /dev/null)
-OPENAPIGEN_exists := $(shell command -v openapi-generator 2> /dev/null)
 
 COMMIT_SHA=$(shell git rev-parse HEAD)
-
-.PHONY:
-	gen-rpc 
-	ifdef CARGO_exists
-		$(BLS_RS_PATH)/target/release/libepoch_snark.a
-	endif
 
 OS :=
 ifeq ("$(LSB_exists)","")
@@ -32,20 +22,10 @@ else
 	OS = linux
 endif
 
-all: bls-zexe
-	go build ./...
+all: build
 
 build:
 	go build ./...
-
-bls-zexe: $(BLS_RS_PATH)/target/release/libepoch_snark.a
-
-$(BLS_RS_PATH)/target/release/libepoch_snark.a:
-ifeq ("$(CARGO_exists)","")
-	$(error "No cargo in PATH, consult https://github.com/celo-org/celo-monorepo/blob/master/SETUP.md")
-else
-	cd $(BLS_RS_PATH) && cargo build --release
-endif
 
 test: 
 	go test ./...
@@ -60,8 +40,5 @@ endif
 clean-geth:
 	go clean -cache
 	
-clean-bls-zexe:
-	rm -rf $(BLS_RS_PATH)/target
-
-clean: clean-geth clean-bls-zexe
+clean: clean-geth
 
