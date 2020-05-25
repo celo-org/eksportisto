@@ -13,7 +13,7 @@ RUN go build -tags musl -o eksportisto .
 
 FROM scratch
 
-ENV HOME /home
+ENV HOME /root
 COPY --from=builder /app/eksportisto /app/eksportisto
 
 ENTRYPOINT [ "/app/eksportisto" ]
