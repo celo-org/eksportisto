@@ -2,7 +2,10 @@ package monitor
 
 import (
 	"context"
+	"math"
+	"math/big"
 
+	"github.com/celo-org/eksportisto/metrics"
 	"github.com/celo-org/eksportisto/utils"
 	"github.com/celo-org/kliento/contracts"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -83,6 +86,61 @@ func (p sortedOraclesProcessor) ObserveState(opts *bind.CallOpts, stableTokenAdd
 	for i, timestampAddress := range timestampAddresses {
 		logStateViewCall(logger, "method", "GetTimestamps", "timestampAddress", timestampAddress, "reportedTimestamp", timestamp[i], "medianRelation", medianRelations[i], "index", i)
 	}
+
+	return nil
+}
+
+func (p sortedOraclesProcessor) ObserveMetric(opts *bind.CallOpts, stableTokenAddress common.Address, blockTime uint64) error {
+
+	isOldestReportExpired, _, err := p.sortedOracles.IsOldestReportExpired(opts, stableTokenAddress)
+	if err != nil {
+		return err
+	}
+	metrics.SortedOraclesIsOldestReportExpired.Set(utils.BoolToFloat64(isOldestReportExpired))
+
+	numRates, err := p.sortedOracles.NumRates(opts, stableTokenAddress)
+	if err != nil {
+		return err
+	}
+	metrics.SortedOraclesNumRates.Set(float64(numRates.Uint64()))
+
+	medianRateNumerator, medianRateDenominator, err := p.sortedOracles.MedianRate(opts, stableTokenAddress)
+	if err != nil {
+		return err
+	}
+	medianRate := big.NewFloat(0)
+
+	if medianRateDenominator.Cmp(big.NewInt(0)) != 0 {
+		retN := new(big.Float).SetInt(medianRateNumerator)
+		retD := new(big.Float).SetInt(medianRateDenominator)
+		medianRate = new(big.Float).Quo(retN, retD)
+	}
+	medianRateMetric, _ := medianRate.Float64()
+
+	metrics.SortedOraclesMedianRate.Set(medianRateMetric)
+
+	_, rateValues, _, err := p.sortedOracles.GetRates(opts, stableTokenAddress)
+	if err != nil {
+		return err
+	}
+
+	mean := utils.MeanFromFixed(rateValues)
+	maxDiff := 0.0
+
+	for _, rateValue := range rateValues {
+		diff := math.Abs(float64(utils.FromFixed(rateValue))/mean - 1)
+		if diff > maxDiff {
+			maxDiff = diff
+		}
+	}
+	metrics.SortedOraclesRateMaxDeviation.Set(maxDiff)
+
+	medianTimestamp, err := p.sortedOracles.MedianTimestamp(opts, stableTokenAddress)
+	if err != nil {
+		return err
+	}
+
+	metrics.SortedOraclesRateMaxDeviation.Set(float64(blockTime - medianTimestamp.Uint64()))
 
 	return nil
 }

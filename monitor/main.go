@@ -294,6 +294,7 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 			g.Go(func() error { return goldTokenProcessor.ObserveMetric(opts) })
 			g.Go(func() error { return stableTokenProcessor.ObserveMetric(opts) })
 			g.Go(func() error { return epochRewardsProcessor.ObserveMetric(opts) })
+			g.Go(func() error { return sortedOraclesProcessor.ObserveMetric(opts, stableTokenAddress, h.Time) })
 			g.Go(func() error { return stabilityProcessor.ObserveMetric(opts) })
 		}
 

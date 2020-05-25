@@ -24,6 +24,22 @@ var (
 		Name: "eksportisto_last_block_processed",
 		Help: "Last Block Processed by eksportisto",
 	})
+	SortedOraclesIsOldestReportExpired = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "sortedoracles_isoldestreportexpired",
+		Help: "True if oldest oracle report is expired",
+	})
+	SortedOraclesNumRates = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "sortedoracles_numrates",
+		Help: "The number of rates",
+	})
+	SortedOraclesMedianRate = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "sortedoracles_medianrate",
+		Help: "The median rate",
+	})
+	SortedOraclesRateMaxDeviation = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "sortedoracles_rates_mean",
+		Help: "The max deviation of all rates",
+	})
 )
 
 func init() {
@@ -33,6 +49,10 @@ func init() {
 	prometheus.MustRegister(VotingGoldFraction)
 	prometheus.MustRegister(ExchangeGoldBucketRatio)
 	prometheus.MustRegister(LastBlockProcessed)
+	prometheus.MustRegister(SortedOraclesIsOldestReportExpired)
+	prometheus.MustRegister(SortedOraclesNumRates)
+	prometheus.MustRegister(SortedOraclesMedianRate)
+	prometheus.MustRegister(SortedOraclesRateMaxDeviation)
 	// Add Go module build info.
 	prometheus.MustRegister(prometheus.NewBuildInfoCollector())
 }
