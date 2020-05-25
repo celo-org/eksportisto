@@ -96,7 +96,7 @@ func (p sortedOraclesProcessor) ObserveMetric(opts *bind.CallOpts, stableTokenAd
 	if err != nil {
 		return err
 	}
-	metrics.SortedOraclesIsOldestReportExpired.Set(utils.BoolToMetric(isOldestReportExpired))
+	metrics.SortedOraclesIsOldestReportExpired.Set(utils.BoolToFloat64(isOldestReportExpired))
 
 	numRates, err := p.sortedOracles.NumRates(opts, stableTokenAddress)
 	if err != nil {
@@ -124,7 +124,7 @@ func (p sortedOraclesProcessor) ObserveMetric(opts *bind.CallOpts, stableTokenAd
 		return err
 	}
 
-	mean := utils.Mean(rateValues)
+	mean := utils.MeanFromFixed(rateValues)
 	maxDiff := 0.0
 
 	for _, rateValue := range rateValues {
@@ -133,14 +133,14 @@ func (p sortedOraclesProcessor) ObserveMetric(opts *bind.CallOpts, stableTokenAd
 			maxDiff = diff
 		}
 	}
-	metrics.SortedOraclesMeanRate.Set(maxDiff)
+	metrics.SortedOraclesRateMaxDeviation.Set(maxDiff)
 
 	medianTimestamp, err := p.sortedOracles.MedianTimestamp(opts, stableTokenAddress)
 	if err != nil {
 		return err
 	}
 
-	metrics.SortedOraclesMeanRate.Set(float64(blockTime - medianTimestamp.Uint64()))
+	metrics.SortedOraclesRateMaxDeviation.Set(float64(blockTime - medianTimestamp.Uint64()))
 
 	return nil
 }

@@ -36,7 +36,7 @@ var (
 		Name: "sortedoracles_medianrate",
 		Help: "The median rate",
 	})
-	SortedOraclesMeanRate = prometheus.NewGauge(prometheus.GaugeOpts{
+	SortedOraclesRateMaxDeviation = prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "sortedoracles_rates_mean",
 		Help: "The mean of all rates",
 	})
@@ -52,7 +52,7 @@ func init() {
 	prometheus.MustRegister(SortedOraclesIsOldestReportExpired)
 	prometheus.MustRegister(SortedOraclesNumRates)
 	prometheus.MustRegister(SortedOraclesMedianRate)
-	prometheus.MustRegister(SortedOraclesMeanRate)
+	prometheus.MustRegister(SortedOraclesRateMaxDeviation)
 	// Add Go module build info.
 	prometheus.MustRegister(prometheus.NewBuildInfoCollector())
 }

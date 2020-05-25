@@ -26,14 +26,14 @@ func ScaleFixed(number *big.Int) float64 {
 	return retF
 }
 
-func BoolToMetric(value bool) float64 {
+func BoolToFloat64(value bool) float64 {
 	if value {
 		return 1
 	}
 	return 0
 }
 
-func Mean(xs []*big.Int) float64 {
+func MeanFromFixed(xs []*big.Int) float64 {
 	total := 0.0
 	if len(xs) == 0 {
 		return 0.0
