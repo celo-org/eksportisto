@@ -65,6 +65,9 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 		return err
 	}
 
+	var accounts *contracts.Accounts
+	var accountsAddress common.Address
+
 	var attestations *contracts.Attestations
 	var attestationsAddress common.Address
 
@@ -119,6 +122,20 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 		// Todo: Use Rosetta's db to detect election contract address changes mid block
 		// Todo: Right now this assumes that the only interesting events happen after all the core contracts are available
 		// Todo: Right now we  are assuming that core contract addresses do not change which allows us to avoid having to check the registry
+		if (accountsAddress == common.Address{}) {
+			accountsAddress, err = r.GetAddressFor(ctx, h.Number, registry.AccountsContractID)
+			if err == client.ErrContractNotDeployed || err == registry.ErrRegistryNotDeployed {
+				continue
+			} else if err != nil {
+				return err
+			}
+
+			accounts, err = contracts.NewAccounts(accountsAddress, cc.Eth)
+			if err != nil {
+				return err
+			}
+		}
+
 		if (attestationsAddress == common.Address{}) {
 			attestationsAddress, err = r.GetAddressFor(ctx, h.Number, registry.AttestationsContractID)
 			if err == client.ErrContractNotDeployed || err == registry.ErrRegistryNotDeployed {
@@ -273,6 +290,7 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 			}
 		}
 
+		accountsProcessor := NewAccountsProcessor(ctx, logger, accountsAddress, accounts)
 		attestationsProcessor := NewAttestationsProcessor(ctx, logger, attestationsAddress, attestations)
 		electionProcessor := NewElectionProcessor(ctx, logger, electionAddress, election)
 		epochRewardsProcessor := NewEpochRewardsProcessor(ctx, logger, epochRewardsAddress, epochRewards)
@@ -350,6 +368,7 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 			txLogger := getTxLogger(logger, receipt, header)
 			logTransaction(txLogger)
 			for _, eventLog := range receipt.Logs {
+				accountsProcessor.HandleLog(eventLog)
 				attestationsProcessor.HandleLog(eventLog)
 				electionProcessor.HandleLog(eventLog)
 				epochRewardsProcessor.HandleLog(eventLog)
