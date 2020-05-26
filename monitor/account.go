@@ -29,6 +29,9 @@ func (p accountProcessor) ObserveState() {
 	return
 }
 
+var accountParam = "account"
+var signerParam = "signer"
+
 func (p accountProcessor) HandleLog(eventLog *types.Log) {
 	logger := p.logger.New("contract", "Accounts", "logIndex", eventLog.Index)
 	if eventLog.Address == p.address {
@@ -46,27 +49,27 @@ func (p accountProcessor) HandleLog(eventLog *types.Log) {
 
 		switch e := eventRaw.(type) {
 		case *contracts.AccountsAttestationSignerAuthorized:
-			params = append(params, "account", e.Account, "signer", e.Signer)
+			params = append(params, accountParam, e.Account, signerParam, e.Signer)
 		case *contracts.AccountsVoteSignerAuthorized:
-			params = append(params, "account", e.Account, "signer", e.Signer)
+			params = append(params, accountParam, e.Account, signerParam, e.Signer)
 		case *contracts.AccountsValidatorSignerAuthorized:
-			params = append(params, "account", e.Account, "signer", e.Signer)
+			params = append(params, accountParam, e.Account, signerParam, e.Signer)
 		case *contracts.AccountsAttestationSignerRemoved:
-			params = append(params, "account", e.Account, "oldSigner", e.OldSigner)
+			params = append(params, accountParam, e.Account, signerParam, e.OldSigner)
 		case *contracts.AccountsVoteSignerRemoved:
-			params = append(params, "account", e.Account, "oldSigner", e.OldSigner)
+			params = append(params, accountParam, e.Account, signerParam, e.OldSigner)
 		case *contracts.AccountsValidatorSignerRemoved:
-			params = append(params, "account", e.Account, "oldSigner", e.OldSigner)
+			params = append(params, accountParam, e.Account, signerParam, e.OldSigner)
 		case *contracts.AccountsAccountDataEncryptionKeySet:
-			params = append(params, "account", e.Account, "dataEncryptionKey", e.DataEncryptionKey)
+			params = append(params, accountParam, e.Account, "dataEncryptionKey", e.DataEncryptionKey)
 		case *contracts.AccountsAccountNameSet:
-			params = append(params, "account", e.Account, "name", e.Name)
+			params = append(params, accountParam, e.Account, "name", e.Name)
 		case *contracts.AccountsAccountMetadataURLSet:
-			params = append(params, "account", e.Account, "metadataUrl", e.MetadataURL)
+			params = append(params, accountParam, e.Account, "metadataUrl", e.MetadataURL)
 		case *contracts.AccountsAccountWalletAddressSet:
-			params = append(params, "account", e.Account, "walletAddress", e.WalletAddress)
+			params = append(params, accountParam, e.Account, "walletAddress", e.WalletAddress)
 		case *contracts.AccountsAccountCreated:
-			params = append(params, "account", e.Account)
+			params = append(params, accountParam, e.Account)
 		}
 
 		logEventLog(logger, params...)
