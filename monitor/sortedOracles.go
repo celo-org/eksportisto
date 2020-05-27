@@ -140,7 +140,7 @@ func (p sortedOraclesProcessor) ObserveMetric(opts *bind.CallOpts, stableTokenAd
 		return err
 	}
 
-	metrics.SortedOraclesRateMaxDeviation.Set(float64(blockTime - medianTimestamp.Uint64()))
+	metrics.SortedOraclesMedianTimestamp.Set(float64(blockTime - medianTimestamp.Uint64()))
 
 	return nil
 }
