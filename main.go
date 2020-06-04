@@ -26,6 +26,7 @@ func main() {
 	var monitorConfig monitor.Config
 	flag.StringVar(&monitorConfig.NodeUri, "nodeUri", "http://localhost:8545", "Connection string for celo-blockchain node")
 	flag.StringVar(&monitorConfig.DataDir, "datadir", filepath.Join(homeDir(), ".eksportisto"), "Sqlite data directory, will be created if it doesn't exist")
+	flag.StringVar(&monitorConfig.SensitiveAccountsFilePath, "sensitiveAccounts", "", "Sensitive accounts JSON file")
 
 	var cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
 

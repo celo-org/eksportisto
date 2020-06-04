@@ -31,17 +31,21 @@ import (
 )
 
 type Config struct {
-	NodeUri string
-	DataDir string
+	NodeUri                   string
+	DataDir                   string
+	SensitiveAccountsFilePath string
 }
 
 var EpochSize = uint64(17280)   // 17280 = 12 * 60 * 24
 var BlocksPerHour = uint64(720) // 720 = 12 * 60
 var TipGap = big.NewInt(50)
 
-func getSensitiveAccounts() map[common.Address]string {
-	sensitiveAccountsFile, _ := filepath.Abs("sensitive-accounts.json")
-	bz, err := ioutil.ReadFile(sensitiveAccountsFile)
+func getSensitiveAccounts(filePath string) map[common.Address]string {
+	if filePath == "" {
+		return make(map[common.Address]string)
+	}
+
+	bz, err := ioutil.ReadFile(filePath)
 	if err != nil {
 		panic(err)
 	}
@@ -129,11 +133,11 @@ func Start(ctx context.Context, cfg *Config) error {
 
 	g, ctx := errgroup.WithContext(ctx)
 	g.Go(func() error { return kliento_mon.HeaderListener(ctx, headers, cc, logger, startBlock) })
-	g.Go(func() error { return blockProcessor(ctx, headers, cc, logger, store) })
+	g.Go(func() error { return blockProcessor(ctx, headers, cc, logger, store, cfg) })
 	return g.Wait()
 }
 
-func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *client.CeloClient, logger log.Logger, dbWriter db.RosettaDBWriter) error {
+func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *client.CeloClient, logger log.Logger, dbWriter db.RosettaDBWriter, cfg *Config) error {
 	r, err := registry.New(cc)
 	if err != nil {
 		return err
@@ -177,7 +181,7 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 
 	var h *types.Header
 
-	sensitiveAccounts := getSensitiveAccounts()
+	sensitiveAccounts := getSensitiveAccounts(cfg.SensitiveAccountsFilePath)
 
 	for {
 		select {
