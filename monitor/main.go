@@ -50,7 +50,6 @@ func getSensitiveAccounts(filePath string) map[common.Address]string {
 		panic(err)
 	}
 
-	fmt.Println(">>>", filePath, string(bz))
 	var addresses map[common.Address]string
 	err = json.Unmarshal(bz, &addresses)
 	if err != nil {
