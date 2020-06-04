@@ -40,7 +40,7 @@ var BlocksPerHour = uint64(720) // 720 = 12 * 60
 var TipGap = big.NewInt(50)
 
 func getSensitiveAccounts() map[common.Address]string {
-	sensitiveAccountsFile, _ := filepath.Abs("accounts.json")
+	sensitiveAccountsFile, _ := filepath.Abs("sensitive-accounts.json")
 	bz, err := ioutil.ReadFile(sensitiveAccountsFile)
 	if err != nil {
 		panic(err)
@@ -480,6 +480,5 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 }
 
 func isTipMode(latestHeader *types.Header, currentBlockNumber *big.Int) bool {
-	return true
 	return new(big.Int).Sub(latestHeader.Number, currentBlockNumber).Cmp(TipGap) < 0
 }
