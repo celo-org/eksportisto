@@ -1,16 +1,23 @@
 package monitor
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
+	"fmt"
+	"io/ioutil"
 	"math/big"
+	"net/http"
 	"os"
 	"path/filepath"
+	"sync"
 	"time"
 
 	"github.com/celo-org/eksportisto/db"
 	"github.com/celo-org/eksportisto/metrics"
 	"github.com/celo-org/eksportisto/utils"
 	"github.com/celo-org/kliento/client"
+	"github.com/celo-org/kliento/client/debug"
 	"github.com/celo-org/kliento/contracts"
 	kliento_mon "github.com/celo-org/kliento/monitor"
 	"github.com/celo-org/kliento/registry"
@@ -18,18 +25,89 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/log"
 	"golang.org/x/sync/errgroup"
 )
 
 type Config struct {
-	NodeUri string
-	DataDir string
+	NodeUri                   string
+	DataDir                   string
+	SensitiveAccountsFilePath string
 }
 
 var EpochSize = uint64(17280)   // 17280 = 12 * 60 * 24
 var BlocksPerHour = uint64(720) // 720 = 12 * 60
 var TipGap = big.NewInt(50)
+
+func getSensitiveAccounts(filePath string) map[common.Address]string {
+	if filePath == "" {
+		return make(map[common.Address]string)
+	}
+
+	bz, err := ioutil.ReadFile(filePath)
+	if err != nil {
+		panic(err)
+	}
+
+	var addresses map[common.Address]string
+	err = json.Unmarshal(bz, &addresses)
+	if err != nil {
+		panic(err)
+	}
+
+	return addresses
+}
+
+func notifyFundsMoved(transfer debug.Transfer, url string) error {
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer([]byte(fmt.Sprintf(`{"from":"%s","to":"%s","amount":"%s"}`,
+		transfer.From.Hex(), transfer.To.Hex(), transfer.Value.String()),
+	)))
+	if err != nil {
+		return err
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 400 {
+		return fmt.Errorf("unable to notify, received status code %d", resp.StatusCode)
+	}
+	return nil
+}
+
+func getHeaderInformation(ctx context.Context, cc *client.CeloClient, h *types.Header) (*ethclient.HeaderAndTxnHashes, *types.Header, error) {
+	var header *ethclient.HeaderAndTxnHashes
+	var latestHeader *types.Header
+	var byHashErr error
+	var latestHeaderErr error
+
+	var wg sync.WaitGroup
+	wg.Add(2)
+	go func(hash common.Hash) {
+		header, byHashErr = cc.Eth.HeaderAndTxnHashesByHash(ctx, hash)
+		wg.Done()
+	}(h.Hash())
+	go func() {
+		latestHeader, latestHeaderErr = cc.Eth.HeaderByNumber(ctx, nil)
+		wg.Done()
+	}()
+	wg.Wait()
+
+	if byHashErr != nil {
+		return nil, nil, byHashErr
+	}
+	if latestHeaderErr != nil {
+		return nil, nil, latestHeaderErr
+	}
+	return header, latestHeader, nil
+}
 
 func Start(ctx context.Context, cfg *Config) error {
 	handler := log.LvlFilterHandler(log.LvlInfo, log.StreamHandler(os.Stdout, log.JSONFormat()))
@@ -55,11 +133,11 @@ func Start(ctx context.Context, cfg *Config) error {
 
 	g, ctx := errgroup.WithContext(ctx)
 	g.Go(func() error { return kliento_mon.HeaderListener(ctx, headers, cc, logger, startBlock) })
-	g.Go(func() error { return blockProcessor(ctx, headers, cc, logger, store) })
+	g.Go(func() error { return blockProcessor(ctx, headers, cc, logger, store, cfg) })
 	return g.Wait()
 }
 
-func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *client.CeloClient, logger log.Logger, dbWriter db.RosettaDBWriter) error {
+func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *client.CeloClient, logger log.Logger, dbWriter db.RosettaDBWriter, cfg *Config) error {
 	r, err := registry.New(cc)
 	if err != nil {
 		return err
@@ -103,6 +181,8 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 
 	var h *types.Header
 
+	sensitiveAccounts := getSensitiveAccounts(cfg.SensitiveAccountsFilePath)
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -114,10 +194,11 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 		start := time.Now()
 		logger = logger.New("blockTimestamp", time.Unix(int64(h.Time), 0).Format(time.RFC3339), "blockNumber", h.Number.Uint64())
 
-		header, err := cc.Eth.HeaderAndTxnHashesByHash(ctx, h.Hash())
+		header, latestHeader, err := getHeaderInformation(ctx, cc, h)
 		if err != nil {
 			return err
 		}
+		tipMode := isTipMode(latestHeader, h.Number)
 
 		// Todo: Use Rosetta's db to detect election contract address changes mid block
 		// Todo: Right now this assumes that the only interesting events happen after all the core contracts are available
@@ -310,7 +391,7 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 			Context:     ctxProcessor,
 		}
 
-		if isTipMode(ctx, cc, h.Number) {
+		if tipMode {
 			g.Go(func() error { return goldTokenProcessor.ObserveMetric(opts) })
 			g.Go(func() error { return stableTokenProcessor.ObserveMetric(opts) })
 			g.Go(func() error { return epochRewardsProcessor.ObserveMetric(opts) })
@@ -383,6 +464,12 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 			}
 			for _, internalTransfer := range internalTransfers {
 				logTransfer(txLogger, "currencySymbol", "cGLD", "from", internalTransfer.From, "to", internalTransfer.To, "value", internalTransfer.Value)
+				if tipMode && sensitiveAccounts[internalTransfer.From] != "" {
+					err = notifyFundsMoved(internalTransfer, sensitiveAccounts[internalTransfer.From])
+					if err != nil {
+						logger.Error(err.Error())
+					}
+				}
 			}
 		}
 
@@ -396,10 +483,6 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 	}
 }
 
-func isTipMode(ctx context.Context, cc *client.CeloClient, currentBlockNumber *big.Int) bool {
-	latestHeader, err := cc.Eth.HeaderByNumber(ctx, nil)
-	if err != nil {
-		return false
-	}
+func isTipMode(latestHeader *types.Header, currentBlockNumber *big.Int) bool {
 	return new(big.Int).Sub(latestHeader.Number, currentBlockNumber).Cmp(TipGap) < 0
 }
