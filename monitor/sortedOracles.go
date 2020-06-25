@@ -162,7 +162,7 @@ func (p sortedOraclesProcessor) ObserveMetric(opts *bind.CallOpts, stableTokenAd
 
 	stablePrice := big.NewFloat(0)
 
-	if medianRate.Cmp(big.NewFloat(0)) != 0 {
+	if celoStablePrice.Cmp(big.NewFloat(0)) != 0 {
 		stablePrice = new(big.Float).Quo(medianRate, celoStablePrice)
 	}
 
