@@ -45,13 +45,13 @@ func MeanFromFixed(xs []*big.Int) float64 {
 	return total / float64(len(xs))
 }
 
-// Returns 0 if dem is 0
-func DivideBigInts(num *big.Int, dem *big.Int) *big.Float {
+// Returns 0 if denominator is 0
+func DivideBigInts(numerator *big.Int, denominator *big.Int) *big.Float {
 	res := big.NewFloat(0)
 
-	if dem.Cmp(big.NewInt(0)) != 0 {
-		retN := new(big.Float).SetInt(num)
-		retD := new(big.Float).SetInt(dem)
+	if denominator.Cmp(big.NewInt(0)) != 0 {
+		retN := new(big.Float).SetInt(numerator)
+		retD := new(big.Float).SetInt(denominator)
 		res = new(big.Float).Quo(retN, retD)
 	}
 
