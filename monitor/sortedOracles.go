@@ -19,14 +19,16 @@ type sortedOraclesProcessor struct {
 	logger               log.Logger
 	sortedOraclesAddress common.Address
 	sortedOracles        *contracts.SortedOracles
+	exchange             *contracts.Exchange
 }
 
-func NewSortedOraclesProcessor(ctx context.Context, logger log.Logger, sortedOraclesAddress common.Address, sortedOracles *contracts.SortedOracles) *sortedOraclesProcessor {
+func NewSortedOraclesProcessor(ctx context.Context, logger log.Logger, sortedOraclesAddress common.Address, sortedOracles *contracts.SortedOracles, exchange *contracts.Exchange) *sortedOraclesProcessor {
 	return &sortedOraclesProcessor{
 		ctx:                  ctx,
 		logger:               logger,
 		sortedOraclesAddress: sortedOraclesAddress,
 		sortedOracles:        sortedOracles,
+		exchange:             exchange,
 	}
 }
 
@@ -87,6 +89,14 @@ func (p sortedOraclesProcessor) ObserveState(opts *bind.CallOpts, stableTokenAdd
 		logStateViewCall(logger, "method", "GetTimestamps", "timestampAddress", timestampAddress, "reportedTimestamp", timestamp[i], "medianRelation", medianRelations[i], "index", i)
 	}
 
+	celoBucketSize, stableBucketSize, err := p.exchange.GetBuyAndSellBuckets(opts, true)
+
+	if err != nil {
+		return err
+	}
+
+	logStateViewCall(p.logger, "contract", "Exchange", "method", "getBuyAndSellBuckets", "celoBucketSize", celoBucketSize, "stableBucketSize", stableBucketSize)
+
 	return nil
 }
 
@@ -142,6 +152,22 @@ func (p sortedOraclesProcessor) ObserveMetric(opts *bind.CallOpts, stableTokenAd
 
 	metrics.SortedOraclesMedianTimestamp.Set(float64(blockTime - medianTimestamp.Uint64()))
 
+	celoBucketSize, stableBucketSize, err := p.exchange.GetBuyAndSellBuckets(opts, true)
+
+	if err != nil {
+		return err
+	}
+
+	celoStablePrice := utils.DivideBigInts(celoBucketSize, stableBucketSize)
+
+	stablePrice := big.NewFloat(0)
+
+	if medianRate.Cmp(big.NewFloat(0)) != 0 {
+		stablePrice = new(big.Float).Quo(medianRate, celoStablePrice)
+	}
+
+	stablePriceF, _ := stablePrice.Float64()
+	metrics.ExchangeImpliedStableRate.Set(stablePriceF)
 	return nil
 }
 

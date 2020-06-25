@@ -11,7 +11,7 @@ func logEventLog(logger log.Logger, params ...interface{}) {
 }
 
 func getTxLogger(logger log.Logger, receipt *types.Receipt, header *ethclient.HeaderAndTxnHashes) log.Logger {
-	return logger.New("txHash", receipt.TxHash, "blockNumber", header.Number, "blockTimestamp", header.Time)
+	return logger.New("txHash", receipt.TxHash)
 }
 
 func logHeader(logger log.Logger, header *types.Header) {
