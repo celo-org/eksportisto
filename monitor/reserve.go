@@ -30,8 +30,10 @@ func NewReserveProcessor(ctx context.Context, logger log.Logger, reserveAddress 
 func (p reserveProcessor) ObserveState(opts *bind.CallOpts) error {
 	logger := p.logger.New("contract", "Reserve")
 	reserveRatio, err := p.reserve.GetReserveRatio(opts)
+
+	// TODO: Properly handle when things are frozen
 	if err != nil {
-		return err
+		return nil
 	}
 
 	logStateViewCall(logger, "method", "getReserveRatio", "reserveRatio", utils.FromFixed(reserveRatio))
