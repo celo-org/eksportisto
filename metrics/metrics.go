@@ -44,6 +44,18 @@ var (
 		Name: "sortedoracles_timestamp_median",
 		Help: "The median timestamp difference with the last blocktime",
 	})
+	ExchangeCeloExchangedRate = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "exchange_celo_exchanged_rate",
+		Help: "The implied cUSD/CELO rate by exchanges with Exchange.sol",
+	})
+	ExchangeBucketRatio = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "exchange_bucket_ratio",
+		Help: "The most recent ratio during BucketsExchanged",
+	})
+	ExchangeImpliedStableRate = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "exchange_implied_stable_rate",
+		Help: "The implied cUSD/USD rate by the exchange and oracles",
+	})
 )
 
 func init() {
@@ -58,6 +70,9 @@ func init() {
 	prometheus.MustRegister(SortedOraclesMedianRate)
 	prometheus.MustRegister(SortedOraclesRateMaxDeviation)
 	prometheus.MustRegister(SortedOraclesMedianTimestamp)
+	prometheus.MustRegister(ExchangeCeloExchangedRate)
+	prometheus.MustRegister(ExchangeBucketRatio)
+	prometheus.MustRegister(ExchangeImpliedStableRate)
 	// Add Go module build info.
 	prometheus.MustRegister(prometheus.NewBuildInfoCollector())
 }

@@ -379,8 +379,8 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 		governanceProcessor := NewGovernanceProcessor(ctx, logger, governanceAddress, governance)
 		lockedGoldProcessor := NewLockedGoldProcessor(ctx, logger, lockedGoldAddress, lockedGold)
 		reserveProcessor := NewReserveProcessor(ctx, logger, reserveAddress, reserve)
-		sortedOraclesProcessor := NewSortedOraclesProcessor(ctx, logger, sortedOraclesAddress, sortedOracles)
-		stabilityProcessor := NewStabilityProcessor(ctx, logger, exchange, reserve)
+		sortedOraclesProcessor := NewSortedOraclesProcessor(ctx, logger, sortedOraclesAddress, sortedOracles, exchange)
+		stabilityProcessor := NewStabilityProcessor(ctx, logger, exchangeAddress, exchange, reserve)
 		stableTokenProcessor := NewStableTokenProcessor(ctx, logger, stableTokenAddress, stableToken)
 		validatorsProcessor := NewValidatorsProcessor(ctx, logger, validatorsAddress, validators)
 
