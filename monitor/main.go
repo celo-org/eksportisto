@@ -455,6 +455,7 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 				governanceProcessor.HandleLog(eventLog)
 				validatorsProcessor.HandleLog(eventLog)
 				sortedOraclesProcessor.HandleLog(eventLog)
+				stabilityProcessor.HandleLog(eventLog)
 			}
 
 			internalTransfers, err := cc.Debug.TransactionTransfers(transactionCtx, txHash)
