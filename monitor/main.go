@@ -128,11 +128,17 @@ func Start(ctx context.Context, cfg *Config) error {
 	if err != nil {
 		return err
 	}
+	nextBlock := startBlock
+	if startBlock.Cmp(big.NewInt(0)) != 0 {
+		nextBlock.Add(nextBlock, big.NewInt(1))
+	}
 
 	headers := make(chan *types.Header, 10)
 
 	g, ctx := errgroup.WithContext(ctx)
-	g.Go(func() error { return kliento_mon.HeaderListener(ctx, headers, cc, logger, startBlock) })
+	g.Go(func() error {
+		return kliento_mon.HeaderListener(ctx, headers, cc, logger, nextBlock)
+	})
 	g.Go(func() error { return blockProcessor(ctx, headers, cc, logger, store, cfg) })
 	return g.Wait()
 }
