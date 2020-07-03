@@ -430,6 +430,8 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 				governanceProcessor.HandleLog(&epochLog)
 				validatorsProcessor.HandleLog(&epochLog)
 				goldTokenProcessor.HandleLog(&epochLog)
+				stabilityProcessor.HandleLog(&epochLog)
+				stableTokenProcessor.HandleLog(&epochLog)
 			}
 		}
 
@@ -455,6 +457,8 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 				governanceProcessor.HandleLog(eventLog)
 				validatorsProcessor.HandleLog(eventLog)
 				sortedOraclesProcessor.HandleLog(eventLog)
+				stabilityProcessor.HandleLog(eventLog)
+				stableTokenProcessor.HandleLog(eventLog)
 			}
 
 			internalTransfers, err := cc.Debug.TransactionTransfers(transactionCtx, txHash)
