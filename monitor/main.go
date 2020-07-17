@@ -19,6 +19,7 @@ import (
 	"github.com/celo-org/kliento/client"
 	"github.com/celo-org/kliento/client/debug"
 	"github.com/celo-org/kliento/contracts"
+
 	kliento_mon "github.com/celo-org/kliento/monitor"
 	"github.com/celo-org/kliento/registry"
 	"github.com/ethereum/go-ethereum"
@@ -34,6 +35,7 @@ type Config struct {
 	NodeUri                   string
 	DataDir                   string
 	SensitiveAccountsFilePath string
+	FromBlock                 string
 }
 
 var EpochSize = uint64(17280)   // 17280 = 12 * 60 * 24
@@ -124,9 +126,25 @@ func Start(ctx context.Context, cfg *Config) error {
 	if err != nil {
 		return err
 	}
-	startBlock, err := store.LastPersistedBlock(ctx)
-	if err != nil {
-		return err
+
+	var startBlock *big.Int
+	if cfg.FromBlock == "" {
+		startBlock, err = store.LastPersistedBlock(ctx)
+		if err != nil {
+			return err
+		}
+	} else if cfg.FromBlock == "latest" {
+		latestHeader, headerErr := cc.Eth.HeaderByNumber(ctx, nil)
+		if headerErr != nil {
+			return err
+		}
+		startBlock = latestHeader.Number
+	} else {
+		bigInt, ok := new(big.Int).SetString(cfg.FromBlock, 10)
+		if !ok {
+			return fmt.Errorf("Unable to parse FromBlock %s", cfg.FromBlock)
+		}
+		startBlock = bigInt
 	}
 
 	headers := make(chan *types.Header, 10)
