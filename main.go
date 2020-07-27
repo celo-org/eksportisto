@@ -24,7 +24,7 @@ func main() {
 	flag.DurationVar(&httpConfig.RequestTimeout, "reqTimeout", 25*time.Second, "Timeout when serving a request")
 
 	var monitorConfig monitor.Config
-	flag.StringVar(&monitorConfig.NodeUri, "nodeUri", "http://localhost:8545", "Connection string for celo-blockchain node")
+	flag.StringVar(&monitorConfig.NodeUri, "nodeUri", "ws://localhost:8546", "Connection string for celo-blockchain node")
 	flag.StringVar(&monitorConfig.DataDir, "datadir", filepath.Join(homeDir(), ".eksportisto"), "Sqlite data directory, will be created if it doesn't exist")
 	flag.StringVar(&monitorConfig.SensitiveAccountsFilePath, "sensitiveAccounts", "", "Sensitive accounts JSON file")
 	flag.StringVar(&monitorConfig.FromBlock, "from-block", "", "Begin indexing the chain from this block. Can pass a number or \"latest\"")
