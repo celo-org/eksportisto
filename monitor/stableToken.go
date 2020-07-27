@@ -67,10 +67,10 @@ func (p stableTokenProcessor) HandleLog(eventLog *types.Log) {
 		switch eventName {
 		case "Transfer":
 			event := eventRaw.(*contracts.StableTokenTransfer)
-			logEventLog(logger, "eventName", eventName, "from", event.From, "to", event.To, "value", event.Value)
+			logEventLog(logger, "eventName", eventName, "from", event.From, "to", event.To, "value", event.Value, "txHash", eventLog.TxHash.String())
 		case "TransferComment":
 			event := eventRaw.(*contracts.StableTokenTransferComment)
-			logEventLog(logger, "eventName", eventName, "comment", event.Comment)
+			logEventLog(logger, "eventName", eventName, "comment", event.Comment, "txHash", eventLog.TxHash.String())
 		}
 	}
 }
