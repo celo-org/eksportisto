@@ -133,6 +133,12 @@ func (p stabilityProcessor) HandleLog(eventLog *types.Log) {
 			event := eventRaw.(*contracts.ExchangeExchanged)
 			logEventLog(logger, "eventName", eventName, "exchanger", event.Exchanger, "soldGold", event.SoldGold, "sellAmount", event.SellAmount, "buyAmount", event.BuyAmount)
 
+			minSellAmountInWei := big.NewInt(1e6)
+			// Prevent updating the ExchangedRate metric for small trades that do not provide enough precision when calculating the effective price
+			if event.SellAmount.Cmp(minSellAmountInWei) < 0 {
+			    return
+			}
+
 			num := event.SellAmount
 			dem := event.BuyAmount
 
