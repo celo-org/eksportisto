@@ -13,6 +13,7 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 )
 
+
 type stabilityProcessor struct {
 	ctx             context.Context
 	logger          log.Logger
@@ -136,7 +137,7 @@ func (p stabilityProcessor) HandleLog(eventLog *types.Log) {
 			// Prevent updating the ExchangedRate metric for small trades that do not provide enough precision when calculating the effective price
 			minSellAmountInWei := big.NewInt(1e6)
 			if event.SellAmount.Cmp(minSellAmountInWei) < 0 {
-			    return
+				return
 			}
 
 			num := event.SellAmount
