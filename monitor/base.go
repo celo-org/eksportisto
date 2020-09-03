@@ -18,8 +18,8 @@ func logHeader(logger log.Logger, header *types.Header) {
 	logger.Debug("RECEIVED_HEADER", "blockNumber", header.Number)
 }
 
-func logTransaction(logger log.Logger) {
-	logger.Debug("RECEIVED_TRANSACTION")
+func logTransaction(logger log.Logger, params ...interface{}) {
+	logger.Info("RECEIVED_TRANSACTION", params...)
 }
 
 func logTransfer(logger log.Logger, params ...interface{}) {
