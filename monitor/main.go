@@ -459,24 +459,24 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 		}
 
 		transactionCtx := context.Background()
-		for _, txHash := range header.Transactions {
+
+		block, err := cc.Eth.BlockByNumber(ctx, h.Number)
+		if err != nil {
+			return err
+		}
+		txs := block.Transactions()
+
+		for _, tx := range txs {
+			txHash := tx.Hash()
+
 			receipt, err := cc.Eth.TransactionReceipt(transactionCtx, txHash)
-			
 			if err != nil {
 				return err
 			}
 
 			txLogger := getTxLogger(logger, receipt, header)
 			
-			tx, isPending, err := cc.Eth.TransactionByHash(ctx, txHash)
-			
-			if err != nil {
-				return err
-			}
-
-			if !isPending {
-				logTransaction(txLogger, "gasPrice", tx.GasPrice(), "gasUsed", receipt.GasUsed)
-			}
+			logTransaction(txLogger, "gasPrice", tx.GasPrice(), "gasUsed", receipt.GasUsed)
 
 			for _, eventLog := range receipt.Logs {
 				accountsProcessor.HandleLog(eventLog)
