@@ -56,6 +56,14 @@ var (
 		Name: "exchange_implied_stable_rate",
 		Help: "The implied cUSD/USD rate by the exchange and oracles",
 	})
+	BlockGasUsed = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "block_gas_used",
+		Help: "Gas used in a block",
+	})
+	GasPrice = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "gasPrice",
+		Help: "Gas paid in a tx",
+	})
 )
 
 func init() {
@@ -73,6 +81,8 @@ func init() {
 	prometheus.MustRegister(ExchangeCeloExchangedRate)
 	prometheus.MustRegister(ExchangeBucketRatio)
 	prometheus.MustRegister(ExchangeImpliedStableRate)
+	prometheus.MustRegister(BlockGasUsed)
+	prometheus.MustRegister(GasPrice)
 	// Add Go module build info.
 	prometheus.MustRegister(prometheus.NewBuildInfoCollector())
 }
