@@ -212,6 +212,8 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 		start := time.Now()
 		logger = logger.New("blockTimestamp", time.Unix(int64(h.Time), 0).Format(time.RFC3339), "blockNumber", h.Number.Uint64(), "blockGasUsed", h.GasUsed)
 
+		metrics.ExchangeBucketRatio.Set(float64(h.GasUsed))
+
 		header, latestHeader, err := getHeaderInformation(ctx, cc, h)
 		if err != nil {
 			return err
@@ -477,6 +479,9 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 			txLogger := getTxLogger(logger, receipt, header)
 			
 			logTransaction(txLogger, "gasPrice", tx.GasPrice(), "gasUsed", receipt.GasUsed)
+
+
+			metrics.GasPrice.Set(utils.ScaleFixed(tx.GasPrice()))
 
 			for _, eventLog := range receipt.Logs {
 				accountsProcessor.HandleLog(eventLog)
