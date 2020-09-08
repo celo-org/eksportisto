@@ -212,7 +212,7 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 		start := time.Now()
 		logger = logger.New("blockTimestamp", time.Unix(int64(h.Time), 0).Format(time.RFC3339), "blockNumber", h.Number.Uint64(), "blockGasUsed", h.GasUsed)
 
-		metrics.ExchangeBucketRatio.Set(float64(h.GasUsed))
+		metrics.BlockGasUsed.Set(float64(h.GasUsed))
 
 		header, latestHeader, err := getHeaderInformation(ctx, cc, h)
 		if err != nil {
