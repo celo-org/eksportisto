@@ -105,7 +105,6 @@ func (p stabilityProcessor) ObserveState(opts *bind.CallOpts) error {
 
 func (p stabilityProcessor) ObserveMetric(opts *bind.CallOpts) error {
 	goldBucketSize, err := p.exchange.GoldBucket(opts)
-
 	if err != nil {
 		return err
 	}
@@ -113,7 +112,6 @@ func (p stabilityProcessor) ObserveMetric(opts *bind.CallOpts) error {
 	metrics.GoldBucketSize.Set(utils.ScaleFixed(goldBucketSize))
 
 	cUsdBucketSize, err := p.exchange.StableBucket(opts)
-	
 	if err != nil {
 		return err
 	}
