@@ -19,7 +19,7 @@ var (
 		Name:    "gold_bucket_size",
 		Help:    "Gold Bucket Size",
 	})
-	CUSDBucketRatio = prometheus.NewGauge(prometheus.GaugeOpts{
+	CUSDBucketSize = prometheus.NewGauge(prometheus.GaugeOpts{
 		Name:    "cUSD_bucket_size",
 		Help:    "cUSD Bucket size",
 	})
@@ -80,7 +80,7 @@ func init() {
 	prometheus.MustRegister(TotalCUSDSupply)
 	prometheus.MustRegister(VotingGoldFraction)
 	prometheus.MustRegister(GoldBucketSize)
-	prometheus.MustRegister(CUSDBucketRatio)
+	prometheus.MustRegister(CUSDBucketSize)
 	prometheus.MustRegister(ExchangeGoldBucketRatio)
 	prometheus.MustRegister(LastBlockProcessed)
 	prometheus.MustRegister(SortedOraclesIsOldestReportExpired)

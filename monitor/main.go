@@ -31,6 +31,9 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
+// import "fmt"
+
+
 type Config struct {
 	NodeUri                   string
 	DataDir                   string
