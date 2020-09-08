@@ -50,6 +50,16 @@ func (p stabilityProcessor) ObserveState(opts *bind.CallOpts) error {
 
 	logStateViewCall(p.logger, "contract", "Exchange", "method", "goldBucket", "bucket", goldBucketSize)
 
+
+	cUsdBucketSize, err := p.exchange.StableBucket(opts)
+	
+	if err != nil {
+		return err
+	}
+
+	logStateViewCall(p.logger, "contract", "Exchange", "method", "stableBucket", "bucket", cUsdBucketSize)
+
+
 	// Reserve.getReserveGoldBalance
 	reserveGoldBalance, err := p.reserve.GetReserveGoldBalance(opts)
 	if err != nil {
@@ -99,9 +109,19 @@ func (p stabilityProcessor) ObserveMetric(opts *bind.CallOpts) error {
 		return err
 	}
 
-	unfrozenReserveGoldBalance, err := p.reserve.GetUnfrozenReserveGoldBalance(opts)
+	metrics.GoldBucketSize.Set(utils.ScaleFixed(goldBucketSize))
+
+	cUsdBucketSize, err := p.exchange.StableBucket(opts)
 	if err != nil {
 		return err
+	}
+		
+	metrics.CUSDBucketSize.Set(utils.ScaleFixed(cUsdBucketSize))
+
+	unfrozenReserveGoldBalance, err := p.reserve.GetUnfrozenReserveGoldBalance(opts)
+
+	if err != nil {
+		return err			
 	}
 
 	// If the unfrozen balance is 0, ignore for now
