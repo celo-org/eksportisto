@@ -15,6 +15,14 @@ var (
 		Name: "epochrewards_votinggoldfraction",
 		Help: "Voting Gold Fraction",
 	})
+	GoldBucketSize = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name:    "gold_bucket_size",
+		Help:    "Gold Bucket Size",
+	})
+	CUSDBucketRatio = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name:    "cUSD_bucket_size",
+		Help:    "cUSD Bucket size",
+	})
 	ExchangeGoldBucketRatio = prometheus.NewHistogram(prometheus.HistogramOpts{
 		Name:    "exchange_gold_bucket_ratio",
 		Help:    "Gold Bucket Ratio",
@@ -71,6 +79,8 @@ func init() {
 	prometheus.MustRegister(TotalCGLDSupply)
 	prometheus.MustRegister(TotalCUSDSupply)
 	prometheus.MustRegister(VotingGoldFraction)
+	prometheus.MustRegister(GoldBucketSize)
+	prometheus.MustRegister(CUSDBucketRatio)
 	prometheus.MustRegister(ExchangeGoldBucketRatio)
 	prometheus.MustRegister(LastBlockProcessed)
 	prometheus.MustRegister(SortedOraclesIsOldestReportExpired)
