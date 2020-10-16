@@ -37,7 +37,7 @@ More information can be found by running `go run main.go --help`.
 0. Switch to the right project with gcloud cli `gcloud config set project <project name>`
 1. Update the env file of the network you want to deploy to (.env, or env.baklava, env.alfajores, etc) with the docker image hash
 2. Update suffix (so you don't overwrite)
-3. make sure to have this env variables set in your terminal
+3. Make sure to have this env variables set in your terminal
   . `GETH_ENABLE_METRICS=false`
   . `GOOGLE_APPLICATION_CREDENTIALS=false`
 4. Install terraform v0.12 if you haven't already
