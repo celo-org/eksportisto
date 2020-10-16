@@ -152,7 +152,7 @@ func (p stabilityProcessor) HandleLog(eventLog *types.Log) {
 		switch eventName {
 		case "Exchanged":
 			event := eventRaw.(*contracts.ExchangeExchanged)
-			logEventLog(logger, "eventName", eventName, "exchanger", event.Exchanger, "soldGold", event.SoldGold, "sellAmount", event.SellAmount, "buyAmount", event.BuyAmount)
+			logEventLog(logger, "eventName", eventName, "exchanger", event.Exchanger, "soldGold", event.SoldGold, "sellAmount", event.SellAmount, "buyAmount", event.BuyAmount, "txHash", eventLog.TxHash.String())
 
 			// Prevent updating the ExchangedRate metric for small trades that do not provide enough precision when calculating the effective price
 			minSellAmountInWei := big.NewInt(1e6)
