@@ -40,6 +40,7 @@ More information can be found by running `go run main.go --help`.
 3. Make sure to have this env variables set in your terminal
    * `GETH_ENABLE_METRICS=false`
    * `GOOGLE_APPLICATION_CREDENTIALS=<path to sesrvice account>`
+   * `NODE_DISK_SIZE_GB=10`
 4. Install terraform v0.12 if you haven't already
    * Download it from this [this link](https://releases.hashicorp.com/terraform/0.12.28/terraform_0.12.28_darwin_amd64.zip)
    * Install it with`mv ~/Downloads/terraform /usr/local/bin/`
