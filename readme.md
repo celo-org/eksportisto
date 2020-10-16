@@ -38,10 +38,10 @@ More information can be found by running `go run main.go --help`.
 1. Update the env file of the network you want to deploy to (.env, or env.baklava, env.alfajores, etc) with the docker image hash
 2. Update suffix (so you don't overwrite)
 3. Make sure to have this env variables set in your terminal
-  . `GETH_ENABLE_METRICS=false`
-  . `GOOGLE_APPLICATION_CREDENTIALS=false`
+   * `GETH_ENABLE_METRICS=false`
+   * `GOOGLE_APPLICATION_CREDENTIALS=<path to sesrvice account>`
 4. Install terraform v0.12 if you haven't already
-  . Download it from this [this link](https://releases.hashicorp.com/terraform/0.12.28/terraform_0.12.28_darwin_amd64.zip)
-  . Install it with`mv ~/Downloads/terraform /usr/local/bin/`
+   * Download it from this [this link](https://releases.hashicorp.com/terraform/0.12.28/terraform_0.12.28_darwin_amd64.zip)
+   * Install it with`mv ~/Downloads/terraform /usr/local/bin/`
 5. It's a know issue that `celo_tf_state` should be replaced for `celo_tf_state_prod` in [this file](https://github.com/celo-org/celo-monorepo/blob/master/packages/terraform-modules/testnet/main.tf#L15)
 6. Finally deploy with celotool: `celotooljs deploy initial eksportisto -e <env_name> --verbose --yesreally`
