@@ -41,6 +41,9 @@ github.com/celo-org/celo-bls-go v0.1.4/go.mod h1:eXUCLXu5F1yfd3M+3VaUk5ZUXaA0sLK
 github.com/celo-org/kliento v0.1.0 h1:MUqjzVQk1A4+TzvH/GF69ZAGQybs9LYgUJHsexm9Mgo=
 github.com/celo-org/kliento v0.1.0/go.mod h1:OrzUyeaXpAgTfhl0+wUG4Y+Tfn+wpL49t2/5S9z9zjQ=
 github.com/celo-org/kliento v0.1.1 h1:/bwiXEFxQbGstF9SfXdM519qggvJ77a7WqxPv7UIzj0=
+github.com/celo-org/kliento v0.1.1/go.mod h1:OrzUyeaXpAgTfhl0+wUG4Y+Tfn+wpL49t2/5S9z9zjQ=
+github.com/celo-org/kliento v0.1.2-0.20200608140637-c5afc8cf0f44 h1:OIwtA7H4/P/9nh6ZL4Q2vZ9VO8azMzo7X0jyKRNrs0c=
+github.com/celo-org/kliento v0.1.2-0.20200608140637-c5afc8cf0f44/go.mod h1:OrzUyeaXpAgTfhl0+wUG4Y+Tfn+wpL49t2/5S9z9zjQ=
 github.com/cespare/cp v0.1.0/go.mod h1:SOGHArjBr4JWaSDEVpWpo/hNg6RoKrls6Oh40hiwW+s=
 github.com/cespare/xxhash v1.1.0 h1:a6HrQnmkObjyL+Gs60czilIUGqrzKutQD6XZog3p+ko=
 github.com/cespare/xxhash v1.1.0/go.mod h1:XrSqR1VqqWfGrhpAt58auRo0WTKS1nRRg3ghfAqPWnc=
