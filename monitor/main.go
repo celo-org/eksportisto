@@ -183,29 +183,36 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 		}
 		tipMode := isTipMode(latestHeader, h.Number)
 
-		// Todo: Use Rosetta's db to detect election contract address changes mid block
-		// Todo: Right now we  are assuming that core contract addresses do not change which allows us to avoid having to check the registry
 		g, processorCtx := errgroup.WithContext(context.Background())
 		opts := &bind.CallOpts{
 			BlockNumber: h.Number,
 			Context:     processorCtx,
 		}
 
-		election, err := r.GetElectionContract(ctx, h.Number)
+		// Todo: Use Rosetta's db to detect election contract address changes mid block
+		// Todo: Right now we  are assuming that core contract addresses do not change which allows us to avoid having to check the registry
+		err = r.Hydrate(ctx, h.Number)
+		if err != nil {
+			return err
+		}
+
+		// hydrated registry should not throw errors
+		election, _ := r.GetElectionContract(ctx, h.Number)
+		goldToken, _ := r.GetGoldTokenContract(ctx, h.Number)
+		lockedGold, _ := r.GetLockedGoldContract(ctx, h.Number)
+		reserve, _ := r.GetReserveContract(ctx, h.Number)
+		exchange, _ := r.GetExchangeContract(ctx, h.Number)
+		sortedOracles, _ := r.GetSortedOraclesContract(ctx, h.Number)
+		stableToken, _ := r.GetStableTokenContract(ctx, h.Number)
+		epochRewards, _ := r.GetEpochRewardsContract(ctx, h.Number)
+
 		electionProcessor := NewElectionProcessor(processorCtx, logger, election)
-		epochRewards, err := r.GetEpochRewardsContract(ctx, h.Number)
 		epochRewardsProcessor := NewEpochRewardsProcessor(processorCtx, logger, epochRewards)
-		goldToken, err := r.GetGoldTokenContract(ctx, h.Number)
 		goldTokenProcessor := NewGoldTokenProcessor(processorCtx, logger, goldToken)
-		lockedGold, err := r.GetLockedGoldContract(ctx, h.Number)
 		lockedGoldProcessor := NewLockedGoldProcessor(processorCtx, logger, lockedGold)
-		reserve, err := r.GetReserveContract(ctx, h.Number)
 		reserveProcessor := NewReserveProcessor(processorCtx, logger, reserve)
-		exchange, err := r.GetExchangeContract(ctx, h.Number)
-		sortedOracles, err := r.GetSortedOraclesContract(ctx, h.Number)
 		sortedOraclesProcessor := NewSortedOraclesProcessor(processorCtx, logger, sortedOracles, exchange)
 		stabilityProcessor := NewStabilityProcessor(processorCtx, logger, exchange, reserve)
-		stableToken, err := r.GetStableTokenContract(ctx, h.Number)
 		stableTokenProcessor := NewStableTokenProcessor(processorCtx, logger, stableToken)
 
 		if stableTokenAddress == nil {
@@ -225,10 +232,6 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 		}
 
 		if utils.ShouldSample(h.Number.Uint64(), BlocksPerHour) {
-			err = r.Hydrate(ctx, h.Number)
-			if err != nil {
-				return err
-			}
 			g.Go(func() error { return goldTokenProcessor.ObserveState(opts) })
 			g.Go(func() error { return reserveProcessor.ObserveState(opts) })
 			g.Go(func() error { return stableTokenProcessor.ObserveState(opts) })
