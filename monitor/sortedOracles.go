@@ -10,25 +10,22 @@ import (
 	"github.com/celo-org/kliento/contracts"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/log"
 )
 
 type sortedOraclesProcessor struct {
-	ctx                  context.Context
-	logger               log.Logger
-	sortedOraclesAddress common.Address
-	sortedOracles        *contracts.SortedOracles
-	exchange             *contracts.Exchange
+	ctx           context.Context
+	logger        log.Logger
+	sortedOracles *contracts.SortedOracles
+	exchange      *contracts.Exchange
 }
 
-func NewSortedOraclesProcessor(ctx context.Context, logger log.Logger, sortedOraclesAddress common.Address, sortedOracles *contracts.SortedOracles, exchange *contracts.Exchange) *sortedOraclesProcessor {
+func NewSortedOraclesProcessor(ctx context.Context, logger log.Logger, sortedOracles *contracts.SortedOracles, exchange *contracts.Exchange) *sortedOraclesProcessor {
 	return &sortedOraclesProcessor{
-		ctx:                  ctx,
-		logger:               logger,
-		sortedOraclesAddress: sortedOraclesAddress,
-		sortedOracles:        sortedOracles,
-		exchange:             exchange,
+		ctx:           ctx,
+		logger:        logger,
+		sortedOracles: sortedOracles,
+		exchange:      exchange,
 	}
 }
 
@@ -169,36 +166,4 @@ func (p sortedOraclesProcessor) ObserveMetric(opts *bind.CallOpts, stableTokenAd
 	stablePriceF, _ := stablePrice.Float64()
 	metrics.ExchangeImpliedStableRate.Set(stablePriceF)
 	return nil
-}
-
-func (p sortedOraclesProcessor) HandleLog(eventLog *types.Log) {
-	logger := p.logger.New("contract", "SortedOracles")
-	if eventLog.Address == p.sortedOraclesAddress {
-		eventName, eventRaw, ok, err := p.sortedOracles.TryParseLog(*eventLog)
-		if err != nil {
-			logger.Warn("Ignoring event: Error parsing sortedOracles event", "err", err, "eventId", eventLog.Topics[0].Hex())
-			return
-		}
-		if !ok {
-			return
-		}
-
-		switch eventName {
-		case "OracleAdded":
-			event := eventRaw.(*contracts.SortedOraclesOracleAdded)
-			logEventLog(logger, "eventName", eventName, "token", event.Token, "oracleAddress", event.OracleAddress)
-		case "OracleRemoved":
-			event := eventRaw.(*contracts.SortedOraclesOracleRemoved)
-			logEventLog(logger, "eventName", eventName, "token", event.Token, "oracleAddress", event.OracleAddress)
-		case "OracleReported":
-			event := eventRaw.(*contracts.SortedOraclesOracleReported)
-			logEventLog(logger, "eventName", eventName, "token", event.Token, "oracle", event.Oracle, "timestamp", event.Timestamp, "value", event.Value)
-		case "OracleReportRemoved":
-			event := eventRaw.(*contracts.SortedOraclesOracleReportRemoved)
-			logEventLog(logger, "eventName", eventName, "token", event.Token, "oracle", event.Oracle)
-		case "ReportExpirySet":
-			event := eventRaw.(*contracts.SortedOraclesReportExpirySet)
-			logEventLog(logger, "eventName", eventName, "reportExpiry", event.ReportExpiry)
-		}
-	}
 }

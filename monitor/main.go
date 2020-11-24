@@ -18,11 +18,9 @@ import (
 	"github.com/celo-org/eksportisto/utils"
 	"github.com/celo-org/kliento/client"
 	"github.com/celo-org/kliento/client/debug"
-	"github.com/celo-org/kliento/contracts"
 
 	kliento_mon "github.com/celo-org/kliento/monitor"
 	"github.com/celo-org/kliento/registry"
-	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -30,7 +28,6 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 	"golang.org/x/sync/errgroup"
 )
-
 
 type Config struct {
 	NodeUri                   string
@@ -162,42 +159,7 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 		return err
 	}
 
-	var accounts *contracts.Accounts
-	var accountsAddress common.Address
-
-	var attestations *contracts.Attestations
-	var attestationsAddress common.Address
-
-	var election *contracts.Election
-	var electionAddress common.Address
-
-	var epochRewards *contracts.EpochRewards
-	var epochRewardsAddress common.Address
-
-	var exchange *contracts.Exchange
-	var exchangeAddress common.Address
-
-	var goldToken *contracts.GoldToken
-	var goldTokenAddress common.Address
-
-	var governance *contracts.Governance
-	var governanceAddress common.Address
-
-	var lockedGold *contracts.LockedGold
-	var lockedGoldAddress common.Address
-
-	var reserve *contracts.Reserve
-	var reserveAddress common.Address
-
-	var sortedOracles *contracts.SortedOracles
-	var sortedOraclesAddress common.Address
-
-	var stableToken *contracts.StableToken
-	var stableTokenAddress common.Address
-
-	var validators *contracts.Validators
-	var validatorsAddress common.Address
-
+	var stableTokenAddress *common.Address
 	var h *types.Header
 
 	sensitiveAccounts := getSensitiveAccounts(cfg.SensitiveAccountsFilePath)
@@ -222,208 +184,55 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 		tipMode := isTipMode(latestHeader, h.Number)
 
 		// Todo: Use Rosetta's db to detect election contract address changes mid block
-		// Todo: Right now this assumes that the only interesting events happen after all the core contracts are available
 		// Todo: Right now we  are assuming that core contract addresses do not change which allows us to avoid having to check the registry
-		if (accountsAddress == common.Address{}) {
-			accountsAddress, err = r.GetAddressFor(ctx, h.Number, registry.AccountsContractID)
-			if err == client.ErrContractNotDeployed || err == registry.ErrRegistryNotDeployed {
-				continue
-			} else if err != nil {
-				return err
-			}
-
-			accounts, err = contracts.NewAccounts(accountsAddress, cc.Eth)
-			if err != nil {
-				return err
-			}
-		}
-
-		if (attestationsAddress == common.Address{}) {
-			attestationsAddress, err = r.GetAddressFor(ctx, h.Number, registry.AttestationsContractID)
-			if err == client.ErrContractNotDeployed || err == registry.ErrRegistryNotDeployed {
-				continue
-			} else if err != nil {
-				return err
-			}
-
-			attestations, err = contracts.NewAttestations(attestationsAddress, cc.Eth)
-			if err != nil {
-				return err
-			}
-		}
-
-		if (electionAddress == common.Address{}) {
-			electionAddress, err = r.GetAddressFor(ctx, h.Number, registry.ElectionContractID)
-			if err == client.ErrContractNotDeployed || err == registry.ErrRegistryNotDeployed {
-				continue
-			} else if err != nil {
-				return err
-			}
-
-			election, err = contracts.NewElection(electionAddress, cc.Eth)
-			if err != nil {
-				return err
-			}
-		}
-
-		if (epochRewardsAddress == common.Address{}) {
-			epochRewardsAddress, err = r.GetAddressFor(ctx, h.Number, registry.EpochRewardsContractID)
-			if err == client.ErrContractNotDeployed || err == registry.ErrRegistryNotDeployed {
-				continue
-			} else if err != nil {
-				return err
-			}
-
-			epochRewards, err = contracts.NewEpochRewards(epochRewardsAddress, cc.Eth)
-			if err != nil {
-				return err
-			}
-		}
-
-		if (exchangeAddress == common.Address{}) {
-			exchangeAddress, err = r.GetAddressFor(ctx, h.Number, registry.ExchangeContractID)
-			if err == client.ErrContractNotDeployed || err == registry.ErrRegistryNotDeployed {
-				continue
-			} else if err != nil {
-				return err
-			}
-
-			exchange, err = contracts.NewExchange(exchangeAddress, cc.Eth)
-			if err != nil {
-				return err
-			}
-		}
-
-		if (goldTokenAddress == common.Address{}) {
-			goldTokenAddress, err = r.GetAddressFor(ctx, h.Number, registry.GoldTokenContractID)
-			if err == client.ErrContractNotDeployed || err == registry.ErrRegistryNotDeployed {
-				continue
-			} else if err != nil {
-				return err
-			}
-
-			goldToken, err = contracts.NewGoldToken(goldTokenAddress, cc.Eth)
-			if err != nil {
-				return err
-			}
-		}
-
-		if (governanceAddress == common.Address{}) {
-			governanceAddress, err = r.GetAddressFor(ctx, h.Number, registry.GovernanceContractID)
-			if err == client.ErrContractNotDeployed || err == registry.ErrRegistryNotDeployed {
-				continue
-			} else if err != nil {
-				return err
-			}
-
-			governance, err = contracts.NewGovernance(governanceAddress, cc.Eth)
-			if err != nil {
-				return err
-			}
-		}
-
-		if (lockedGoldAddress == common.Address{}) {
-			lockedGoldAddress, err = r.GetAddressFor(ctx, h.Number, registry.LockedGoldContractID)
-			if err == client.ErrContractNotDeployed || err == registry.ErrRegistryNotDeployed {
-				continue
-			} else if err != nil {
-				return err
-			}
-			lockedGold, err = contracts.NewLockedGold(lockedGoldAddress, cc.Eth)
-
-			if err != nil {
-				return err
-			}
-		}
-
-		if (reserveAddress == common.Address{}) {
-			reserveAddress, err = r.GetAddressFor(ctx, h.Number, registry.ReserveContractID)
-			if err == client.ErrContractNotDeployed || err == registry.ErrRegistryNotDeployed {
-				continue
-			} else if err != nil {
-				return err
-			}
-			reserve, err = contracts.NewReserve(reserveAddress, cc.Eth)
-
-			if err != nil {
-				return err
-			}
-		}
-
-		if (sortedOraclesAddress == common.Address{}) {
-			sortedOraclesAddress, err = r.GetAddressFor(ctx, h.Number, registry.SortedOraclesContractID)
-			if err == client.ErrContractNotDeployed || err == registry.ErrRegistryNotDeployed {
-				continue
-			} else if err != nil {
-				return err
-			}
-
-			sortedOracles, err = contracts.NewSortedOracles(sortedOraclesAddress, cc.Eth)
-			if err != nil {
-				return err
-			}
-		}
-
-		if (stableTokenAddress == common.Address{}) {
-			stableTokenAddress, err = r.GetAddressFor(ctx, h.Number, registry.StableTokenContractID)
-			if err == client.ErrContractNotDeployed || err == registry.ErrRegistryNotDeployed {
-				continue
-			} else if err != nil {
-				return err
-			}
-
-			stableToken, err = contracts.NewStableToken(stableTokenAddress, cc.Eth)
-			if err != nil {
-				return err
-			}
-		}
-
-		if (validatorsAddress == common.Address{}) {
-			validatorsAddress, err = r.GetAddressFor(ctx, h.Number, registry.ValidatorsContractID)
-			if err == client.ErrContractNotDeployed || err == registry.ErrRegistryNotDeployed {
-				continue
-			} else if err != nil {
-				return err
-			}
-
-			validators, err = contracts.NewValidators(validatorsAddress, cc.Eth)
-			if err != nil {
-				return err
-			}
-		}
-
 		g, processorCtx := errgroup.WithContext(context.Background())
 		opts := &bind.CallOpts{
 			BlockNumber: h.Number,
 			Context:     processorCtx,
 		}
 
-		accountsProcessor := NewAccountsProcessor(processorCtx, logger, accountsAddress, accounts)
-		attestationsProcessor := NewAttestationsProcessor(processorCtx, logger, attestationsAddress, attestations)
-		electionProcessor := NewElectionProcessor(processorCtx, logger, electionAddress, election)
-		epochRewardsProcessor := NewEpochRewardsProcessor(processorCtx, logger, epochRewardsAddress, epochRewards)
-		goldTokenProcessor := NewGoldTokenProcessor(processorCtx, logger, goldTokenAddress, goldToken)
-		governanceProcessor := NewGovernanceProcessor(processorCtx, logger, governanceAddress, governance)
-		lockedGoldProcessor := NewLockedGoldProcessor(processorCtx, logger, lockedGoldAddress, lockedGold)
-		reserveProcessor := NewReserveProcessor(processorCtx, logger, reserveAddress, reserve)
-		sortedOraclesProcessor := NewSortedOraclesProcessor(processorCtx, logger, sortedOraclesAddress, sortedOracles, exchange)
-		stabilityProcessor := NewStabilityProcessor(processorCtx, logger, exchangeAddress, exchange, reserve)
-		stableTokenProcessor := NewStableTokenProcessor(processorCtx, logger, stableTokenAddress, stableToken)
-		validatorsProcessor := NewValidatorsProcessor(processorCtx, logger, validatorsAddress, validators)
+		election, err := r.GetElectionContract(ctx, h.Number)
+		electionProcessor := NewElectionProcessor(processorCtx, logger, election)
+		epochRewards, err := r.GetEpochRewardsContract(ctx, h.Number)
+		epochRewardsProcessor := NewEpochRewardsProcessor(processorCtx, logger, epochRewards)
+		goldToken, err := r.GetGoldTokenContract(ctx, h.Number)
+		goldTokenProcessor := NewGoldTokenProcessor(processorCtx, logger, goldToken)
+		lockedGold, err := r.GetLockedGoldContract(ctx, h.Number)
+		lockedGoldProcessor := NewLockedGoldProcessor(processorCtx, logger, lockedGold)
+		reserve, err := r.GetReserveContract(ctx, h.Number)
+		reserveProcessor := NewReserveProcessor(processorCtx, logger, reserve)
+		exchange, err := r.GetExchangeContract(ctx, h.Number)
+		sortedOracles, err := r.GetSortedOraclesContract(ctx, h.Number)
+		sortedOraclesProcessor := NewSortedOraclesProcessor(processorCtx, logger, sortedOracles, exchange)
+		stabilityProcessor := NewStabilityProcessor(processorCtx, logger, exchange, reserve)
+		stableToken, err := r.GetStableTokenContract(ctx, h.Number)
+		stableTokenProcessor := NewStableTokenProcessor(processorCtx, logger, stableToken)
+
+		if stableTokenAddress == nil {
+			addr, err := r.GetAddressFor(ctx, h.Number, registry.StableTokenContractID)
+			if err != nil {
+				return err
+			}
+			stableTokenAddress = &addr
+		}
 
 		if tipMode {
 			g.Go(func() error { return goldTokenProcessor.ObserveMetric(opts) })
 			g.Go(func() error { return stableTokenProcessor.ObserveMetric(opts) })
 			g.Go(func() error { return epochRewardsProcessor.ObserveMetric(opts) })
-			g.Go(func() error { return sortedOraclesProcessor.ObserveMetric(opts, stableTokenAddress, h.Time) })
+			g.Go(func() error { return sortedOraclesProcessor.ObserveMetric(opts, *stableTokenAddress, h.Time) })
 			g.Go(func() error { return stabilityProcessor.ObserveMetric(opts) })
 		}
 
 		if utils.ShouldSample(h.Number.Uint64(), BlocksPerHour) {
+			err = r.Hydrate(ctx, h.Number)
+			if err != nil {
+				return err
+			}
 			g.Go(func() error { return goldTokenProcessor.ObserveState(opts) })
 			g.Go(func() error { return reserveProcessor.ObserveState(opts) })
 			g.Go(func() error { return stableTokenProcessor.ObserveState(opts) })
-			g.Go(func() error { return sortedOraclesProcessor.ObserveState(opts, stableTokenAddress) })
+			g.Go(func() error { return sortedOraclesProcessor.ObserveState(opts, *stableTokenAddress) })
 		}
 
 		if utils.ShouldSample(h.Number.Uint64(), EpochSize) {
@@ -431,29 +240,6 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 			g.Go(func() error { return epochRewardsProcessor.ObserveState(opts) })
 			g.Go(func() error { return lockedGoldProcessor.ObserveState(opts) })
 			g.Go(func() error { return stabilityProcessor.ObserveState(opts) })
-			g.Go(func() error { return validatorsProcessor.ObserveState(opts) })
-
-			filterLogs, err := cc.Eth.FilterLogs(ctx, ethereum.FilterQuery{
-				FromBlock: h.Number,
-				ToBlock:   h.Number,
-			})
-			if err != nil {
-				return err
-			}
-
-			for _, epochLog := range filterLogs {
-				if epochLog.BlockHash != epochLog.TxHash {
-					// Already handled by TransactionReceipt
-					continue
-				}
-				electionProcessor.HandleLog(&epochLog)
-				epochRewardsProcessor.HandleLog(&epochLog)
-				governanceProcessor.HandleLog(&epochLog)
-				validatorsProcessor.HandleLog(&epochLog)
-				goldTokenProcessor.HandleLog(&epochLog)
-				stabilityProcessor.HandleLog(&epochLog)
-				stableTokenProcessor.HandleLog(&epochLog)
-			}
 		}
 
 		err = g.Wait()
@@ -478,22 +264,16 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 			}
 
 			txLogger := getTxLogger(logger, receipt, header)
-			
-			logTransaction(txLogger, "gasPrice", tx.GasPrice(), "gasUsed", receipt.GasUsed)
 
+			logTransaction(txLogger, "gasPrice", tx.GasPrice(), "gasUsed", receipt.GasUsed)
 
 			metrics.GasPrice.Set(utils.ScaleFixed(tx.GasPrice()))
 
 			for _, eventLog := range receipt.Logs {
-				accountsProcessor.HandleLog(eventLog)
-				attestationsProcessor.HandleLog(eventLog)
-				electionProcessor.HandleLog(eventLog)
-				epochRewardsProcessor.HandleLog(eventLog)
-				governanceProcessor.HandleLog(eventLog)
-				validatorsProcessor.HandleLog(eventLog)
-				sortedOraclesProcessor.HandleLog(eventLog)
-				stabilityProcessor.HandleLog(eventLog)
-				stableTokenProcessor.HandleLog(eventLog)
+				parsed := r.ParseLog(*eventLog)
+				if parsed != nil {
+					logEventLog(logger, parsed)
+				}
 			}
 
 			internalTransfers, err := cc.Debug.TransactionTransfers(transactionCtx, txHash)

@@ -23,5 +23,5 @@ require (
 	golang.org/x/sync v0.0.0-20200317015054-43a5402ce75a
 )
 
-// Use this to use external build
-replace github.com/ethereum/go-ethereum => github.com/celo-org/celo-blockchain v0.0.0-20200519153823-adbdc7f8c27e
+replace github.com/ethereum/go-ethereum => ../blockchain
+replace github.com/celo-org/kliento => ../kliento

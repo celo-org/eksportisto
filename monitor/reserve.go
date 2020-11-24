@@ -6,24 +6,20 @@ import (
 	"github.com/celo-org/eksportisto/utils"
 	"github.com/celo-org/kliento/contracts"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/log"
 )
 
 type reserveProcessor struct {
-	ctx            context.Context
-	logger         log.Logger
-	reserveAddress common.Address
-	reserve        *contracts.Reserve
+	ctx     context.Context
+	logger  log.Logger
+	reserve *contracts.Reserve
 }
 
-func NewReserveProcessor(ctx context.Context, logger log.Logger, reserveAddress common.Address, reserve *contracts.Reserve) *reserveProcessor {
+func NewReserveProcessor(ctx context.Context, logger log.Logger, reserve *contracts.Reserve) *reserveProcessor {
 	return &reserveProcessor{
-		ctx:            ctx,
-		logger:         logger,
-		reserveAddress: reserveAddress,
-		reserve:        reserve,
+		ctx:     ctx,
+		logger:  logger,
+		reserve: reserve,
 	}
 }
 
@@ -39,8 +35,4 @@ func (p reserveProcessor) ObserveState(opts *bind.CallOpts) error {
 	logStateViewCall(logger, "method", "getReserveRatio", "reserveRatio", utils.FromFixed(reserveRatio))
 
 	return nil
-}
-
-func (p reserveProcessor) HandleLog(eventLog *types.Log) {
-	return
 }

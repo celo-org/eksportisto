@@ -7,24 +7,20 @@ import (
 	"github.com/celo-org/eksportisto/utils"
 	"github.com/celo-org/kliento/contracts"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/log"
 )
 
 type stableTokenProcessor struct {
-	ctx                context.Context
-	logger             log.Logger
-	stableTokenAddress common.Address
-	stableToken        *contracts.StableToken
+	ctx         context.Context
+	logger      log.Logger
+	stableToken *contracts.StableToken
 }
 
-func NewStableTokenProcessor(ctx context.Context, logger log.Logger, stableTokenAddress common.Address, stableToken *contracts.StableToken) *stableTokenProcessor {
+func NewStableTokenProcessor(ctx context.Context, logger log.Logger, stableToken *contracts.StableToken) *stableTokenProcessor {
 	return &stableTokenProcessor{
-		ctx:                ctx,
-		logger:             logger,
-		stableTokenAddress: stableTokenAddress,
-		stableToken:        stableToken,
+		ctx:         ctx,
+		logger:      logger,
+		stableToken: stableToken,
 	}
 }
 
@@ -50,27 +46,4 @@ func (p stableTokenProcessor) ObserveMetric(opts *bind.CallOpts) error {
 
 	metrics.TotalCUSDSupply.Set(utils.ScaleFixed(totalSupply))
 	return nil
-}
-
-func (p stableTokenProcessor) HandleLog(eventLog *types.Log) {
-	logger := p.logger.New("contract", "StableToken")
-	if eventLog.Address == p.stableTokenAddress {
-		eventName, eventRaw, ok, err := p.stableToken.TryParseLog(*eventLog)
-		if err != nil {
-			logger.Warn("Ignoring event: Error parsing stableToken event", "err", err, "eventId", eventLog.Topics[0].Hex())
-			return
-		}
-		if !ok {
-			return
-		}
-
-		switch eventName {
-		case "Transfer":
-			event := eventRaw.(*contracts.StableTokenTransfer)
-			logEventLog(logger, "eventName", eventName, "from", event.From, "to", event.To, "value", event.Value, "txHash", eventLog.TxHash.String())
-		case "TransferComment":
-			event := eventRaw.(*contracts.StableTokenTransferComment)
-			logEventLog(logger, "eventName", eventName, "comment", event.Comment, "txHash", eventLog.TxHash.String())
-		}
-	}
 }
