@@ -21,7 +21,9 @@ require (
 	github.com/prometheus/client_golang v1.5.1
 	github.com/stretchr/testify v1.5.1 // indirect
 	golang.org/x/sync v0.0.0-20200317015054-43a5402ce75a
+	github.com/ethereum/go-ethereum v1.9.8
 )
 
 replace github.com/ethereum/go-ethereum => ../blockchain
+
 replace github.com/celo-org/kliento => ../kliento
