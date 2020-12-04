@@ -21,7 +21,9 @@ import (
 
 	kliento_mon "github.com/celo-org/kliento/monitor"
 	"github.com/celo-org/kliento/registry"
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
+	blockchainErrors "github.com/ethereum/go-ethereum/contract_comm/errors"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/log"
@@ -153,14 +155,20 @@ func Start(ctx context.Context, cfg *Config) error {
 }
 
 func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *types.Header, cc *client.CeloClient, logger log.Logger, dbWriter db.RosettaDBWriter, cfg *Config) error {
-	var h *types.Header
 	r, err := registry.New(cc)
 	if err != nil {
 		return err
 	}
 
-	// sensitiveAccounts := getSensitiveAccounts(cfg.SensitiveAccountsFilePath)
+	supported, err := cc.Rpc.SupportedModules()
+	if err != nil {
+		return err
+	}
+	_, debugEnabled := supported["debug"]
 
+	sensitiveAccounts := getSensitiveAccounts(cfg.SensitiveAccountsFilePath)
+
+	var h *types.Header
 	for {
 		select {
 		case <-ctx.Done():
@@ -184,113 +192,153 @@ func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *ty
 		}
 
 		metrics.BlockGasUsed.Set(float64(h.GasUsed))
-
-		// header, _, err := getHeaderInformation(ctx, cc, h)
-		// if err != nil {
-		// 	return err
-		// }
-		// tipMode := isTipMode(latestHeader, h.Number)
-
-		// g, processorCtx := errgroup.WithContext(context.Background())
-		// opts := &bind.CallOpts{
-		// 	BlockNumber: h.Number,
-		// 	Context:     processorCtx,
-		// }
-
-		// election, _ := r.GetElectionContract(ctx, h.Number)
-		// goldToken, _ := r.GetGoldTokenContract(ctx, h.Number)
-		// lockedGold, _ := r.GetLockedGoldContract(ctx, h.Number)
-		// reserve, _ := r.GetReserveContract(ctx, h.Number)
-		// exchange, _ := r.GetExchangeContract(ctx, h.Number)
-		// sortedOracles, _ := r.GetSortedOraclesContract(ctx, h.Number)
-		// stableToken, _ := r.GetStableTokenContract(ctx, h.Number)
-		// epochRewards, _ := r.GetEpochRewardsContract(ctx, h.Number)
-
-		// electionProcessor := NewElectionProcessor(processorCtx, logger, election)
-		// epochRewardsProcessor := NewEpochRewardsProcessor(processorCtx, logger, epochRewards)
-		// goldTokenProcessor := NewGoldTokenProcessor(processorCtx, logger, goldToken)
-		// lockedGoldProcessor := NewLockedGoldProcessor(processorCtx, logger, lockedGold)
-		// reserveProcessor := NewReserveProcessor(processorCtx, logger, reserve)
-		// sortedOraclesProcessor := NewSortedOraclesProcessor(processorCtx, logger, sortedOracles, exchange)
-		// stabilityProcessor := NewStabilityProcessor(processorCtx, logger, exchange, reserve)
-		// stableTokenProcessor := NewStableTokenProcessor(processorCtx, logger, stableToken)
-
-		// stableTokenAddress, err := r.GetAddressFor(ctx, h.Number, registry.StableTokenContractID)
-		// if err != nil && err != client.ErrContractNotDeployed {
-		// 	return err
-		// }
-
-		// if tipMode {
-		// 	g.Go(func() error { return goldTokenProcessor.ObserveMetric(opts) })
-		// 	g.Go(func() error { return stableTokenProcessor.ObserveMetric(opts) })
-		// 	g.Go(func() error { return epochRewardsProcessor.ObserveMetric(opts) })
-		// 	g.Go(func() error { return sortedOraclesProcessor.ObserveMetric(opts, stableTokenAddress, h.Time) })
-		// 	g.Go(func() error { return stabilityProcessor.ObserveMetric(opts) })
-		// }
-
-		// if utils.ShouldSample(h.Number.Uint64(), BlocksPerHour) {
-		// 	g.Go(func() error { return goldTokenProcessor.ObserveState(opts) })
-		// 	g.Go(func() error { return reserveProcessor.ObserveState(opts) })
-		// 	g.Go(func() error { return stableTokenProcessor.ObserveState(opts) })
-		// 	g.Go(func() error { return sortedOraclesProcessor.ObserveState(opts, stableTokenAddress) })
-		// }
-
-		// if utils.ShouldSample(h.Number.Uint64(), EpochSize) {
-		// 	g.Go(func() error { return electionProcessor.ObserveState(opts) })
-		// 	g.Go(func() error { return epochRewardsProcessor.ObserveState(opts) })
-		// 	g.Go(func() error { return lockedGoldProcessor.ObserveState(opts) })
-		// 	g.Go(func() error { return stabilityProcessor.ObserveState(opts) })
-		// }
-
-		// err = g.Wait()
-		// if err != nil {
-		// 	return err
-		// }
+		_, latestHeader, err := getHeaderInformation(ctx, cc, h)
+		if err != nil {
+			return err
+		}
+		tipMode := isTipMode(latestHeader, h.Number)
 
 		transactionCtx := context.Background()
 
 		block, err := cc.Eth.BlockByNumber(ctx, h.Number)
 		if err != nil {
+			fmt.Printf("ERROR %v", err)
 			return err
 		}
 		txs := block.Transactions()
-
-		for _, tx := range txs {
+		for txIndex, tx := range txs {
 			txHash := tx.Hash()
+
+			txLogger := logger.New("txHash", txHash, "txIndex", txIndex)
 
 			receipt, err := cc.Eth.TransactionReceipt(transactionCtx, txHash)
 			if err != nil {
 				return err
 			}
 
-			// txLogger := getTxLogger(logger, receipt, header)
-
-			// logTransaction(txLogger, "gasPrice", tx.GasPrice(), "gasUsed", receipt.GasUsed)
+			logTransaction(txLogger, "gasPrice", tx.GasPrice(), "gasUsed", receipt.GasUsed)
 
 			metrics.GasPrice.Set(utils.ScaleFixed(tx.GasPrice()))
 
-			for _, eventLog := range receipt.Logs {
+			for eventIdx, eventLog := range receipt.Logs {
+				eventLogger := txLogger.New("logTxIndex", eventIdx, "logBlockIndex", eventLog.Index)
 				parsed, err := r.TryParseLog(transactionCtx, eventLog, h.Number)
 				if err != nil {
-					return err
+					eventLogger.Error("log parsing failed", "log", eventLog, "err", err)
 				} else if parsed != nil {
-					logEventLog(logger, parsed...)
+					logEventLog(eventLogger, parsed...)
 				}
 			}
 
-			// internalTransfers, err := cc.Debug.TransactionTransfers(transactionCtx, txHash)
-			// if err != nil {
-			// 	return err
-			// }
-			// for _, internalTransfer := range internalTransfers {
-			// 	logTransfer(txLogger, "currencySymbol", "cGLD", "from", internalTransfer.From, "to", internalTransfer.To, "value", internalTransfer.Value)
-			// 	if tipMode && sensitiveAccounts[internalTransfer.From] != "" {
-			// 		err = notifyFundsMoved(internalTransfer, sensitiveAccounts[internalTransfer.From])
-			// 		if err != nil {
-			// 			logger.Error(err.Error())
-			// 		}
-			// 	}
-			// }
+			if !debugEnabled {
+				continue
+			}
+			internalTransfers, err := cc.Debug.TransactionTransfers(transactionCtx, txHash)
+			if err != nil {
+				return err
+			}
+			for _, internalTransfer := range internalTransfers {
+				logTransfer(txLogger, "currencySymbol", "CELO", "from", internalTransfer.From, "to", internalTransfer.To, "value", internalTransfer.Value)
+				if tipMode && sensitiveAccounts[internalTransfer.From] != "" {
+					err = notifyFundsMoved(internalTransfer, sensitiveAccounts[internalTransfer.From])
+					if err != nil {
+						logger.Error(err.Error())
+					}
+				}
+			}
+		}
+
+		g, processorCtx := errgroup.WithContext(context.Background())
+		opts := &bind.CallOpts{
+			BlockNumber: h.Number,
+			Context:     processorCtx,
+		}
+
+		skipContractMetrics := func(err error) bool {
+			if err != nil {
+				if err == blockchainErrors.ErrRegistryContractNotDeployed {
+					logger.Warn("skipping contract metrics before contracts are available", "err", err)
+				} else {
+					logger.Error("unexpected error while fetching contracts", "err", err)
+				}
+				finishHeader(ctx)
+				return true
+			}
+			return false
+		}
+
+		election, err := r.GetElectionContract(ctx, h.Number)
+		if skipContractMetrics(err) {
+			continue
+		}
+		goldToken, err := r.GetGoldTokenContract(ctx, h.Number)
+		if skipContractMetrics(err) {
+			continue
+		}
+		lockedGold, err := r.GetLockedGoldContract(ctx, h.Number)
+		if skipContractMetrics(err) {
+			continue
+		}
+		reserve, err := r.GetReserveContract(ctx, h.Number)
+		if skipContractMetrics(err) {
+			continue
+		}
+		exchange, err := r.GetExchangeContract(ctx, h.Number)
+		if skipContractMetrics(err) {
+			continue
+		}
+		sortedOracles, err := r.GetSortedOraclesContract(ctx, h.Number)
+		if skipContractMetrics(err) {
+			continue
+		}
+		stableToken, err := r.GetStableTokenContract(ctx, h.Number)
+		if skipContractMetrics(err) {
+			continue
+		}
+		epochRewards, err := r.GetEpochRewardsContract(ctx, h.Number)
+		if skipContractMetrics(err) {
+			continue
+		}
+
+		stableTokenAddress, err := r.GetAddressFor(ctx, h.Number, registry.StableTokenContractID)
+		if err != nil {
+			return err
+		}
+
+		electionProcessor := NewElectionProcessor(processorCtx, logger, election)
+		epochRewardsProcessor := NewEpochRewardsProcessor(processorCtx, logger, epochRewards)
+		goldTokenProcessor := NewGoldTokenProcessor(processorCtx, logger, goldToken)
+		lockedGoldProcessor := NewLockedGoldProcessor(processorCtx, logger, lockedGold)
+		reserveProcessor := NewReserveProcessor(processorCtx, logger, reserve)
+		sortedOraclesProcessor := NewSortedOraclesProcessor(processorCtx, logger, sortedOracles, exchange)
+		stabilityProcessor := NewStabilityProcessor(processorCtx, logger, exchange, reserve)
+		stableTokenProcessor := NewStableTokenProcessor(processorCtx, logger, stableToken)
+
+		if tipMode {
+			g.Go(func() error { return goldTokenProcessor.ObserveMetric(opts) })
+			g.Go(func() error { return stableTokenProcessor.ObserveMetric(opts) })
+			g.Go(func() error { return epochRewardsProcessor.ObserveMetric(opts) })
+			g.Go(func() error { return sortedOraclesProcessor.ObserveMetric(opts, stableTokenAddress, h.Time) })
+			g.Go(func() error { return stabilityProcessor.ObserveMetric(opts) })
+		}
+
+		if utils.ShouldSample(h.Number.Uint64(), BlocksPerHour) {
+			g.Go(func() error { return goldTokenProcessor.ObserveState(opts) })
+			g.Go(func() error { return reserveProcessor.ObserveState(opts) })
+			g.Go(func() error { return stableTokenProcessor.ObserveState(opts) })
+			g.Go(func() error { return sortedOraclesProcessor.ObserveState(opts, stableTokenAddress) })
+		}
+
+		if utils.ShouldSample(h.Number.Uint64(), EpochSize) {
+			g.Go(func() error { return electionProcessor.ObserveState(opts) })
+			g.Go(func() error { return epochRewardsProcessor.ObserveState(opts) })
+			g.Go(func() error { return lockedGoldProcessor.ObserveState(opts) })
+			g.Go(func() error { return stabilityProcessor.ObserveState(opts) })
+		}
+
+		err = g.Wait()
+		if err != nil {
+			return err
 		}
 
 		err = finishHeader(transactionCtx)
