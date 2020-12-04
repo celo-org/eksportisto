@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -212,10 +213,19 @@ func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *ty
 		}
 
 		block, err := cc.Eth.BlockByNumber(ctx, h.Number)
+		var txs types.Transactions
 		if err != nil {
-			return err
+			if strings.Contains(err.Error(), "cannot unmarshal") {
+				logger.Error("block by number rpc unmarshalling failed")
+			} else {
+				return err
+			}
+			// hack for when block by number fails inexplicably
+			txs = nil
+		} else {
+			txs = block.Transactions()
 		}
-		txs := block.Transactions()
+
 		for txIndex, tx := range txs {
 			txHash := tx.Hash()
 
