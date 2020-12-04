@@ -11,7 +11,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/celo-org/eksportisto/db"
@@ -25,9 +24,7 @@ import (
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
-	blockchainErrors "github.com/ethereum/go-ethereum/contract_comm/errors"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/log"
 	"golang.org/x/sync/errgroup"
 )
@@ -83,33 +80,6 @@ func notifyFundsMoved(transfer debug.Transfer, url string) error {
 		return fmt.Errorf("unable to notify, received status code %d", resp.StatusCode)
 	}
 	return nil
-}
-
-func getHeaderInformation(ctx context.Context, cc *client.CeloClient, h *types.Header) (*ethclient.HeaderAndTxnHashes, *types.Header, error) {
-	var header *ethclient.HeaderAndTxnHashes
-	var latestHeader *types.Header
-	var byHashErr error
-	var latestHeaderErr error
-
-	var wg sync.WaitGroup
-	wg.Add(2)
-	go func(hash common.Hash) {
-		header, byHashErr = cc.Eth.HeaderAndTxnHashesByHash(ctx, hash)
-		wg.Done()
-	}(h.Hash())
-	go func() {
-		latestHeader, latestHeaderErr = cc.Eth.HeaderByNumber(ctx, nil)
-		wg.Done()
-	}()
-	wg.Wait()
-
-	if byHashErr != nil {
-		return nil, nil, byHashErr
-	}
-	if latestHeaderErr != nil {
-		return nil, nil, latestHeaderErr
-	}
-	return header, latestHeader, nil
 }
 
 func Start(ctx context.Context, cfg *Config) error {
@@ -194,7 +164,7 @@ func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *ty
 		}
 
 		metrics.BlockGasUsed.Set(float64(h.GasUsed))
-		_, latestHeader, err := getHeaderInformation(ctx, cc, h)
+		latestHeader, err := cc.Eth.HeaderByNumber(ctx, nil)
 		if err != nil {
 			return err
 		}
@@ -202,7 +172,7 @@ func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *ty
 
 		transactionCtx := context.Background()
 
-		logEvent := func(logger log.Logger, eventIdx int, eventLog *types.Log) {
+		parseAndLogEvent := func(logger log.Logger, eventIdx int, eventLog *types.Log) {
 			eventLogger := logger.New("logTxIndex", eventIdx, "logBlockIndex", eventLog.Index)
 			parsed, err := r.TryParseLog(transactionCtx, eventLog, h.Number)
 			if err != nil {
@@ -213,15 +183,13 @@ func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *ty
 		}
 
 		block, err := cc.Eth.BlockByNumber(ctx, h.Number)
-		var txs types.Transactions
+		var txs types.Transactions = nil
 		if err != nil {
-			if strings.Contains(err.Error(), "cannot unmarshal") {
-				logger.Error("block by number rpc unmarshalling failed")
-			} else {
+			unmarshalError := strings.Contains(err.Error(), "cannot unmarshal")
+			if !unmarshalError {
 				return err
 			}
-			// hack for when block by number fails inexplicably
-			txs = nil
+			logger.Error("block by number rpc unmarshalling failed")
 		} else {
 			txs = block.Transactions()
 		}
@@ -241,7 +209,7 @@ func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *ty
 			metrics.GasPrice.Set(utils.ScaleFixed(tx.GasPrice()))
 
 			for eventIdx, eventLog := range receipt.Logs {
-				logEvent(txLogger, eventIdx, eventLog)
+				parseAndLogEvent(txLogger, eventIdx, eventLog)
 			}
 
 			if !debugEnabled {
@@ -270,8 +238,8 @@ func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *ty
 
 		skipContractMetrics := func(err error) bool {
 			if err != nil {
-				if err == blockchainErrors.ErrRegistryContractNotDeployed {
-					logger.Warn("skipping contract metrics before contracts are available", "err", err)
+				if registry.IsExpectedBeforeContractsDeployed(err) {
+					logger.Warn("skipping contract metrics before contracts are available")
 				} else {
 					logger.Error("unexpected error while fetching contracts", "err", err)
 				}
@@ -358,9 +326,9 @@ func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *ty
 			}
 
 			for eventIdx, epochLog := range filterLogs {
-				// explicitly log epoch events which don't appear in transactions
+				// explicitly log epoch events which don't appear in normal transaction receipts
 				if epochLog.BlockHash == epochLog.TxHash {
-					logEvent(logger, eventIdx, &epochLog)
+					parseAndLogEvent(logger, eventIdx, &epochLog)
 				}
 			}
 		}
