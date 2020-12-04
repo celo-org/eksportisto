@@ -4,7 +4,7 @@ go 1.13
 
 require (
 	github.com/Nvveen/Gotty v0.0.0-20120604004816-cd527374f1e5 // indirect
-	github.com/celo-org/kliento v0.1.2-0.20200608140637-c5afc8cf0f44
+	github.com/celo-org/kliento v0.1.2-0.20201204212757-6fffb5227ed3
 	github.com/docker/distribution v2.7.1+incompatible // indirect
 	github.com/docker/go-connections v0.4.0 // indirect
 	github.com/docker/go-metrics v0.0.1 // indirect
@@ -24,6 +24,9 @@ require (
 	github.com/ethereum/go-ethereum v1.9.8
 )
 
-replace github.com/ethereum/go-ethereum => ../blockchain
+// DO NOT CHANGE DIRECTORY: Create a symlink so this works
+// replace github.com/ethereum/go-ethereum => ../blockchain
+// replace github.com/celo-org/kliento => ../kliento
 
-replace github.com/celo-org/kliento => ../kliento
+// Use this to use external build
+replace github.com/ethereum/go-ethereum => github.com/celo-org/celo-blockchain v0.0.0-20200519153823-adbdc7f8c27e
