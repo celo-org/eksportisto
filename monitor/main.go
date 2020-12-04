@@ -21,6 +21,7 @@ import (
 
 	kliento_mon "github.com/celo-org/kliento/monitor"
 	"github.com/celo-org/kliento/registry"
+	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	blockchainErrors "github.com/ethereum/go-ethereum/contract_comm/errors"
@@ -200,9 +201,18 @@ func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *ty
 
 		transactionCtx := context.Background()
 
+		logEvent := func(logger log.Logger, eventIdx int, eventLog *types.Log) {
+			eventLogger := logger.New("logTxIndex", eventIdx, "logBlockIndex", eventLog.Index)
+			parsed, err := r.TryParseLog(transactionCtx, eventLog, h.Number)
+			if err != nil {
+				eventLogger.Error("log parsing failed", "log", eventLog, "err", err)
+			} else if parsed != nil {
+				logEventLog(eventLogger, parsed...)
+			}
+		}
+
 		block, err := cc.Eth.BlockByNumber(ctx, h.Number)
 		if err != nil {
-			fmt.Printf("ERROR %v", err)
 			return err
 		}
 		txs := block.Transactions()
@@ -221,13 +231,7 @@ func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *ty
 			metrics.GasPrice.Set(utils.ScaleFixed(tx.GasPrice()))
 
 			for eventIdx, eventLog := range receipt.Logs {
-				eventLogger := txLogger.New("logTxIndex", eventIdx, "logBlockIndex", eventLog.Index)
-				parsed, err := r.TryParseLog(transactionCtx, eventLog, h.Number)
-				if err != nil {
-					eventLogger.Error("log parsing failed", "log", eventLog, "err", err)
-				} else if parsed != nil {
-					logEventLog(eventLogger, parsed...)
-				}
+				logEvent(txLogger, eventIdx, eventLog)
 			}
 
 			if !debugEnabled {
@@ -334,6 +338,21 @@ func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *ty
 			g.Go(func() error { return epochRewardsProcessor.ObserveState(opts) })
 			g.Go(func() error { return lockedGoldProcessor.ObserveState(opts) })
 			g.Go(func() error { return stabilityProcessor.ObserveState(opts) })
+
+			filterLogs, err := cc.Eth.FilterLogs(ctx, ethereum.FilterQuery{
+				FromBlock: h.Number,
+				ToBlock:   h.Number,
+			})
+			if err != nil {
+				return err
+			}
+
+			for eventIdx, epochLog := range filterLogs {
+				// explicitly log epoch events which don't appear in transactions
+				if epochLog.BlockHash == epochLog.TxHash {
+					logEvent(logger, eventIdx, &epochLog)
+				}
+			}
 		}
 
 		err = g.Wait()
