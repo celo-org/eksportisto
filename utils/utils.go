@@ -2,6 +2,8 @@ package utils
 
 import (
 	"math/big"
+
+	"github.com/celo-org/kliento/contracts/helpers"
 )
 
 func ShouldSample(blockNumber uint64, checkPoint uint64) bool {
@@ -11,14 +13,6 @@ func ShouldSample(blockNumber uint64, checkPoint uint64) bool {
 	} else {
 		return false
 	}
-}
-
-func FromFixed(number *big.Int) float32 {
-	var fixed1, _ = new(big.Float).SetString("1000000000000000000000000")
-	ret := new(big.Float)
-	ret.Quo(new(big.Float).SetInt(number), fixed1)
-	retF, _ := ret.Float32()
-	return retF
 }
 
 func ScaleFixed(number *big.Int) float64 {
@@ -39,7 +33,7 @@ func MeanFromFixed(xs []*big.Int) float64 {
 		return 0.0
 	}
 	for _, v := range xs {
-		val := float64(FromFixed(v))
+		val := helpers.FromFixed(v)
 		total += val
 	}
 	return total / float64(len(xs))

@@ -4,8 +4,8 @@ import (
 	"context"
 
 	"github.com/celo-org/eksportisto/metrics"
-	"github.com/celo-org/eksportisto/utils"
 	"github.com/celo-org/kliento/contracts"
+	"github.com/celo-org/kliento/contracts/helpers"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/log"
 )
@@ -49,7 +49,7 @@ func (p epochRewardsProcessor) ObserveState(opts *bind.CallOpts) error {
 		return err
 	}
 
-	logStateViewCall(logger, "method", "getRewardsMultiplier", "rewardsMultiplier", utils.FromFixed(rewardsMultiplier))
+	logStateViewCall(logger, "method", "getRewardsMultiplier", "rewardsMultiplier", helpers.FromFixed(rewardsMultiplier))
 
 	// Todo: This is a fraction and therefore not actually a uint
 	// logStateViewCall(logger, "method", "getVotingGoldFraction", "votingGoldFraction", votingGoldFraction.Uint64())
@@ -73,6 +73,6 @@ func (p epochRewardsProcessor) ObserveMetric(opts *bind.CallOpts) error {
 	if err != nil {
 		return err
 	}
-	metrics.VotingGoldFraction.Set(float64(utils.FromFixed(votingGoldFraction)))
+	metrics.VotingGoldFraction.Set(helpers.FromFixed(votingGoldFraction))
 	return nil
 }

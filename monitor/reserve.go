@@ -3,8 +3,8 @@ package monitor
 import (
 	"context"
 
-	"github.com/celo-org/eksportisto/utils"
 	"github.com/celo-org/kliento/contracts"
+	"github.com/celo-org/kliento/contracts/helpers"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/log"
 )
@@ -32,7 +32,7 @@ func (p reserveProcessor) ObserveState(opts *bind.CallOpts) error {
 		return nil
 	}
 
-	logStateViewCall(logger, "method", "getReserveRatio", "reserveRatio", utils.FromFixed(reserveRatio))
+	logStateViewCall(logger, "method", "getReserveRatio", "reserveRatio", helpers.FromFixed(reserveRatio))
 
 	return nil
 }
