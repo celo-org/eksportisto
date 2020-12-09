@@ -150,7 +150,7 @@ func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *ty
 		logHeader(logger, h)
 
 		start := time.Now()
-		logger = logger.New("blockTimestamp", time.Unix(int64(h.Time), 0).Format(time.RFC3339), "blockNumber", h.Number.Uint64(), "blockGasUsed", h.GasUsed)
+		logger = logger.New("blockTimestamp", time.Unix(int64(h.Time), 0).Format(time.RFC3339), "blockNumber", h.Number.Int64(), "blockGasUsed", h.GasUsed)
 
 		finishHeader := func(ctx context.Context) error {
 			if err := dbWriter.ApplyChanges(ctx, h.Number); err != nil {
@@ -180,6 +180,19 @@ func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *ty
 			} else if parsed != nil {
 				logEventLog(eventLogger, parsed...)
 			}
+		}
+
+		skipContractMetrics := func(err error) bool {
+			if err != nil {
+				if registry.IsExpectedBeforeContractsDeployed(err) {
+					logger.Warn("skipping contract metrics before contracts are available")
+				} else {
+					logger.Error("unexpected error while fetching contracts", "err", err)
+				}
+				finishHeader(ctx)
+				return true
+			}
+			return false
 		}
 
 		block, err := cc.Eth.BlockByNumber(ctx, h.Number)
@@ -216,7 +229,9 @@ func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *ty
 				continue
 			}
 			internalTransfers, err := cc.Debug.TransactionTransfers(transactionCtx, txHash)
-			if err != nil {
+			if skipContractMetrics(err) {
+				continue
+			} else if err != nil {
 				return err
 			}
 			for _, internalTransfer := range internalTransfers {
@@ -234,19 +249,6 @@ func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *ty
 		opts := &bind.CallOpts{
 			BlockNumber: h.Number,
 			Context:     processorCtx,
-		}
-
-		skipContractMetrics := func(err error) bool {
-			if err != nil {
-				if registry.IsExpectedBeforeContractsDeployed(err) {
-					logger.Warn("skipping contract metrics before contracts are available")
-				} else {
-					logger.Error("unexpected error while fetching contracts", "err", err)
-				}
-				finishHeader(ctx)
-				return true
-			}
-			return false
 		}
 
 		election, err := r.GetElectionContract(ctx, h.Number)
