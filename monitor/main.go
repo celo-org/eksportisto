@@ -18,6 +18,7 @@ import (
 	"github.com/celo-org/eksportisto/utils"
 	"github.com/celo-org/kliento/client"
 	"github.com/celo-org/kliento/client/debug"
+	"github.com/celo-org/kliento/contracts/helpers"
 
 	kliento_mon "github.com/celo-org/kliento/monitor"
 	"github.com/celo-org/kliento/registry"
@@ -176,9 +177,14 @@ func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *ty
 			eventLogger := logger.New("logTxIndex", eventIdx, "logBlockIndex", eventLog.Index)
 			parsed, err := r.TryParseLog(transactionCtx, eventLog, h.Number)
 			if err != nil {
-				eventLogger.Error("log parsing failed", "log", eventLog, "err", err)
+				eventLogger.Error("log parsing failed", "err", err)
 			} else if parsed != nil {
-				logEventLog(eventLogger, parsed...)
+				logSlice, err := helpers.EventToSlice(parsed.Log)
+				if err != nil {
+					eventLogger.Error("event slice encoding failed", "contract", parsed.Contract, "event", parsed.Event, "err", err)
+				} else {
+					logEventLog(eventLogger, append([]interface{}{"contract", parsed.Contract, "event", parsed.Event}, logSlice...)...)
+				}
 			}
 		}
 

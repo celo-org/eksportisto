@@ -4,7 +4,7 @@ go 1.13
 
 require (
 	github.com/Nvveen/Gotty v0.0.0-20120604004816-cd527374f1e5 // indirect
-	github.com/celo-org/kliento v0.1.2-0.20201209012725-a784cb945b0e
+	github.com/celo-org/kliento v0.1.2-0.20201210234552-391ed00b8f36
 	github.com/docker/distribution v2.7.1+incompatible // indirect
 	github.com/docker/go-connections v0.4.0 // indirect
 	github.com/docker/go-metrics v0.0.1 // indirect
