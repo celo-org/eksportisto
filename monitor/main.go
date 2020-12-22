@@ -132,6 +132,10 @@ func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *ty
 	if err != nil {
 		return err
 	}
+	err = r.EnableCaching(ctx, startBlock)
+	if err != nil {
+		return err
+	}
 
 	supported, err := cc.Rpc.SupportedModules()
 	if err != nil {
