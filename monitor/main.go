@@ -10,7 +10,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"sync"
+	"strings"
 	"time"
 
 	"github.com/celo-org/eksportisto/db"
@@ -18,7 +18,7 @@ import (
 	"github.com/celo-org/eksportisto/utils"
 	"github.com/celo-org/kliento/client"
 	"github.com/celo-org/kliento/client/debug"
-	"github.com/celo-org/kliento/contracts"
+	"github.com/celo-org/kliento/contracts/helpers"
 
 	kliento_mon "github.com/celo-org/kliento/monitor"
 	"github.com/celo-org/kliento/registry"
@@ -26,11 +26,9 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/log"
 	"golang.org/x/sync/errgroup"
 )
-
 
 type Config struct {
 	NodeUri                   string
@@ -85,33 +83,6 @@ func notifyFundsMoved(transfer debug.Transfer, url string) error {
 	return nil
 }
 
-func getHeaderInformation(ctx context.Context, cc *client.CeloClient, h *types.Header) (*ethclient.HeaderAndTxnHashes, *types.Header, error) {
-	var header *ethclient.HeaderAndTxnHashes
-	var latestHeader *types.Header
-	var byHashErr error
-	var latestHeaderErr error
-
-	var wg sync.WaitGroup
-	wg.Add(2)
-	go func(hash common.Hash) {
-		header, byHashErr = cc.Eth.HeaderAndTxnHashesByHash(ctx, hash)
-		wg.Done()
-	}(h.Hash())
-	go func() {
-		latestHeader, latestHeaderErr = cc.Eth.HeaderByNumber(ctx, nil)
-		wg.Done()
-	}()
-	wg.Wait()
-
-	if byHashErr != nil {
-		return nil, nil, byHashErr
-	}
-	if latestHeaderErr != nil {
-		return nil, nil, latestHeaderErr
-	}
-	return header, latestHeader, nil
-}
-
 func Start(ctx context.Context, cfg *Config) error {
 	handler := log.LvlFilterHandler(log.LvlInfo, log.StreamHandler(os.Stdout, log.JSONFormat()))
 	logger := log.New()
@@ -152,56 +123,29 @@ func Start(ctx context.Context, cfg *Config) error {
 
 	g, ctx := errgroup.WithContext(ctx)
 	g.Go(func() error { return kliento_mon.HeaderListener(ctx, headers, cc, logger, startBlock) })
-	g.Go(func() error { return blockProcessor(ctx, headers, cc, logger, store, cfg) })
+	g.Go(func() error { return blockProcessor(ctx, startBlock, headers, cc, logger, store, cfg) })
 	return g.Wait()
 }
 
-func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *client.CeloClient, logger log.Logger, dbWriter db.RosettaDBWriter, cfg *Config) error {
+func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *types.Header, cc *client.CeloClient, logger log.Logger, dbWriter db.RosettaDBWriter, cfg *Config) error {
 	r, err := registry.New(cc)
 	if err != nil {
 		return err
 	}
+	err = r.EnableCaching(ctx, startBlock)
+	if err != nil {
+		return err
+	}
 
-	var accounts *contracts.Accounts
-	var accountsAddress common.Address
-
-	var attestations *contracts.Attestations
-	var attestationsAddress common.Address
-
-	var election *contracts.Election
-	var electionAddress common.Address
-
-	var epochRewards *contracts.EpochRewards
-	var epochRewardsAddress common.Address
-
-	var exchange *contracts.Exchange
-	var exchangeAddress common.Address
-
-	var goldToken *contracts.GoldToken
-	var goldTokenAddress common.Address
-
-	var governance *contracts.Governance
-	var governanceAddress common.Address
-
-	var lockedGold *contracts.LockedGold
-	var lockedGoldAddress common.Address
-
-	var reserve *contracts.Reserve
-	var reserveAddress common.Address
-
-	var sortedOracles *contracts.SortedOracles
-	var sortedOraclesAddress common.Address
-
-	var stableToken *contracts.StableToken
-	var stableTokenAddress common.Address
-
-	var validators *contracts.Validators
-	var validatorsAddress common.Address
-
-	var h *types.Header
+	supported, err := cc.Rpc.SupportedModules()
+	if err != nil {
+		return err
+	}
+	_, debugEnabled := supported["debug"]
 
 	sensitiveAccounts := getSensitiveAccounts(cfg.SensitiveAccountsFilePath)
 
+	var h *types.Header
 	for {
 		select {
 		case <-ctx.Done():
@@ -210,185 +154,104 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 		}
 		logHeader(logger, h)
 
-		start := time.Now()
-		logger = logger.New("blockTimestamp", time.Unix(int64(h.Time), 0).Format(time.RFC3339), "blockNumber", h.Number.Uint64(), "blockGasUsed", h.GasUsed)
+		logger = logger.New("blockTimestamp", time.Unix(int64(h.Time), 0).Format(time.RFC3339), "blockNumber", h.Number.Int64(), "blockGasUsed", h.GasUsed)
+
+		finishHeader := func(ctx context.Context) error {
+			if err := dbWriter.ApplyChanges(ctx, h.Number); err != nil {
+				return err
+			}
+
+			metrics.LastBlockProcessed.Set(float64(h.Number.Int64()))
+			return nil
+		}
 
 		metrics.BlockGasUsed.Set(float64(h.GasUsed))
-
-		header, latestHeader, err := getHeaderInformation(ctx, cc, h)
+		latestHeader, err := cc.Eth.HeaderByNumber(ctx, nil)
 		if err != nil {
 			return err
 		}
 		tipMode := isTipMode(latestHeader, h.Number)
 
-		// Todo: Use Rosetta's db to detect election contract address changes mid block
-		// Todo: Right now this assumes that the only interesting events happen after all the core contracts are available
-		// Todo: Right now we  are assuming that core contract addresses do not change which allows us to avoid having to check the registry
-		if (accountsAddress == common.Address{}) {
-			accountsAddress, err = r.GetAddressFor(ctx, h.Number, registry.AccountsContractID)
-			if err == client.ErrContractNotDeployed || err == registry.ErrRegistryNotDeployed {
-				continue
-			} else if err != nil {
-				return err
-			}
+		transactionCtx := context.Background()
 
-			accounts, err = contracts.NewAccounts(accountsAddress, cc.Eth)
+		parseAndLogEvent := func(logger log.Logger, eventIdx int, eventLog *types.Log) {
+			eventLogger := logger.New("logTxIndex", eventIdx, "logBlockIndex", eventLog.Index)
+			parsed, err := r.TryParseLog(transactionCtx, eventLog, h.Number)
 			if err != nil {
-				return err
+				eventLogger.Error("log parsing failed", "err", err)
+			} else if parsed != nil {
+				logSlice, err := helpers.EventToSlice(parsed.Log)
+				if err != nil {
+					eventLogger.Error("event slice encoding failed", "contract", parsed.Contract, "event", parsed.Event, "err", err)
+				} else {
+					logEventLog(eventLogger, append([]interface{}{"contract", parsed.Contract, "event", parsed.Event}, logSlice...)...)
+				}
+			} else {
+				eventLogger.Warn("log source unknown, logging raw event")
+				logEventLog(eventLogger, "rawEvent", *eventLog)
 			}
 		}
 
-		if (attestationsAddress == common.Address{}) {
-			attestationsAddress, err = r.GetAddressFor(ctx, h.Number, registry.AttestationsContractID)
-			if err == client.ErrContractNotDeployed || err == registry.ErrRegistryNotDeployed {
-				continue
-			} else if err != nil {
-				return err
-			}
-
-			attestations, err = contracts.NewAttestations(attestationsAddress, cc.Eth)
+		skipContractMetrics := func(err error) bool {
 			if err != nil {
-				return err
+				if registry.IsExpectedBeforeContractsDeployed(err) {
+					logger.Warn("skipping contract metrics before contracts are available")
+				} else {
+					logger.Error("unexpected error while fetching contracts", "err", err)
+				}
+				finishHeader(ctx)
+				return true
 			}
+			return false
 		}
 
-		if (electionAddress == common.Address{}) {
-			electionAddress, err = r.GetAddressFor(ctx, h.Number, registry.ElectionContractID)
-			if err == client.ErrContractNotDeployed || err == registry.ErrRegistryNotDeployed {
-				continue
-			} else if err != nil {
+		block, err := cc.Eth.BlockByNumber(ctx, h.Number)
+		var txs types.Transactions = nil
+		if err != nil {
+			unmarshalError := strings.Contains(err.Error(), "cannot unmarshal")
+			if !unmarshalError {
 				return err
 			}
-
-			election, err = contracts.NewElection(electionAddress, cc.Eth)
-			if err != nil {
-				return err
-			}
+			logger.Error("block by number rpc unmarshalling failed")
+		} else {
+			txs = block.Transactions()
 		}
 
-		if (epochRewardsAddress == common.Address{}) {
-			epochRewardsAddress, err = r.GetAddressFor(ctx, h.Number, registry.EpochRewardsContractID)
-			if err == client.ErrContractNotDeployed || err == registry.ErrRegistryNotDeployed {
+		for txIndex, tx := range txs {
+			txHash := tx.Hash()
+
+			txLogger := logger.New("txHash", txHash, "txIndex", txIndex)
+
+			receipt, err := cc.Eth.TransactionReceipt(transactionCtx, txHash)
+			if err != nil {
+				return err
+			}
+
+			logTransaction(txLogger, "gasPrice", tx.GasPrice(), "gasUsed", receipt.GasUsed)
+
+			metrics.GasPrice.Set(utils.ScaleFixed(tx.GasPrice()))
+
+			for eventIdx, eventLog := range receipt.Logs {
+				parseAndLogEvent(txLogger, eventIdx, eventLog)
+			}
+
+			if !debugEnabled {
+				continue
+			}
+			internalTransfers, err := cc.Debug.TransactionTransfers(transactionCtx, txHash)
+			if skipContractMetrics(err) {
 				continue
 			} else if err != nil {
 				return err
 			}
-
-			epochRewards, err = contracts.NewEpochRewards(epochRewardsAddress, cc.Eth)
-			if err != nil {
-				return err
-			}
-		}
-
-		if (exchangeAddress == common.Address{}) {
-			exchangeAddress, err = r.GetAddressFor(ctx, h.Number, registry.ExchangeContractID)
-			if err == client.ErrContractNotDeployed || err == registry.ErrRegistryNotDeployed {
-				continue
-			} else if err != nil {
-				return err
-			}
-
-			exchange, err = contracts.NewExchange(exchangeAddress, cc.Eth)
-			if err != nil {
-				return err
-			}
-		}
-
-		if (goldTokenAddress == common.Address{}) {
-			goldTokenAddress, err = r.GetAddressFor(ctx, h.Number, registry.GoldTokenContractID)
-			if err == client.ErrContractNotDeployed || err == registry.ErrRegistryNotDeployed {
-				continue
-			} else if err != nil {
-				return err
-			}
-
-			goldToken, err = contracts.NewGoldToken(goldTokenAddress, cc.Eth)
-			if err != nil {
-				return err
-			}
-		}
-
-		if (governanceAddress == common.Address{}) {
-			governanceAddress, err = r.GetAddressFor(ctx, h.Number, registry.GovernanceContractID)
-			if err == client.ErrContractNotDeployed || err == registry.ErrRegistryNotDeployed {
-				continue
-			} else if err != nil {
-				return err
-			}
-
-			governance, err = contracts.NewGovernance(governanceAddress, cc.Eth)
-			if err != nil {
-				return err
-			}
-		}
-
-		if (lockedGoldAddress == common.Address{}) {
-			lockedGoldAddress, err = r.GetAddressFor(ctx, h.Number, registry.LockedGoldContractID)
-			if err == client.ErrContractNotDeployed || err == registry.ErrRegistryNotDeployed {
-				continue
-			} else if err != nil {
-				return err
-			}
-			lockedGold, err = contracts.NewLockedGold(lockedGoldAddress, cc.Eth)
-
-			if err != nil {
-				return err
-			}
-		}
-
-		if (reserveAddress == common.Address{}) {
-			reserveAddress, err = r.GetAddressFor(ctx, h.Number, registry.ReserveContractID)
-			if err == client.ErrContractNotDeployed || err == registry.ErrRegistryNotDeployed {
-				continue
-			} else if err != nil {
-				return err
-			}
-			reserve, err = contracts.NewReserve(reserveAddress, cc.Eth)
-
-			if err != nil {
-				return err
-			}
-		}
-
-		if (sortedOraclesAddress == common.Address{}) {
-			sortedOraclesAddress, err = r.GetAddressFor(ctx, h.Number, registry.SortedOraclesContractID)
-			if err == client.ErrContractNotDeployed || err == registry.ErrRegistryNotDeployed {
-				continue
-			} else if err != nil {
-				return err
-			}
-
-			sortedOracles, err = contracts.NewSortedOracles(sortedOraclesAddress, cc.Eth)
-			if err != nil {
-				return err
-			}
-		}
-
-		if (stableTokenAddress == common.Address{}) {
-			stableTokenAddress, err = r.GetAddressFor(ctx, h.Number, registry.StableTokenContractID)
-			if err == client.ErrContractNotDeployed || err == registry.ErrRegistryNotDeployed {
-				continue
-			} else if err != nil {
-				return err
-			}
-
-			stableToken, err = contracts.NewStableToken(stableTokenAddress, cc.Eth)
-			if err != nil {
-				return err
-			}
-		}
-
-		if (validatorsAddress == common.Address{}) {
-			validatorsAddress, err = r.GetAddressFor(ctx, h.Number, registry.ValidatorsContractID)
-			if err == client.ErrContractNotDeployed || err == registry.ErrRegistryNotDeployed {
-				continue
-			} else if err != nil {
-				return err
-			}
-
-			validators, err = contracts.NewValidators(validatorsAddress, cc.Eth)
-			if err != nil {
-				return err
+			for _, internalTransfer := range internalTransfers {
+				logTransfer(txLogger, "currencySymbol", "CELO", "from", internalTransfer.From, "to", internalTransfer.To, "value", internalTransfer.Value)
+				if tipMode && sensitiveAccounts[internalTransfer.From] != "" {
+					err = notifyFundsMoved(internalTransfer, sensitiveAccounts[internalTransfer.From])
+					if err != nil {
+						logger.Error(err.Error())
+					}
+				}
 			}
 		}
 
@@ -398,18 +261,52 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 			Context:     processorCtx,
 		}
 
-		accountsProcessor := NewAccountsProcessor(processorCtx, logger, accountsAddress, accounts)
-		attestationsProcessor := NewAttestationsProcessor(processorCtx, logger, attestationsAddress, attestations)
-		electionProcessor := NewElectionProcessor(processorCtx, logger, electionAddress, election)
-		epochRewardsProcessor := NewEpochRewardsProcessor(processorCtx, logger, epochRewardsAddress, epochRewards)
-		goldTokenProcessor := NewGoldTokenProcessor(processorCtx, logger, goldTokenAddress, goldToken)
-		governanceProcessor := NewGovernanceProcessor(processorCtx, logger, governanceAddress, governance)
-		lockedGoldProcessor := NewLockedGoldProcessor(processorCtx, logger, lockedGoldAddress, lockedGold)
-		reserveProcessor := NewReserveProcessor(processorCtx, logger, reserveAddress, reserve)
-		sortedOraclesProcessor := NewSortedOraclesProcessor(processorCtx, logger, sortedOraclesAddress, sortedOracles, exchange)
-		stabilityProcessor := NewStabilityProcessor(processorCtx, logger, exchangeAddress, exchange, reserve)
-		stableTokenProcessor := NewStableTokenProcessor(processorCtx, logger, stableTokenAddress, stableToken)
-		validatorsProcessor := NewValidatorsProcessor(processorCtx, logger, validatorsAddress, validators)
+		election, err := r.GetElectionContract(ctx, h.Number)
+		if skipContractMetrics(err) {
+			continue
+		}
+		goldToken, err := r.GetGoldTokenContract(ctx, h.Number)
+		if skipContractMetrics(err) {
+			continue
+		}
+		lockedGold, err := r.GetLockedGoldContract(ctx, h.Number)
+		if skipContractMetrics(err) {
+			continue
+		}
+		reserve, err := r.GetReserveContract(ctx, h.Number)
+		if skipContractMetrics(err) {
+			continue
+		}
+		exchange, err := r.GetExchangeContract(ctx, h.Number)
+		if skipContractMetrics(err) {
+			continue
+		}
+		sortedOracles, err := r.GetSortedOraclesContract(ctx, h.Number)
+		if skipContractMetrics(err) {
+			continue
+		}
+		stableToken, err := r.GetStableTokenContract(ctx, h.Number)
+		if skipContractMetrics(err) {
+			continue
+		}
+		epochRewards, err := r.GetEpochRewardsContract(ctx, h.Number)
+		if skipContractMetrics(err) {
+			continue
+		}
+
+		stableTokenAddress, err := r.GetAddressFor(ctx, h.Number, registry.StableTokenContractID)
+		if err != nil {
+			return err
+		}
+
+		electionProcessor := NewElectionProcessor(processorCtx, logger, election)
+		epochRewardsProcessor := NewEpochRewardsProcessor(processorCtx, logger, epochRewards)
+		goldTokenProcessor := NewGoldTokenProcessor(processorCtx, logger, goldToken)
+		lockedGoldProcessor := NewLockedGoldProcessor(processorCtx, logger, lockedGold)
+		reserveProcessor := NewReserveProcessor(processorCtx, logger, reserve)
+		sortedOraclesProcessor := NewSortedOraclesProcessor(processorCtx, logger, sortedOracles, exchange)
+		stabilityProcessor := NewStabilityProcessor(processorCtx, logger, exchange, reserve)
+		stableTokenProcessor := NewStableTokenProcessor(processorCtx, logger, stableToken)
 
 		if tipMode {
 			g.Go(func() error { return goldTokenProcessor.ObserveMetric(opts) })
@@ -431,7 +328,6 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 			g.Go(func() error { return epochRewardsProcessor.ObserveState(opts) })
 			g.Go(func() error { return lockedGoldProcessor.ObserveState(opts) })
 			g.Go(func() error { return stabilityProcessor.ObserveState(opts) })
-			g.Go(func() error { return validatorsProcessor.ObserveState(opts) })
 
 			filterLogs, err := cc.Eth.FilterLogs(ctx, ethereum.FilterQuery{
 				FromBlock: h.Number,
@@ -441,18 +337,11 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 				return err
 			}
 
-			for _, epochLog := range filterLogs {
-				if epochLog.BlockHash != epochLog.TxHash {
-					// Already handled by TransactionReceipt
-					continue
+			for eventIdx, epochLog := range filterLogs {
+				// explicitly log epoch events which don't appear in normal transaction receipts
+				if epochLog.BlockHash == epochLog.TxHash {
+					parseAndLogEvent(logger, eventIdx, &epochLog)
 				}
-				electionProcessor.HandleLog(&epochLog)
-				epochRewardsProcessor.HandleLog(&epochLog)
-				governanceProcessor.HandleLog(&epochLog)
-				validatorsProcessor.HandleLog(&epochLog)
-				goldTokenProcessor.HandleLog(&epochLog)
-				stabilityProcessor.HandleLog(&epochLog)
-				stableTokenProcessor.HandleLog(&epochLog)
 			}
 		}
 
@@ -461,63 +350,10 @@ func blockProcessor(ctx context.Context, headers <-chan *types.Header, cc *clien
 			return err
 		}
 
-		transactionCtx := context.Background()
-
-		block, err := cc.Eth.BlockByNumber(ctx, h.Number)
+		err = finishHeader(transactionCtx)
 		if err != nil {
 			return err
 		}
-		txs := block.Transactions()
-
-		for _, tx := range txs {
-			txHash := tx.Hash()
-
-			receipt, err := cc.Eth.TransactionReceipt(transactionCtx, txHash)
-			if err != nil {
-				return err
-			}
-
-			txLogger := getTxLogger(logger, receipt, header)
-			
-			logTransaction(txLogger, "gasPrice", tx.GasPrice(), "gasUsed", receipt.GasUsed)
-
-
-			metrics.GasPrice.Set(utils.ScaleFixed(tx.GasPrice()))
-
-			for _, eventLog := range receipt.Logs {
-				accountsProcessor.HandleLog(eventLog)
-				attestationsProcessor.HandleLog(eventLog)
-				electionProcessor.HandleLog(eventLog)
-				epochRewardsProcessor.HandleLog(eventLog)
-				governanceProcessor.HandleLog(eventLog)
-				validatorsProcessor.HandleLog(eventLog)
-				sortedOraclesProcessor.HandleLog(eventLog)
-				stabilityProcessor.HandleLog(eventLog)
-				stableTokenProcessor.HandleLog(eventLog)
-			}
-
-			internalTransfers, err := cc.Debug.TransactionTransfers(transactionCtx, txHash)
-			if err != nil {
-				return err
-			}
-			for _, internalTransfer := range internalTransfers {
-				logTransfer(txLogger, "currencySymbol", "cGLD", "from", internalTransfer.From, "to", internalTransfer.To, "value", internalTransfer.Value)
-				if tipMode && sensitiveAccounts[internalTransfer.From] != "" {
-					err = notifyFundsMoved(internalTransfer, sensitiveAccounts[internalTransfer.From])
-					if err != nil {
-						logger.Error(err.Error())
-					}
-				}
-			}
-		}
-
-		if err := dbWriter.ApplyChanges(transactionCtx, h.Number); err != nil {
-			return err
-		}
-
-		metrics.LastBlockProcessed.Set(float64(h.Number.Int64()))
-		elapsed := time.Since(start)
-		logger.Debug("STATS", "elapsed", elapsed)
 	}
 }
 

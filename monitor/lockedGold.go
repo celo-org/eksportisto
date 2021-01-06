@@ -5,24 +5,20 @@ import (
 
 	"github.com/celo-org/kliento/contracts"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/log"
 )
 
 type lockedGoldProcessor struct {
-	ctx               context.Context
-	logger            log.Logger
-	lockedGoldAddress common.Address
-	lockedGold        *contracts.LockedGold
+	ctx        context.Context
+	logger     log.Logger
+	lockedGold *contracts.LockedGold
 }
 
-func NewLockedGoldProcessor(ctx context.Context, logger log.Logger, lockedGoldAddress common.Address, lockedGold *contracts.LockedGold) *lockedGoldProcessor {
+func NewLockedGoldProcessor(ctx context.Context, logger log.Logger, lockedGold *contracts.LockedGold) *lockedGoldProcessor {
 	return &lockedGoldProcessor{
-		ctx:               ctx,
-		logger:            logger,
-		lockedGoldAddress: lockedGoldAddress,
-		lockedGold:        lockedGold,
+		ctx:        ctx,
+		logger:     logger,
+		lockedGold: lockedGold,
 	}
 }
 
@@ -46,7 +42,4 @@ func (p lockedGoldProcessor) ObserveState(opts *bind.CallOpts) error {
 	logStateViewCall(logger, "method", "getTotalLockedGold", "totalLockedGold", totalLockedGold)
 
 	return nil
-}
-
-func (p lockedGoldProcessor) HandleLog(eventLog *types.Log) {
 }

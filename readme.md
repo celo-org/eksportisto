@@ -28,9 +28,11 @@ The command line parameters most relevant to getting started quickly are:
 - `-nodeUri (default ws://localhost:8546)` use this to point at your running full node
 - `-datadir (default $HOME/.eksportisto)` where the Sqlite data directory will be stored. This is especially relevant if you choose to run Eksportisto in a Docker container and want to mount the same directory every time
 - `-sensitiveAccounts` allows passing a JSON file of addresses->url entries. Whenever a transfer is initiated from one of these addresses a webhook will be sent with the payload of the transaction. It's important to note that these webhooks will only fire when in `tipMode`, or when Eksportisto has caught up to the tip of the chain and is reading blocks as they come.
+- `-from-block` allows passing a from block to start exporting metrics at
 
 More information can be found by running `go run main.go --help`.
 
+Block 2899 is where contract migrations begin.
 
 ### Deployment steps
 
