@@ -154,7 +154,6 @@ func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *ty
 		}
 		logHeader(logger, h)
 
-		start := time.Now()
 		logger = logger.New("blockTimestamp", time.Unix(int64(h.Time), 0).Format(time.RFC3339), "blockNumber", h.Number.Int64(), "blockGasUsed", h.GasUsed)
 
 		finishHeader := func(ctx context.Context) error {
@@ -163,8 +162,6 @@ func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *ty
 			}
 
 			metrics.LastBlockProcessed.Set(float64(h.Number.Int64()))
-			elapsed := time.Since(start)
-			logger.Debug("STATS", "elapsed", elapsed)
 			return nil
 		}
 
@@ -189,6 +186,9 @@ func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *ty
 				} else {
 					logEventLog(eventLogger, append([]interface{}{"contract", parsed.Contract, "event", parsed.Event}, logSlice...)...)
 				}
+			} else {
+				eventLogger.Warn("log source unknown, logging raw event")
+				logEventLog(eventLogger, "rawEvent", *eventLog)
 			}
 		}
 
