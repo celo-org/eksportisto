@@ -137,13 +137,14 @@ func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *ty
 		return err
 	}
 
-	supported, err := cc.Rpc.SupportedModules()
-	if err != nil {
-		return err
-	}
-	_, debugEnabled := supported["debug"]
+	// supported, err := cc.Rpc.SupportedModules()
+	// if err != nil {
+	// 	return err
+	// }
+	// _, debugEnabled := supported["debug"]
 
-	sensitiveAccounts := getSensitiveAccounts(cfg.SensitiveAccountsFilePath)
+	// sensitiveAccounts := getSensitiveAccounts(cfg.SensitiveAccountsFilePath)
+	tipMode := false
 
 	var h *types.Header
 	for {
@@ -154,7 +155,7 @@ func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *ty
 		}
 		logHeader(logger, h)
 
-		logger = logger.New("blockTimestamp", time.Unix(int64(h.Time), 0).Format(time.RFC3339), "blockNumber", h.Number.Int64(), "blockGasUsed", h.GasUsed)
+		blockLogger := logger.New("blockTimestamp", time.Unix(int64(h.Time), 0).Format(time.RFC3339), "blockNumber", h.Number.Int64(), "blockGasUsed", h.GasUsed)
 
 		finishHeader := func(ctx context.Context) error {
 			if err := dbWriter.ApplyChanges(ctx, h.Number); err != nil {
@@ -162,48 +163,11 @@ func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *ty
 			}
 
 			metrics.LastBlockProcessed.Set(float64(h.Number.Int64()))
+			metrics.BlockGasUsed.Set(float64(h.GasUsed))
 			return nil
 		}
 
-		metrics.BlockGasUsed.Set(float64(h.GasUsed))
-		latestHeader, err := cc.Eth.HeaderByNumber(ctx, nil)
-		if err != nil {
-			return err
-		}
-		tipMode := isTipMode(latestHeader, h.Number)
-
 		transactionCtx := context.Background()
-
-		parseAndLogEvent := func(logger log.Logger, eventIdx int, eventLog *types.Log) {
-			eventLogger := logger.New("logTxIndex", eventIdx, "logBlockIndex", eventLog.Index)
-			parsed, err := r.TryParseLog(transactionCtx, eventLog, h.Number)
-			if err != nil {
-				eventLogger.Error("log parsing failed", "err", err)
-			} else if parsed != nil {
-				logSlice, err := helpers.EventToSlice(parsed.Log)
-				if err != nil {
-					eventLogger.Error("event slice encoding failed", "contract", parsed.Contract, "event", parsed.Event, "err", err)
-				} else {
-					logEventLog(eventLogger, append([]interface{}{"contract", parsed.Contract, "event", parsed.Event}, logSlice...)...)
-				}
-			} else {
-				eventLogger.Warn("log source unknown, logging raw event")
-				logEventLog(eventLogger, "rawEvent", *eventLog)
-			}
-		}
-
-		skipContractMetrics := func(err error) bool {
-			if err != nil {
-				if registry.IsExpectedBeforeContractsDeployed(err) {
-					logger.Warn("skipping contract metrics before contracts are available")
-				} else {
-					logger.Error("unexpected error while fetching contracts", "err", err)
-				}
-				finishHeader(ctx)
-				return true
-			}
-			return false
-		}
 
 		block, err := cc.Eth.BlockByNumber(ctx, h.Number)
 		var txs types.Transactions = nil
@@ -212,7 +176,7 @@ func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *ty
 			if !unmarshalError {
 				return err
 			}
-			logger.Error("block by number rpc unmarshalling failed")
+			blockLogger.Error("block by number rpc unmarshalling failed")
 		} else {
 			txs = block.Transactions()
 		}
@@ -220,39 +184,42 @@ func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *ty
 		for txIndex, tx := range txs {
 			txHash := tx.Hash()
 
-			txLogger := logger.New("txHash", txHash, "txIndex", txIndex)
+			txLogger := blockLogger.New("txHash", txHash, "txIndex", txIndex)
 
-			receipt, err := cc.Eth.TransactionReceipt(transactionCtx, txHash)
-			if err != nil {
-				return err
-			}
-
-			logTransaction(txLogger, "gasPrice", tx.GasPrice(), "gasUsed", receipt.GasUsed)
-
+			logTransaction(txLogger, "gasPrice", tx.GasPrice(), "gas", tx.Gas())
 			metrics.GasPrice.Set(utils.ScaleFixed(tx.GasPrice()))
 
-			for eventIdx, eventLog := range receipt.Logs {
-				parseAndLogEvent(txLogger, eventIdx, eventLog)
-			}
+			// if !debugEnabled {
+			// 	continue
+			// }
+			// internalTransfers, err := cc.Debug.TransactionTransfers(transactionCtx, txHash)
+			// if skipContractMetrics(err) {
+			// 	continue
+			// } else if err != nil {
+			// 	return err
+			// }
+			// for _, internalTransfer := range internalTransfers {
+			// 	logTransfer(txLogger, "currencySymbol", "CELO", "from", internalTransfer.From, "to", internalTransfer.To, "value", internalTransfer.Value)
+			// 	if tipMode && sensitiveAccounts[internalTransfer.From] != "" {
+			// 		err = notifyFundsMoved(internalTransfer, sensitiveAccounts[internalTransfer.From])
+			// 		if err != nil {
+			// 			logger.Error(err.Error())
+			// 		}
+			// 	}
+			// }
+		}
 
-			if !debugEnabled {
-				continue
-			}
-			internalTransfers, err := cc.Debug.TransactionTransfers(transactionCtx, txHash)
-			if skipContractMetrics(err) {
-				continue
-			} else if err != nil {
-				return err
-			}
-			for _, internalTransfer := range internalTransfers {
-				logTransfer(txLogger, "currencySymbol", "CELO", "from", internalTransfer.From, "to", internalTransfer.To, "value", internalTransfer.Value)
-				if tipMode && sensitiveAccounts[internalTransfer.From] != "" {
-					err = notifyFundsMoved(internalTransfer, sensitiveAccounts[internalTransfer.From])
-					if err != nil {
-						logger.Error(err.Error())
-					}
+		skipContractMetrics := func(err error) bool {
+			if err != nil {
+				if registry.IsExpectedBeforeContractsDeployed(err) {
+					blockLogger.Warn("skipping contract metrics before contracts are available")
+				} else {
+					blockLogger.Error("unexpected error while fetching contracts", "err", err)
 				}
+				finishHeader(ctx)
+				return true
 			}
+			return false
 		}
 
 		g, processorCtx := errgroup.WithContext(context.Background())
@@ -294,6 +261,38 @@ func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *ty
 			continue
 		}
 
+		// TODO: filter logs across a range of blocks
+		registeredAddresses, err := r.AllAddresses(ctx, h.Number)
+		if err != nil {
+			return err
+		}
+		filterLogs, err := cc.Eth.FilterLogs(ctx, ethereum.FilterQuery{
+			FromBlock: h.Number,
+			ToBlock:   h.Number,
+			Addresses: registeredAddresses,
+		})
+		if err != nil {
+			return err
+		}
+
+		for eventIdx, eventLog := range filterLogs {
+			eventLogger := logger.New("logTxIndex", eventIdx, "logBlockIndex", eventLog.Index)
+			parsed, err := r.TryParseLog(transactionCtx, eventLog, h.Number)
+			if err != nil {
+				eventLogger.Error("log parsing failed", "err", err)
+			} else if parsed != nil {
+				logSlice, err := helpers.EventToSlice(parsed.Log)
+				if err != nil {
+					eventLogger.Error("event slice encoding failed", "contract", parsed.Contract, "event", parsed.Event, "err", err)
+				} else {
+					logEventLog(eventLogger, append([]interface{}{"contract", parsed.Contract, "event", parsed.Event}, logSlice...)...)
+				}
+			} else {
+				eventLogger.Warn("log source unknown, logging raw event")
+				logEventLog(eventLogger, "rawEvent", eventLog)
+			}
+		}
+
 		stableTokenAddress, err := r.GetAddressFor(ctx, h.Number, registry.StableTokenContractID)
 		if err != nil {
 			return err
@@ -307,6 +306,14 @@ func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *ty
 		sortedOraclesProcessor := NewSortedOraclesProcessor(processorCtx, logger, sortedOracles, exchange)
 		stabilityProcessor := NewStabilityProcessor(processorCtx, logger, exchange, reserve)
 		stableTokenProcessor := NewStableTokenProcessor(processorCtx, logger, stableToken)
+
+		if utils.ShouldSample(h.Number.Uint64(), TipGap.Uint64()) {
+			latestHeader, err := cc.Eth.HeaderByNumber(ctx, nil)
+			if err != nil {
+				return err
+			}
+			tipMode = tipMode || isTipMode(latestHeader, h.Number)
+		}
 
 		if tipMode {
 			g.Go(func() error { return goldTokenProcessor.ObserveMetric(opts) })
@@ -328,21 +335,6 @@ func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *ty
 			g.Go(func() error { return epochRewardsProcessor.ObserveState(opts) })
 			g.Go(func() error { return lockedGoldProcessor.ObserveState(opts) })
 			g.Go(func() error { return stabilityProcessor.ObserveState(opts) })
-
-			filterLogs, err := cc.Eth.FilterLogs(ctx, ethereum.FilterQuery{
-				FromBlock: h.Number,
-				ToBlock:   h.Number,
-			})
-			if err != nil {
-				return err
-			}
-
-			for eventIdx, epochLog := range filterLogs {
-				// explicitly log epoch events which don't appear in normal transaction receipts
-				if epochLog.BlockHash == epochLog.TxHash {
-					parseAndLogEvent(logger, eventIdx, &epochLog)
-				}
-			}
 		}
 
 		err = g.Wait()

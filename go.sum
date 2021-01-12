@@ -49,6 +49,8 @@ github.com/celo-org/kliento v0.1.2-0.20201222020354-6f8628db73b2 h1:SJs8hhpsgUwz
 github.com/celo-org/kliento v0.1.2-0.20201222020354-6f8628db73b2/go.mod h1:OrzUyeaXpAgTfhl0+wUG4Y+Tfn+wpL49t2/5S9z9zjQ=
 github.com/celo-org/kliento v0.1.2-0.20201222201650-dabd6f11754d h1:J4nC/xIQR6rLtc2EThBFnw58QSYyPTasGOp7bqyRr9E=
 github.com/celo-org/kliento v0.1.2-0.20201222201650-dabd6f11754d/go.mod h1:OrzUyeaXpAgTfhl0+wUG4Y+Tfn+wpL49t2/5S9z9zjQ=
+github.com/celo-org/kliento v0.1.2-0.20210112225001-feecb3948ea2 h1:WOZkiimGI0azhyqCTE9Z/tpy2HBrwrNTZjTunih3sEU=
+github.com/celo-org/kliento v0.1.2-0.20210112225001-feecb3948ea2/go.mod h1:OrzUyeaXpAgTfhl0+wUG4Y+Tfn+wpL49t2/5S9z9zjQ=
 github.com/cespare/cp v0.1.0 h1:SE+dxFebS7Iik5LK0tsi1k9ZCxEaFX4AjQmoyA+1dJk=
 github.com/cespare/cp v0.1.0/go.mod h1:SOGHArjBr4JWaSDEVpWpo/hNg6RoKrls6Oh40hiwW+s=
 github.com/cespare/xxhash v1.1.0 h1:a6HrQnmkObjyL+Gs60czilIUGqrzKutQD6XZog3p+ko=
