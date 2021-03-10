@@ -1,7 +1,7 @@
 package monitor
 
 import (
-	"github.com/ethereum/go-ethereum/accounts/abi/bind"
+	"github.com/celo-org/celo-blockchain/accounts/abi/bind"
 )
 
 type ContractProcessor interface {

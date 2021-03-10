@@ -22,11 +22,11 @@ import (
 
 	kliento_mon "github.com/celo-org/kliento/monitor"
 	"github.com/celo-org/kliento/registry"
-	"github.com/ethereum/go-ethereum"
-	"github.com/ethereum/go-ethereum/accounts/abi/bind"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/log"
+	celo "github.com/celo-org/celo-blockchain"
+	"github.com/celo-org/celo-blockchain/accounts/abi/bind"
+	"github.com/celo-org/celo-blockchain/common"
+	"github.com/celo-org/celo-blockchain/core/types"
+	"github.com/celo-org/celo-blockchain/log"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -176,7 +176,7 @@ func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *ty
 
 		parseAndLogEvent := func(logger log.Logger, eventIdx int, eventLog *types.Log) {
 			eventLogger := logger.New("logTxIndex", eventIdx, "logBlockIndex", eventLog.Index)
-			parsed, err := r.TryParseLog(transactionCtx, eventLog, h.Number)
+			parsed, err := r.TryParseLog(transactionCtx, *eventLog, h.Number)
 			if err != nil {
 				eventLogger.Error("log parsing failed", "err", err)
 			} else if parsed != nil {
@@ -329,7 +329,7 @@ func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *ty
 			g.Go(func() error { return lockedGoldProcessor.ObserveState(opts) })
 			g.Go(func() error { return stabilityProcessor.ObserveState(opts) })
 
-			filterLogs, err := cc.Eth.FilterLogs(ctx, ethereum.FilterQuery{
+			filterLogs, err := cc.Eth.FilterLogs(ctx, celo.FilterQuery{
 				FromBlock: h.Number,
 				ToBlock:   h.Number,
 			})
