@@ -7,6 +7,7 @@ import (
 
 	"github.com/celo-org/eksportisto/metrics"
 	"github.com/celo-org/eksportisto/utils"
+	"github.com/celo-org/kliento/celotokens"
 	"github.com/celo-org/kliento/contracts"
 	"github.com/celo-org/kliento/contracts/helpers"
 	"github.com/celo-org/celo-blockchain/accounts/abi/bind"
@@ -24,15 +25,24 @@ type sortedOraclesProcessor struct {
 func NewSortedOraclesProcessor(ctx context.Context, logger log.Logger, sortedOracles *contracts.SortedOracles, exchange *contracts.Exchange) *sortedOraclesProcessor {
 	return &sortedOraclesProcessor{
 		ctx:           ctx,
-		logger:        logger,
+		logger:        logger.New("contract", "SortedOracles"),
 		sortedOracles: sortedOracles,
 		exchange:      exchange,
 	}
 }
 
-func (p sortedOraclesProcessor) ObserveState(opts *bind.CallOpts, stableTokenAddress common.Address) error {
-	logger := p.logger.New("contract", "SortedOracles")
+func (p sortedOraclesProcessor) ObserveState(opts *bind.CallOpts, stableTokenAddresses map[celotokens.CeloToken]common.Address) error {
+	for stableToken, stableTokenAddress := range stableTokenAddresses {
+		err := p.observeStateForStableToken(opts, stableToken, stableTokenAddress)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
 
+func (p sortedOraclesProcessor) observeStateForStableToken(opts *bind.CallOpts, stableToken celotokens.CeloToken, stableTokenAddress common.Address) error {
+	logger := p.logger.New("stableToken", stableToken, "address", stableTokenAddress)
 	// SortedOracles.IsOldestReportExpired
 	isOldestReportExpired, lastReportAddress, err := p.sortedOracles.IsOldestReportExpired(opts, stableTokenAddress)
 	if err != nil {
@@ -98,8 +108,17 @@ func (p sortedOraclesProcessor) ObserveState(opts *bind.CallOpts, stableTokenAdd
 	return nil
 }
 
-func (p sortedOraclesProcessor) ObserveMetric(opts *bind.CallOpts, stableTokenAddress common.Address, blockTime uint64) error {
+func (p sortedOraclesProcessor) ObserveMetric(opts *bind.CallOpts, stableTokenAddresses map[celotokens.CeloToken]common.Address, blockTime uint64) error {
+	for _, stableTokenAddress := range stableTokenAddresses {
+		err := p.observeMetricForStableToken(opts, stableTokenAddress, blockTime)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
 
+func (p sortedOraclesProcessor) observeMetricForStableToken(opts *bind.CallOpts, stableTokenAddress common.Address, blockTime uint64) error {
 	isOldestReportExpired, _, err := p.sortedOracles.IsOldestReportExpired(opts, stableTokenAddress)
 	if err != nil {
 		return err

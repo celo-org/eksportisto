@@ -298,16 +298,10 @@ func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *ty
 			continue
 		}
 
-		stableTokenAddress, err := r.GetAddressFor(ctx, h.Number, registry.StableTokenContractID)
+		stableTokenAddresses, err := celoTokens.GetAddresses(ctx, h.Number, true)
 		if err != nil {
 			return err
 		}
-
-		// TODO should refactor to use this
-		// stableTokenAddresses, err := celoTokens.GetAddresses(ctx, h.Number, true)
-		// if err != nil {
-		// 	return err
-		// }
 
 		electionProcessor := NewElectionProcessor(processorCtx, logger, election)
 		epochRewardsProcessor := NewEpochRewardsProcessor(processorCtx, logger, epochRewards)
@@ -323,7 +317,7 @@ func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *ty
 
 		if tipMode {
 			g.Go(func() error { return epochRewardsProcessor.ObserveMetric(opts) })
-			g.Go(func() error { return sortedOraclesProcessor.ObserveMetric(opts, stableTokenAddress, h.Time) })
+			g.Go(func() error { return sortedOraclesProcessor.ObserveMetric(opts, stableTokenAddresses, h.Time) })
 			g.Go(func() error { return stabilityProcessor.ObserveMetric(opts) })
 			for _, processor := range celoTokenProcessors {
 				g.Go(func() error { return processor.ObserveMetric(opts) })
@@ -332,7 +326,7 @@ func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *ty
 
 		if utils.ShouldSample(h.Number.Uint64(), BlocksPerHour) {
 			g.Go(func() error { return reserveProcessor.ObserveState(opts) })
-			g.Go(func() error { return sortedOraclesProcessor.ObserveState(opts, stableTokenAddress) })
+			g.Go(func() error { return sortedOraclesProcessor.ObserveState(opts, stableTokenAddresses) })
 			for _, processor := range celoTokenProcessors {
 				g.Go(func() error { return processor.ObserveState(opts) })
 			}
