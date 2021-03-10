@@ -334,7 +334,6 @@ func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *ty
 		if tipMode {
 			g.Go(func() error { return epochRewardsProcessor.ObserveMetric(opts) })
 			g.Go(func() error { return sortedOraclesProcessor.ObserveMetric(opts, stableTokenAddresses, h.Time) })
-			g.Go(func() error { return reserveProcessor.ObserveState(opts) })
 			// Celo token processors
 			for _, processor := range celoTokenProcessors {
 				g.Go(func() error { return processor.ObserveMetric(opts) })

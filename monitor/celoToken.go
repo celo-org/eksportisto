@@ -12,16 +12,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-type celoTokenProcessorInfo struct {
-	contractName string
-	// totalSupplyMetric prometheus.Gauge
-}
-
-var celoTokenContractNames = map[celotokens.CeloToken]string{
-	celotokens.CELO: "GoldToken",
-	celotokens.CUSD: "StableToken",
-}
-
 type celoTokenProcessor struct {
 	ctx              context.Context
 	logger           log.Logger
@@ -32,13 +22,16 @@ type celoTokenProcessor struct {
 
 func NewCeloTokenProcessor(ctx context.Context, logger log.Logger, token celotokens.CeloToken, tokenContract contracts.CeloTokenContract) (*celoTokenProcessor, error) {
 	totalSupplyGauge, err := metrics.CeloTokenSupply.GetMetricWithLabelValues(string(token))
-
+	if err != nil {
+		return nil, err
+	}
+	tokenContractID, err := celotokens.GetContractID(token)
 	if err != nil {
 		return nil, err
 	}
 	return &celoTokenProcessor{
 		ctx:              ctx,
-		logger:           logger.New("contract", celoTokenContractNames[token]),
+		logger:           logger.New("contract", tokenContractID),
 		token:            token,
 		tokenContract:    tokenContract,
 		totalSupplyGauge: totalSupplyGauge,
