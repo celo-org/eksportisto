@@ -317,23 +317,30 @@ func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *ty
 		// Create a celo token processor for each celo token
 		celoTokenProcessors := make(map[celotokens.CeloToken]ContractProcessor)
 		for token, contract := range celoTokenContracts {
-			celoTokenProcessors[token] = NewCeloTokenProcessor(processorCtx, logger, token, contract)
+			celoTokenProcessors[token], err = NewCeloTokenProcessor(processorCtx, logger, token, contract)
+			if err != nil {
+				return err
+			}
 		}
-		// Create a stabiliity processor for each stable token's exchange
-		stabilityProcessors := make(map[celotokens.CeloToken]ContractProcessor)
+		// Create an exchange processor for each stable token's exchange
+		exchangeProcessors := make(map[celotokens.CeloToken]ContractProcessor)
 		for stableToken, exchangeContract := range exchangeContracts {
-			stabilityProcessors[stableToken] = NewStabilityProcessor(ctx, logger, stableToken, exchangeContract, reserve)
+			exchangeProcessors[stableToken], err = NewExchangeProcessor(ctx, logger, stableToken, exchangeContract, reserve)
+			if err != nil {
+				return err
+			}
 		}
 
 		if tipMode {
 			g.Go(func() error { return epochRewardsProcessor.ObserveMetric(opts) })
 			g.Go(func() error { return sortedOraclesProcessor.ObserveMetric(opts, stableTokenAddresses, h.Time) })
+			g.Go(func() error { return reserveProcessor.ObserveState(opts) })
 			// Celo token processors
 			for _, processor := range celoTokenProcessors {
 				g.Go(func() error { return processor.ObserveMetric(opts) })
 			}
-			// Stability processors
-			for _, processor := range stabilityProcessors {
+			// Exchange processors
+			for _, processor := range exchangeProcessors {
 				g.Go(func() error { return processor.ObserveMetric(opts) })
 			}
 		}
@@ -351,8 +358,9 @@ func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *ty
 			g.Go(func() error { return electionProcessor.ObserveState(opts) })
 			g.Go(func() error { return epochRewardsProcessor.ObserveState(opts) })
 			g.Go(func() error { return lockedGoldProcessor.ObserveState(opts) })
-			// Stability processors
-			for _, processor := range stabilityProcessors {
+			g.Go(func() error { return reserveProcessor.ObserveState(opts) })
+			// Exchange processors
+			for _, processor := range exchangeProcessors {
 				g.Go(func() error { return processor.ObserveState(opts) })
 			}
 

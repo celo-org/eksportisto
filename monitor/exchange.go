@@ -10,27 +10,46 @@ import (
 	"github.com/celo-org/kliento/contracts"
 	"github.com/celo-org/celo-blockchain/accounts/abi/bind"
 	"github.com/celo-org/celo-blockchain/log"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
-type stabilityProcessor struct {
+type exchangeProcessor struct {
 	ctx      context.Context
 	logger   log.Logger
 	stableToken celotokens.CeloToken
 	exchange *contracts.Exchange
 	reserve  *contracts.Reserve
+	exchangeCeloBucketRatioHistogram prometheus.Observer
+	exchangeCeloBucketSizeGauge prometheus.Gauge
+	exchangeStableBucketSizeGauge prometheus.Gauge
 }
 
-func NewStabilityProcessor(ctx context.Context, logger log.Logger, stableToken celotokens.CeloToken, exchange *contracts.Exchange, reserve *contracts.Reserve) *stabilityProcessor {
-	return &stabilityProcessor{
+func NewExchangeProcessor(ctx context.Context, logger log.Logger, stableToken celotokens.CeloToken, exchange *contracts.Exchange, reserve *contracts.Reserve) (*exchangeProcessor, error) {
+	exchangeCeloBucketRatioHistogram, err := metrics.ExchangeCeloBucketRatio.GetMetricWithLabelValues(string(stableToken))
+	if err != nil {
+		return nil, err
+	}
+	exchangeCeloBucketSizeGauge, err := metrics.ExchangeCeloBucketSize.GetMetricWithLabelValues(string(stableToken))
+	if err != nil {
+		return nil, err
+	}
+	exchangeStableBucketSizeGauge, err := metrics.ExchangeStableBucketSize.GetMetricWithLabelValues(string(stableToken))
+	if err != nil {
+		return nil, err
+	}
+	return &exchangeProcessor{
 		ctx:      ctx,
 		logger:   logger.New("stableToken", stableToken),
 		stableToken: stableToken,
 		exchange: exchange,
 		reserve:  reserve,
-	}
+		exchangeCeloBucketRatioHistogram: exchangeCeloBucketRatioHistogram,
+		exchangeCeloBucketSizeGauge: exchangeCeloBucketSizeGauge,
+		exchangeStableBucketSizeGauge: exchangeStableBucketSizeGauge,
+	}, nil
 }
 
-func (p stabilityProcessor) ObserveState(opts *bind.CallOpts) error {
+func (p exchangeProcessor) ObserveState(opts *bind.CallOpts) error {
 	// Exchange.ReserveFraction
 	reserveFraction, err := p.exchange.ReserveFraction(opts)
 	if err != nil {
@@ -59,20 +78,20 @@ func (p stabilityProcessor) ObserveState(opts *bind.CallOpts) error {
 	return nil
 }
 
-func (p stabilityProcessor) ObserveMetric(opts *bind.CallOpts) error {
+func (p exchangeProcessor) ObserveMetric(opts *bind.CallOpts) error {
 	goldBucketSize, err := p.exchange.GoldBucket(opts)
 	if err != nil {
 		return err
 	}
 
-	metrics.GoldBucketSize.Set(utils.ScaleFixed(goldBucketSize))
+	p.exchangeCeloBucketSizeGauge.Set(utils.ScaleFixed(goldBucketSize))
 
 	cUsdBucketSize, err := p.exchange.StableBucket(opts)
 	if err != nil {
 		return err
 	}
 
-	metrics.CUSDBucketSize.Set(utils.ScaleFixed(cUsdBucketSize))
+	p.exchangeStableBucketSizeGauge.Set(utils.ScaleFixed(cUsdBucketSize))
 
 	unfrozenReserveGoldBalance, err := p.reserve.GetUnfrozenReserveGoldBalance(opts)
 
@@ -89,6 +108,6 @@ func (p stabilityProcessor) ObserveMetric(opts *bind.CallOpts) error {
 	res.Quo(new(big.Float).SetInt(goldBucketSize), new(big.Float).SetInt(unfrozenReserveGoldBalance))
 
 	ret, _ := res.Float64()
-	metrics.ExchangeGoldBucketRatio.Observe(ret)
+	p.exchangeCeloBucketRatioHistogram.Observe(ret)
 	return nil
 }

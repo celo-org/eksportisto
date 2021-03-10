@@ -14,18 +14,12 @@ import (
 
 type celoTokenProcessorInfo struct {
     contractName string
-    totalSupplyMetric prometheus.Gauge
+    // totalSupplyMetric prometheus.Gauge
 }
 
-var celoTokenProcessorInfos = map[celotokens.CeloToken]celoTokenProcessorInfo{
-    celotokens.CELO: celoTokenProcessorInfo{
-        contractName: "GoldToken",
-        totalSupplyMetric: metrics.TotalCGLDSupply,
-    },
-    celotokens.CUSD: celoTokenProcessorInfo{
-        contractName: "StableToken",
-        totalSupplyMetric: metrics.TotalCUSDSupply,
-    },
+var celoTokenContractNames = map[celotokens.CeloToken]string{
+	celotokens.CELO: "GoldToken",
+	celotokens.CUSD: "StableToken",
 }
 
 type celoTokenProcessor struct {
@@ -33,25 +27,31 @@ type celoTokenProcessor struct {
 	logger    log.Logger
     token     celotokens.CeloToken
 	tokenContract contracts.CeloTokenContract
+	totalSupplyGauge prometheus.Gauge
 }
 
-func NewCeloTokenProcessor(ctx context.Context, logger log.Logger, token celotokens.CeloToken, tokenContract contracts.CeloTokenContract) *celoTokenProcessor {
+func NewCeloTokenProcessor(ctx context.Context, logger log.Logger, token celotokens.CeloToken, tokenContract contracts.CeloTokenContract) (*celoTokenProcessor, error) {
+	totalSupplyGauge, err := metrics.CeloTokenSupply.GetMetricWithLabelValues(string(token))
+
+	if err != nil {
+		return nil, err
+	}
 	return &celoTokenProcessor{
 		ctx:       ctx,
-		logger:    logger,
+		logger:    logger.New("contract", celoTokenContractNames[token]),
         token:     token,
 		tokenContract: tokenContract,
-	}
+		totalSupplyGauge: totalSupplyGauge,
+	}, nil
 }
 
 func (p celoTokenProcessor) ObserveState(opts *bind.CallOpts) error {
-	logger := p.logger.New("contract", celoTokenProcessorInfos[p.token].contractName)
 	totalSupply, err := p.tokenContract.TotalSupply(opts)
 	if err != nil {
 		return err
 	}
 
-	logStateViewCall(logger, "method", "totalSupply", "totalSupply", totalSupply)
+	logStateViewCall(p.logger, "method", "totalSupply", "totalSupply", totalSupply)
 
 	return nil
 }
@@ -61,6 +61,6 @@ func (p celoTokenProcessor) ObserveMetric(opts *bind.CallOpts) error {
 	if err != nil {
 		return err
 	}
-	celoTokenProcessorInfos[p.token].totalSupplyMetric.Set(utils.ScaleFixed(totalSupply))
+	p.totalSupplyGauge.Set(utils.ScaleFixed(totalSupply))
 	return nil
 }
