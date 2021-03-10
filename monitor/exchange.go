@@ -4,24 +4,24 @@ import (
 	"context"
 	"math/big"
 
+	"github.com/celo-org/celo-blockchain/accounts/abi/bind"
+	"github.com/celo-org/celo-blockchain/log"
 	"github.com/celo-org/eksportisto/metrics"
 	"github.com/celo-org/eksportisto/utils"
 	"github.com/celo-org/kliento/celotokens"
 	"github.com/celo-org/kliento/contracts"
-	"github.com/celo-org/celo-blockchain/accounts/abi/bind"
-	"github.com/celo-org/celo-blockchain/log"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
 type exchangeProcessor struct {
-	ctx      context.Context
-	logger   log.Logger
-	stableToken celotokens.CeloToken
-	exchange *contracts.Exchange
-	reserve  *contracts.Reserve
+	ctx                              context.Context
+	logger                           log.Logger
+	stableToken                      celotokens.CeloToken
+	exchange                         *contracts.Exchange
+	reserve                          *contracts.Reserve
 	exchangeCeloBucketRatioHistogram prometheus.Observer
-	exchangeCeloBucketSizeGauge prometheus.Gauge
-	exchangeStableBucketSizeGauge prometheus.Gauge
+	exchangeCeloBucketSizeGauge      prometheus.Gauge
+	exchangeStableBucketSizeGauge    prometheus.Gauge
 }
 
 func NewExchangeProcessor(ctx context.Context, logger log.Logger, stableToken celotokens.CeloToken, exchange *contracts.Exchange, reserve *contracts.Reserve) (*exchangeProcessor, error) {
@@ -38,14 +38,14 @@ func NewExchangeProcessor(ctx context.Context, logger log.Logger, stableToken ce
 		return nil, err
 	}
 	return &exchangeProcessor{
-		ctx:      ctx,
-		logger:   logger.New("stableToken", stableToken),
-		stableToken: stableToken,
-		exchange: exchange,
-		reserve:  reserve,
+		ctx:                              ctx,
+		logger:                           logger.New("stableToken", stableToken),
+		stableToken:                      stableToken,
+		exchange:                         exchange,
+		reserve:                          reserve,
 		exchangeCeloBucketRatioHistogram: exchangeCeloBucketRatioHistogram,
-		exchangeCeloBucketSizeGauge: exchangeCeloBucketSizeGauge,
-		exchangeStableBucketSizeGauge: exchangeStableBucketSizeGauge,
+		exchangeCeloBucketSizeGauge:      exchangeCeloBucketSizeGauge,
+		exchangeStableBucketSizeGauge:    exchangeStableBucketSizeGauge,
 	}, nil
 }
 

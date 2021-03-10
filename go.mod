@@ -27,6 +27,3 @@ require (
 replace github.com/celo-org/celo-blockchain => ../celo-blockchain
 
 replace github.com/celo-org/kliento => ../kliento
-
-// Use this to use external build
-// replace github.com/celo-org/celo-blockchain => github.com/celo-org/celo-blockchain v0.0.0-20200519153823-adbdc7f8c27e

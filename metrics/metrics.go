@@ -29,12 +29,12 @@ var (
 	})
 
 	ExchangeCeloBucketSize = prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Name:    "exchange_celo_bucket_size",
-		Help:    "CELO Bucket Size",
+		Name: "exchange_celo_bucket_size",
+		Help: "CELO Bucket Size",
 	}, []string{"stable_token"})
 	ExchangeStableBucketSize = prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Name:    "exchange_stable_bucket_size",
-		Help:    "Stable Token Bucket size",
+		Name: "exchange_stable_bucket_size",
+		Help: "Stable Token Bucket size",
 	}, []string{"stable_token"})
 	ExchangeCeloBucketRatio = prometheus.NewHistogramVec(prometheus.HistogramOpts{
 		Name:    "exchange_celo_bucket_ratio",

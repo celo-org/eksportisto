@@ -21,13 +21,13 @@ import (
 	"github.com/celo-org/kliento/client/debug"
 	"github.com/celo-org/kliento/contracts/helpers"
 
-	kliento_mon "github.com/celo-org/kliento/monitor"
-	"github.com/celo-org/kliento/registry"
 	celo "github.com/celo-org/celo-blockchain"
 	"github.com/celo-org/celo-blockchain/accounts/abi/bind"
 	"github.com/celo-org/celo-blockchain/common"
 	"github.com/celo-org/celo-blockchain/core/types"
 	"github.com/celo-org/celo-blockchain/log"
+	kliento_mon "github.com/celo-org/kliento/monitor"
+	"github.com/celo-org/kliento/registry"
 	"golang.org/x/sync/errgroup"
 )
 

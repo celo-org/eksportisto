@@ -3,18 +3,18 @@ package monitor
 import (
 	"context"
 
-	"github.com/celo-org/eksportisto/metrics"
-	"github.com/celo-org/eksportisto/utils"
-    "github.com/celo-org/kliento/celotokens"
-	"github.com/celo-org/kliento/contracts"
 	"github.com/celo-org/celo-blockchain/accounts/abi/bind"
 	"github.com/celo-org/celo-blockchain/log"
-    "github.com/prometheus/client_golang/prometheus"
+	"github.com/celo-org/eksportisto/metrics"
+	"github.com/celo-org/eksportisto/utils"
+	"github.com/celo-org/kliento/celotokens"
+	"github.com/celo-org/kliento/contracts"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 type celoTokenProcessorInfo struct {
-    contractName string
-    // totalSupplyMetric prometheus.Gauge
+	contractName string
+	// totalSupplyMetric prometheus.Gauge
 }
 
 var celoTokenContractNames = map[celotokens.CeloToken]string{
@@ -23,10 +23,10 @@ var celoTokenContractNames = map[celotokens.CeloToken]string{
 }
 
 type celoTokenProcessor struct {
-	ctx       context.Context
-	logger    log.Logger
-    token     celotokens.CeloToken
-	tokenContract contracts.CeloTokenContract
+	ctx              context.Context
+	logger           log.Logger
+	token            celotokens.CeloToken
+	tokenContract    contracts.CeloTokenContract
 	totalSupplyGauge prometheus.Gauge
 }
 
@@ -37,10 +37,10 @@ func NewCeloTokenProcessor(ctx context.Context, logger log.Logger, token celotok
 		return nil, err
 	}
 	return &celoTokenProcessor{
-		ctx:       ctx,
-		logger:    logger.New("contract", celoTokenContractNames[token]),
-        token:     token,
-		tokenContract: tokenContract,
+		ctx:              ctx,
+		logger:           logger.New("contract", celoTokenContractNames[token]),
+		token:            token,
+		tokenContract:    tokenContract,
 		totalSupplyGauge: totalSupplyGauge,
 	}, nil
 }

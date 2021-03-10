@@ -3,10 +3,10 @@ package monitor
 import (
 	"context"
 
-	"github.com/celo-org/kliento/contracts"
-	"github.com/celo-org/kliento/contracts/helpers"
 	"github.com/celo-org/celo-blockchain/accounts/abi/bind"
 	"github.com/celo-org/celo-blockchain/log"
+	"github.com/celo-org/kliento/contracts"
+	"github.com/celo-org/kliento/contracts/helpers"
 )
 
 type reserveProcessor struct {
