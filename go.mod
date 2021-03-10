@@ -24,6 +24,6 @@ require (
 )
 
 // DO NOT CHANGE DIRECTORY: Create a symlink so this works
-replace github.com/celo-org/celo-blockchain => ../celo-blockchain
+// replace github.com/celo-org/celo-blockchain => ../celo-blockchain
 
-replace github.com/celo-org/kliento => ../kliento
+// replace github.com/celo-org/kliento => ../kliento
