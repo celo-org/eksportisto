@@ -6,6 +6,7 @@ import (
 
 	"github.com/celo-org/eksportisto/metrics"
 	"github.com/celo-org/eksportisto/utils"
+	"github.com/celo-org/kliento/celotokens"
 	"github.com/celo-org/kliento/contracts"
 	"github.com/celo-org/celo-blockchain/accounts/abi/bind"
 	"github.com/celo-org/celo-blockchain/log"
@@ -14,14 +15,16 @@ import (
 type stabilityProcessor struct {
 	ctx      context.Context
 	logger   log.Logger
+	stableToken celotokens.CeloToken
 	exchange *contracts.Exchange
 	reserve  *contracts.Reserve
 }
 
-func NewStabilityProcessor(ctx context.Context, logger log.Logger, exchange *contracts.Exchange, reserve *contracts.Reserve) *stabilityProcessor {
+func NewStabilityProcessor(ctx context.Context, logger log.Logger, stableToken celotokens.CeloToken, exchange *contracts.Exchange, reserve *contracts.Reserve) *stabilityProcessor {
 	return &stabilityProcessor{
 		ctx:      ctx,
-		logger:   logger,
+		logger:   logger.New("stableToken", stableToken),
+		stableToken: stableToken,
 		exchange: exchange,
 		reserve:  reserve,
 	}
