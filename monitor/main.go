@@ -16,6 +16,7 @@ import (
 	"github.com/celo-org/eksportisto/db"
 	"github.com/celo-org/eksportisto/metrics"
 	"github.com/celo-org/eksportisto/utils"
+	"github.com/celo-org/kliento/celotokens"
 	"github.com/celo-org/kliento/client"
 	"github.com/celo-org/kliento/client/debug"
 	"github.com/celo-org/kliento/contracts/helpers"
@@ -40,6 +41,9 @@ type Config struct {
 var EpochSize = uint64(17280)   // 17280 = 12 * 60 * 24
 var BlocksPerHour = uint64(720) // 720 = 12 * 60
 var TipGap = big.NewInt(50)
+var stableTokensToMonitor = []celotokens.CeloToken{
+	celotokens.CUSD,
+}
 
 func getSensitiveAccounts(filePath string) map[common.Address]string {
 	if filePath == "" {
@@ -136,6 +140,8 @@ func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *ty
 	if err != nil {
 		return err
 	}
+
+	celoTokens := celotokens.New(r)
 
 	supported, err := cc.Rpc.SupportedModules()
 	if err != nil {
@@ -265,10 +271,6 @@ func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *ty
 		if skipContractMetrics(err) {
 			continue
 		}
-		goldToken, err := r.GetGoldTokenContract(ctx, h.Number)
-		if skipContractMetrics(err) {
-			continue
-		}
 		lockedGold, err := r.GetLockedGoldContract(ctx, h.Number)
 		if skipContractMetrics(err) {
 			continue
@@ -285,11 +287,13 @@ func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *ty
 		if skipContractMetrics(err) {
 			continue
 		}
-		stableToken, err := r.GetStableTokenContract(ctx, h.Number)
+
+		epochRewards, err := r.GetEpochRewardsContract(ctx, h.Number)
 		if skipContractMetrics(err) {
 			continue
 		}
-		epochRewards, err := r.GetEpochRewardsContract(ctx, h.Number)
+
+		celoTokenContracts, err := celoTokens.GetContracts(ctx, h.Number, false)
 		if skipContractMetrics(err) {
 			continue
 		}
@@ -299,28 +303,39 @@ func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *ty
 			return err
 		}
 
+		// TODO should refactor to use this
+		// stableTokenAddresses, err := celoTokens.GetAddresses(ctx, h.Number, true)
+		// if err != nil {
+		// 	return err
+		// }
+
 		electionProcessor := NewElectionProcessor(processorCtx, logger, election)
 		epochRewardsProcessor := NewEpochRewardsProcessor(processorCtx, logger, epochRewards)
-		goldTokenProcessor := NewGoldTokenProcessor(processorCtx, logger, goldToken)
 		lockedGoldProcessor := NewLockedGoldProcessor(processorCtx, logger, lockedGold)
 		reserveProcessor := NewReserveProcessor(processorCtx, logger, reserve)
 		sortedOraclesProcessor := NewSortedOraclesProcessor(processorCtx, logger, sortedOracles, exchange)
 		stabilityProcessor := NewStabilityProcessor(processorCtx, logger, exchange, reserve)
-		stableTokenProcessor := NewStableTokenProcessor(processorCtx, logger, stableToken)
+
+		celoTokenProcessors := make(map[celotokens.CeloToken]ContractProcessor)
+		for token, contract := range celoTokenContracts {
+			celoTokenProcessors[token] = NewCeloTokenProcessor(processorCtx, logger, token, contract)
+		}
 
 		if tipMode {
-			g.Go(func() error { return goldTokenProcessor.ObserveMetric(opts) })
-			g.Go(func() error { return stableTokenProcessor.ObserveMetric(opts) })
 			g.Go(func() error { return epochRewardsProcessor.ObserveMetric(opts) })
 			g.Go(func() error { return sortedOraclesProcessor.ObserveMetric(opts, stableTokenAddress, h.Time) })
 			g.Go(func() error { return stabilityProcessor.ObserveMetric(opts) })
+			for _, processor := range celoTokenProcessors {
+				g.Go(func() error { return processor.ObserveMetric(opts) })
+			}
 		}
 
 		if utils.ShouldSample(h.Number.Uint64(), BlocksPerHour) {
-			g.Go(func() error { return goldTokenProcessor.ObserveState(opts) })
 			g.Go(func() error { return reserveProcessor.ObserveState(opts) })
-			g.Go(func() error { return stableTokenProcessor.ObserveState(opts) })
 			g.Go(func() error { return sortedOraclesProcessor.ObserveState(opts, stableTokenAddress) })
+			for _, processor := range celoTokenProcessors {
+				g.Go(func() error { return processor.ObserveState(opts) })
+			}
 		}
 
 		if utils.ShouldSample(h.Number.Uint64(), EpochSize) {
