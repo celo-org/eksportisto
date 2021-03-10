@@ -56,46 +56,6 @@ func (p stabilityProcessor) ObserveState(opts *bind.CallOpts) error {
 
 	logStateViewCall(p.logger, "contract", "Exchange", "method", "stableBucket", "bucket", cUsdBucketSize)
 
-	// Reserve.getReserveGoldBalance
-	reserveGoldBalance, err := p.reserve.GetReserveGoldBalance(opts)
-	if err != nil {
-		return err
-	}
-
-	logStateViewCall(p.logger, "contract", "Reserve", "method", "getReserveGoldBalance", "reserveGoldBalance", reserveGoldBalance)
-
-	// Reserve.getOtherReserveAddressesGoldBalance
-	otherReserveAddressesGoldBalance, err := p.reserve.GetOtherReserveAddressesGoldBalance(opts)
-	if err != nil {
-		return err
-	}
-
-	logStateViewCall(p.logger, "contract", "Reserve", "method", "getOtherReserveAddressesGoldBalance", "otherReserveAddressesGoldBalance", otherReserveAddressesGoldBalance)
-
-	// Reserve.getUnfrozenBalance
-	unfrozenBalance, err := p.reserve.GetUnfrozenBalance(opts)
-	if err != nil {
-		return err
-	}
-
-	logStateViewCall(p.logger, "contract", "Reserve", "method", "getUnfrozenBalance", "value", unfrozenBalance)
-
-	// Reserve.getFrozenReserveGoldBalance
-	frozenReserveGoldBalance, err := p.reserve.GetFrozenReserveGoldBalance(opts)
-	if err != nil {
-		return err
-	}
-
-	logStateViewCall(p.logger, "contract", "Reserve", "method", "getFrozenReserveGoldBalance", "value", frozenReserveGoldBalance)
-
-	// Reserve.getUnfrozenReserveGoldBalance
-	unfrozenReserveGoldBalance, err := p.reserve.GetUnfrozenReserveGoldBalance(opts)
-	if err != nil {
-		return err
-	}
-
-	logStateViewCall(p.logger, "contract", "Reserve", "method", "getUnfrozenReserveGoldBalance", "value", unfrozenReserveGoldBalance)
-
 	return nil
 }
 

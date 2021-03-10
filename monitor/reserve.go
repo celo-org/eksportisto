@@ -18,13 +18,12 @@ type reserveProcessor struct {
 func NewReserveProcessor(ctx context.Context, logger log.Logger, reserve *contracts.Reserve) *reserveProcessor {
 	return &reserveProcessor{
 		ctx:     ctx,
-		logger:  logger,
+		logger:  logger.New("contract", "Reserve"),
 		reserve: reserve,
 	}
 }
 
 func (p reserveProcessor) ObserveState(opts *bind.CallOpts) error {
-	logger := p.logger.New("contract", "Reserve")
 	reserveRatio, err := p.reserve.GetReserveRatio(opts)
 
 	// TODO: Properly handle when things are frozen
@@ -32,7 +31,47 @@ func (p reserveProcessor) ObserveState(opts *bind.CallOpts) error {
 		return nil
 	}
 
-	logStateViewCall(logger, "method", "getReserveRatio", "reserveRatio", helpers.FromFixed(reserveRatio))
+	logStateViewCall(p.logger, "method", "getReserveRatio", "reserveRatio", helpers.FromFixed(reserveRatio))
+
+	// Reserve.getReserveGoldBalance
+	reserveGoldBalance, err := p.reserve.GetReserveGoldBalance(opts)
+	if err != nil {
+		return err
+	}
+
+	logStateViewCall(p.logger, "method", "getReserveGoldBalance", "reserveGoldBalance", reserveGoldBalance)
+
+	// Reserve.getOtherReserveAddressesGoldBalance
+	otherReserveAddressesGoldBalance, err := p.reserve.GetOtherReserveAddressesGoldBalance(opts)
+	if err != nil {
+		return err
+	}
+
+	logStateViewCall(p.logger, "method", "getOtherReserveAddressesGoldBalance", "otherReserveAddressesGoldBalance", otherReserveAddressesGoldBalance)
+
+	// Reserve.getUnfrozenBalance
+	unfrozenBalance, err := p.reserve.GetUnfrozenBalance(opts)
+	if err != nil {
+		return err
+	}
+
+	logStateViewCall(p.logger, "method", "getUnfrozenBalance", "value", unfrozenBalance)
+
+	// Reserve.getFrozenReserveGoldBalance
+	frozenReserveGoldBalance, err := p.reserve.GetFrozenReserveGoldBalance(opts)
+	if err != nil {
+		return err
+	}
+
+	logStateViewCall(p.logger, "method", "getFrozenReserveGoldBalance", "value", frozenReserveGoldBalance)
+
+	// Reserve.getUnfrozenReserveGoldBalance
+	unfrozenReserveGoldBalance, err := p.reserve.GetUnfrozenReserveGoldBalance(opts)
+	if err != nil {
+		return err
+	}
+
+	logStateViewCall(p.logger, "method", "getUnfrozenReserveGoldBalance", "value", unfrozenReserveGoldBalance)
 
 	return nil
 }
