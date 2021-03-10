@@ -41,9 +41,6 @@ type Config struct {
 var EpochSize = uint64(17280)   // 17280 = 12 * 60 * 24
 var BlocksPerHour = uint64(720) // 720 = 12 * 60
 var TipGap = big.NewInt(50)
-var stableTokensToMonitor = []celotokens.CeloToken{
-	celotokens.CUSD,
-}
 
 func getSensitiveAccounts(filePath string) map[common.Address]string {
 	if filePath == "" {
