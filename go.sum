@@ -54,6 +54,7 @@ github.com/celo-org/bls-zexe/go v0.0.0-20200502082044-230d2f4866d5 h1:9tRTgwOba1
 github.com/celo-org/bls-zexe/go v0.0.0-20200502082044-230d2f4866d5/go.mod h1:CzbB0Yl65q4G1bsLEZGKW+wTLdIInCLLXyJSL7IZqnk=
 github.com/celo-org/celo-blockchain v0.0.0-20200519153823-adbdc7f8c27e h1:MptBWnrjvhwpc/ntTSN20rBsDY3n5BCku370xyB3Oao=
 github.com/celo-org/celo-blockchain v0.0.0-20200519153823-adbdc7f8c27e/go.mod h1:6GX5rWDFQxsdozGooAztxubMiFHZFgmSkUAdOQdZksA=
+github.com/celo-org/celo-blockchain v0.0.0-20210310231833-1918831df39d h1:Dw/La8G6NtQRQTfoosD3MtgcRtSU9ZMwVTyA9vVk7i4=
 github.com/celo-org/celo-blockchain v0.0.0-20210310231833-1918831df39d/go.mod h1:4tbv23s4i0AU7+KN5UP2RaB5c9OMXedtx9F7wJ+s0Jo=
 github.com/celo-org/celo-blockchain v1.9.8 h1:4KUtrZOt45Ob1yXh0Mv/pPWRib/6B4p2l41nzEsEgVw=
 github.com/celo-org/celo-blockchain v1.9.8/go.mod h1:N68Ktr8bkyajaEy6D8CSANxkhUxcnVjTmp9sKdKd8OI=

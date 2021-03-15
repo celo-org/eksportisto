@@ -25,13 +25,13 @@ func NewCeloTokenProcessor(ctx context.Context, logger log.Logger, token celotok
 	if err != nil {
 		return nil, err
 	}
-	tokenContractID, err := celotokens.GetContractID(token)
+	tokenRegistryID, err := celotokens.GetRegistryID(token)
 	if err != nil {
 		return nil, err
 	}
 	return &celoTokenProcessor{
 		ctx:              ctx,
-		logger:           logger.New("contract", tokenContractID),
+		logger:           logger.New("contract", tokenRegistryID),
 		token:            token,
 		tokenContract:    tokenContract,
 		totalSupplyGauge: totalSupplyGauge,
