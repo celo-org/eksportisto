@@ -304,6 +304,13 @@ func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *ty
 		if err != nil {
 			return err
 		}
+		// If the stable token has not been registered with the Registry at the
+		// current block, its address will be the zero address. Filter these out.
+		for stableToken, address := range stableTokenAddresses {
+			if address == common.ZeroAddress {
+				delete(stableTokenAddresses, stableToken)
+			}
+		}
 
 		electionProcessor := NewElectionProcessor(processorCtx, logger, election)
 		epochRewardsProcessor := NewEpochRewardsProcessor(processorCtx, logger, epochRewards)
@@ -314,6 +321,11 @@ func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *ty
 		// Create a celo token processor for each celo token
 		celoTokenProcessors := make(map[celotokens.CeloToken]ContractProcessor)
 		for token, contract := range celoTokenContracts {
+			// If a token's contract has not been registered with the Registry
+			// yet, the contract will be nil. Ignore this.
+			if contract == nil {
+				continue
+			}
 			celoTokenProcessors[token], err = NewCeloTokenProcessor(processorCtx, logger, token, contract)
 			if err != nil {
 				return err
@@ -322,6 +334,11 @@ func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *ty
 		// Create an exchange processor for each stable token's exchange
 		exchangeProcessors := make(map[celotokens.CeloToken]ContractProcessor)
 		for stableToken, exchangeContract := range exchangeContracts {
+			// If a token's exchange contract has not been registered with the Registry
+			// yet, the contract will be nil. Ignore this.
+			if exchangeContract == nil {
+				continue
+			}
 			exchangeProcessors[stableToken], err = NewExchangeProcessor(ctx, logger, stableToken, exchangeContract, reserve)
 			if err != nil {
 				return err
