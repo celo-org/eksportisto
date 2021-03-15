@@ -54,6 +54,7 @@ github.com/celo-org/bls-zexe/go v0.0.0-20200502082044-230d2f4866d5 h1:9tRTgwOba1
 github.com/celo-org/bls-zexe/go v0.0.0-20200502082044-230d2f4866d5/go.mod h1:CzbB0Yl65q4G1bsLEZGKW+wTLdIInCLLXyJSL7IZqnk=
 github.com/celo-org/celo-blockchain v0.0.0-20200519153823-adbdc7f8c27e h1:MptBWnrjvhwpc/ntTSN20rBsDY3n5BCku370xyB3Oao=
 github.com/celo-org/celo-blockchain v0.0.0-20200519153823-adbdc7f8c27e/go.mod h1:6GX5rWDFQxsdozGooAztxubMiFHZFgmSkUAdOQdZksA=
+github.com/celo-org/celo-blockchain v0.0.0-20210310231833-1918831df39d/go.mod h1:4tbv23s4i0AU7+KN5UP2RaB5c9OMXedtx9F7wJ+s0Jo=
 github.com/celo-org/celo-blockchain v1.9.8 h1:4KUtrZOt45Ob1yXh0Mv/pPWRib/6B4p2l41nzEsEgVw=
 github.com/celo-org/celo-blockchain v1.9.8/go.mod h1:N68Ktr8bkyajaEy6D8CSANxkhUxcnVjTmp9sKdKd8OI=
 github.com/celo-org/celo-blockchain v1.10.1 h1:bGQezu+kqqRBczcSAruEoqVzTjtkeDnUGI2I4uroyUE=
@@ -71,6 +72,8 @@ github.com/celo-org/kliento v0.1.2-0.20201222020354-6f8628db73b2 h1:SJs8hhpsgUwz
 github.com/celo-org/kliento v0.1.2-0.20201222020354-6f8628db73b2/go.mod h1:OrzUyeaXpAgTfhl0+wUG4Y+Tfn+wpL49t2/5S9z9zjQ=
 github.com/celo-org/kliento v0.1.2-0.20201222201650-dabd6f11754d h1:J4nC/xIQR6rLtc2EThBFnw58QSYyPTasGOp7bqyRr9E=
 github.com/celo-org/kliento v0.1.2-0.20201222201650-dabd6f11754d/go.mod h1:OrzUyeaXpAgTfhl0+wUG4Y+Tfn+wpL49t2/5S9z9zjQ=
+github.com/celo-org/kliento v0.2.1-0.20210312165111-9c3cc897c7cc h1:2Al4cIRG635FZcD3aezC+Hh5gE7pu9pyoS0tMA+AmpI=
+github.com/celo-org/kliento v0.2.1-0.20210312165111-9c3cc897c7cc/go.mod h1:M/HTJUVMSAdqynAJHQD3mwsE8lAl6vT/EXED6jqEKSo=
 github.com/cespare/cp v0.1.0 h1:SE+dxFebS7Iik5LK0tsi1k9ZCxEaFX4AjQmoyA+1dJk=
 github.com/cespare/cp v0.1.0/go.mod h1:SOGHArjBr4JWaSDEVpWpo/hNg6RoKrls6Oh40hiwW+s=
 github.com/cespare/xxhash v1.1.0 h1:a6HrQnmkObjyL+Gs60czilIUGqrzKutQD6XZog3p+ko=
