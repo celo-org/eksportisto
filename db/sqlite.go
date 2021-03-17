@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"math/big"
 
-	"github.com/ethereum/go-ethereum/common"
+	"github.com/celo-org/celo-blockchain/common"
 	_ "github.com/mattn/go-sqlite3"
 )
 

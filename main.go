@@ -13,7 +13,7 @@ import (
 	"github.com/celo-org/eksportisto/server"
 	"github.com/celo-org/kliento/utils/service"
 
-	"github.com/ethereum/go-ethereum/log"
+	"github.com/celo-org/celo-blockchain/log"
 	"golang.org/x/sync/errgroup"
 )
 

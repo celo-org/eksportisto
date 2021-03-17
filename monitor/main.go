@@ -16,17 +16,18 @@ import (
 	"github.com/celo-org/eksportisto/db"
 	"github.com/celo-org/eksportisto/metrics"
 	"github.com/celo-org/eksportisto/utils"
+	"github.com/celo-org/kliento/celotokens"
 	"github.com/celo-org/kliento/client"
 	"github.com/celo-org/kliento/client/debug"
 	"github.com/celo-org/kliento/contracts/helpers"
 
+	celo "github.com/celo-org/celo-blockchain"
+	"github.com/celo-org/celo-blockchain/accounts/abi/bind"
+	"github.com/celo-org/celo-blockchain/common"
+	"github.com/celo-org/celo-blockchain/core/types"
+	"github.com/celo-org/celo-blockchain/log"
 	kliento_mon "github.com/celo-org/kliento/monitor"
 	"github.com/celo-org/kliento/registry"
-	"github.com/ethereum/go-ethereum"
-	"github.com/ethereum/go-ethereum/accounts/abi/bind"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/log"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -137,6 +138,8 @@ func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *ty
 		return err
 	}
 
+	celoTokens := celotokens.New(r)
+
 	supported, err := cc.Rpc.SupportedModules()
 	if err != nil {
 		return err
@@ -176,7 +179,7 @@ func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *ty
 
 		parseAndLogEvent := func(logger log.Logger, eventIdx int, eventLog *types.Log) {
 			eventLogger := logger.New("logTxIndex", eventIdx, "logBlockIndex", eventLog.Index)
-			parsed, err := r.TryParseLog(transactionCtx, eventLog, h.Number)
+			parsed, err := r.TryParseLog(transactionCtx, *eventLog, h.Number)
 			if err != nil {
 				eventLogger.Error("log parsing failed", "err", err)
 			} else if parsed != nil {
@@ -265,10 +268,6 @@ func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *ty
 		if skipContractMetrics(err) {
 			continue
 		}
-		goldToken, err := r.GetGoldTokenContract(ctx, h.Number)
-		if skipContractMetrics(err) {
-			continue
-		}
 		lockedGold, err := r.GetLockedGoldContract(ctx, h.Number)
 		if skipContractMetrics(err) {
 			continue
@@ -285,51 +284,100 @@ func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *ty
 		if skipContractMetrics(err) {
 			continue
 		}
-		stableToken, err := r.GetStableTokenContract(ctx, h.Number)
-		if skipContractMetrics(err) {
-			continue
-		}
+
 		epochRewards, err := r.GetEpochRewardsContract(ctx, h.Number)
 		if skipContractMetrics(err) {
 			continue
 		}
 
-		stableTokenAddress, err := r.GetAddressFor(ctx, h.Number, registry.StableTokenContractID)
+		celoTokenContracts, err := celoTokens.GetContracts(ctx, h.Number, false)
+		if skipContractMetrics(err) {
+			continue
+		}
+
+		exchangeContracts, err := celoTokens.GetExchangeContracts(ctx, h.Number)
+		if skipContractMetrics(err) {
+			continue
+		}
+
+		stableTokenAddresses, err := celoTokens.GetAddresses(ctx, h.Number, true)
 		if err != nil {
 			return err
+		}
+		// If the stable token has not been registered with the Registry at the
+		// current block, its address will be the zero address. Filter these out.
+		for stableToken, address := range stableTokenAddresses {
+			if address == common.ZeroAddress {
+				delete(stableTokenAddresses, stableToken)
+			}
 		}
 
 		electionProcessor := NewElectionProcessor(processorCtx, logger, election)
 		epochRewardsProcessor := NewEpochRewardsProcessor(processorCtx, logger, epochRewards)
-		goldTokenProcessor := NewGoldTokenProcessor(processorCtx, logger, goldToken)
 		lockedGoldProcessor := NewLockedGoldProcessor(processorCtx, logger, lockedGold)
 		reserveProcessor := NewReserveProcessor(processorCtx, logger, reserve)
 		sortedOraclesProcessor := NewSortedOraclesProcessor(processorCtx, logger, sortedOracles, exchange)
-		stabilityProcessor := NewStabilityProcessor(processorCtx, logger, exchange, reserve)
-		stableTokenProcessor := NewStableTokenProcessor(processorCtx, logger, stableToken)
+
+		// Create a celo token processor for each celo token
+		celoTokenProcessors := make(map[celotokens.CeloToken]ContractProcessor)
+		for token, contract := range celoTokenContracts {
+			// If a token's contract has not been registered with the Registry
+			// yet, the contract will be nil. Ignore this.
+			if contract == nil {
+				continue
+			}
+			celoTokenProcessors[token], err = NewCeloTokenProcessor(processorCtx, logger, token, contract)
+			if err != nil {
+				return err
+			}
+		}
+		// Create an exchange processor for each stable token's exchange
+		exchangeProcessors := make(map[celotokens.CeloToken]ContractProcessor)
+		for stableToken, exchangeContract := range exchangeContracts {
+			// If a token's exchange contract has not been registered with the Registry
+			// yet, the contract will be nil. Ignore this.
+			if exchangeContract == nil {
+				continue
+			}
+			exchangeProcessors[stableToken], err = NewExchangeProcessor(ctx, logger, stableToken, exchangeContract, reserve)
+			if err != nil {
+				return err
+			}
+		}
 
 		if tipMode {
-			g.Go(func() error { return goldTokenProcessor.ObserveMetric(opts) })
-			g.Go(func() error { return stableTokenProcessor.ObserveMetric(opts) })
 			g.Go(func() error { return epochRewardsProcessor.ObserveMetric(opts) })
-			g.Go(func() error { return sortedOraclesProcessor.ObserveMetric(opts, stableTokenAddress, h.Time) })
-			g.Go(func() error { return stabilityProcessor.ObserveMetric(opts) })
+			g.Go(func() error { return sortedOraclesProcessor.ObserveMetric(opts, stableTokenAddresses, h.Time) })
+			// Celo token processors
+			for _, processor := range celoTokenProcessors {
+				g.Go(func() error { return processor.ObserveMetric(opts) })
+			}
+			// Exchange processors
+			for _, processor := range exchangeProcessors {
+				g.Go(func() error { return processor.ObserveMetric(opts) })
+			}
 		}
 
 		if utils.ShouldSample(h.Number.Uint64(), BlocksPerHour) {
-			g.Go(func() error { return goldTokenProcessor.ObserveState(opts) })
 			g.Go(func() error { return reserveProcessor.ObserveState(opts) })
-			g.Go(func() error { return stableTokenProcessor.ObserveState(opts) })
-			g.Go(func() error { return sortedOraclesProcessor.ObserveState(opts, stableTokenAddress) })
+			g.Go(func() error { return sortedOraclesProcessor.ObserveState(opts, stableTokenAddresses) })
+			// Celo token processors
+			for _, processor := range celoTokenProcessors {
+				g.Go(func() error { return processor.ObserveState(opts) })
+			}
 		}
 
 		if utils.ShouldSample(h.Number.Uint64(), EpochSize) {
 			g.Go(func() error { return electionProcessor.ObserveState(opts) })
 			g.Go(func() error { return epochRewardsProcessor.ObserveState(opts) })
 			g.Go(func() error { return lockedGoldProcessor.ObserveState(opts) })
-			g.Go(func() error { return stabilityProcessor.ObserveState(opts) })
+			g.Go(func() error { return reserveProcessor.ObserveState(opts) })
+			// Exchange processors
+			for _, processor := range exchangeProcessors {
+				g.Go(func() error { return processor.ObserveState(opts) })
+			}
 
-			filterLogs, err := cc.Eth.FilterLogs(ctx, ethereum.FilterQuery{
+			filterLogs, err := cc.Eth.FilterLogs(ctx, celo.FilterQuery{
 				FromBlock: h.Number,
 				ToBlock:   h.Number,
 			})

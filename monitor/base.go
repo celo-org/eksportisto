@@ -1,8 +1,8 @@
 package monitor
 
 import (
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/log"
+	"github.com/celo-org/celo-blockchain/core/types"
+	"github.com/celo-org/celo-blockchain/log"
 )
 
 func logEventLog(logger log.Logger, params ...interface{}) {

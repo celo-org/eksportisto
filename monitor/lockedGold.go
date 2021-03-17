@@ -3,9 +3,9 @@ package monitor
 import (
 	"context"
 
+	"github.com/celo-org/celo-blockchain/accounts/abi/bind"
+	"github.com/celo-org/celo-blockchain/log"
 	"github.com/celo-org/kliento/contracts"
-	"github.com/ethereum/go-ethereum/accounts/abi/bind"
-	"github.com/ethereum/go-ethereum/log"
 )
 
 type lockedGoldProcessor struct {
