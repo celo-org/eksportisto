@@ -43,11 +43,11 @@ var (
 	}, []string{"stable_token"})
 	ExchangeCeloExchangedRate = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "exchange_celo_exchanged_rate",
-		Help: "The implied Stable/CELO rate by exchanges with Exchange.sol",
+		Help: "The implied Stable/CELO rate by exchanges",
 	}, []string{"stable_token"})
 	ExchangeBucketRatio = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "exchange_bucket_ratio",
-		Help: "The most recent ratio during BucketsExchanged",
+		Help: "The most recent ratio during BucketsUpdated",
 	}, []string{"stable_token"})
 	ExchangeImpliedStableRate = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "exchange_implied_stable_rate",

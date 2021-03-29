@@ -331,6 +331,7 @@ func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *ty
 				return err
 			}
 		}
+		eventHandlers := make(map[registry.ContractID]EventHandler)
 		// Create an exchange processor for each stable token's exchange
 		exchangeProcessors := make(map[celotokens.CeloToken]ContractProcessor)
 		for stableToken, exchangeContract := range exchangeContracts {
@@ -339,10 +340,16 @@ func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *ty
 			if exchangeContract == nil {
 				continue
 			}
-			exchangeProcessors[stableToken], err = NewExchangeProcessor(ctx, logger, stableToken, exchangeContract, reserve)
+			exchangeRegistryID, err := celotokens.GetRegistryID(stableToken)
 			if err != nil {
 				return err
 			}
+			exchangeProcessor, err := NewExchangeProcessor(ctx, logger, stableToken, exchangeRegistryID, exchangeContract, reserve)
+			if err != nil {
+				return err
+			}
+			exchangeProcessors[stableToken] = exchangeProcessor
+			eventHandlers[exchangeRegistryID] = exchangeProcessor
 		}
 
 		if tipMode {
