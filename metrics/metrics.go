@@ -19,7 +19,7 @@ var (
 	})
 
 	LastBlockProcessed = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "eksportisto_last_block_processed",
+		Name: "last_block_processed",
 		Help: "Last Block Processed by eksportisto",
 	})
 
@@ -77,25 +77,27 @@ var (
 )
 
 func init() {
-	// Register the summary and the histogram with Prometheus's default registry.
-	prometheus.MustRegister(BlockGasUsed)
-	prometheus.MustRegister(CeloTokenSupply)
-	prometheus.MustRegister(GasPrice)
-	prometheus.MustRegister(VotingGoldFraction)
-	prometheus.MustRegister(LastBlockProcessed)
+	registerer := prometheus.WrapRegistererWithPrefix("eksportisto_", prometheus.DefaultRegisterer)
+	// Register application metrics with the eksportisto_ prefix
+	registerer.MustRegister(BlockGasUsed)
+	registerer.MustRegister(CeloTokenSupply)
+	registerer.MustRegister(GasPrice)
+	registerer.MustRegister(VotingGoldFraction)
+	registerer.MustRegister(LastBlockProcessed)
 
-	prometheus.MustRegister(ExchangeCeloBucketSize)
-	prometheus.MustRegister(ExchangeStableBucketSize)
-	prometheus.MustRegister(ExchangeCeloBucketRatio)
-	prometheus.MustRegister(ExchangeCeloExchangedRate)
-	prometheus.MustRegister(ExchangeBucketRatio)
-	prometheus.MustRegister(ExchangeImpliedStableRate)
+	registerer.MustRegister(ExchangeCeloBucketSize)
+	registerer.MustRegister(ExchangeStableBucketSize)
+	registerer.MustRegister(ExchangeCeloBucketRatio)
+	registerer.MustRegister(ExchangeCeloExchangedRate)
+	registerer.MustRegister(ExchangeBucketRatio)
+	registerer.MustRegister(ExchangeImpliedStableRate)
 
-	prometheus.MustRegister(SortedOraclesIsOldestReportExpired)
-	prometheus.MustRegister(SortedOraclesNumRates)
-	prometheus.MustRegister(SortedOraclesMedianRate)
-	prometheus.MustRegister(SortedOraclesRateMaxDeviation)
-	prometheus.MustRegister(SortedOraclesMedianTimestamp)
-	// Add Go module build info.
+	registerer.MustRegister(SortedOraclesIsOldestReportExpired)
+	registerer.MustRegister(SortedOraclesNumRates)
+	registerer.MustRegister(SortedOraclesMedianRate)
+	registerer.MustRegister(SortedOraclesRateMaxDeviation)
+	registerer.MustRegister(SortedOraclesMedianTimestamp)
+
+	// Add Go module build info with the default registry
 	prometheus.MustRegister(prometheus.NewBuildInfoCollector())
 }
