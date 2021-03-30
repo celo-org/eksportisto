@@ -299,24 +299,25 @@ func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *ty
 				return err
 			}
 		}
-		// Create an processor for each stable token's exchange
+		// Create a processor for each stable token's exchange
 		exchangeProcessors := make(map[celotokens.CeloToken]ContractProcessor)
 		for stableToken, exchangeContract := range exchangeContracts {
-			// If a token's contract has not been registered with the Registry
+			// If the exchange contract has not been registered with the Registry
 			// yet, the contract will be nil. Ignore this.
 			if exchangeContract == nil {
 				continue
-			}
-			exchangeRegistryID, err := celotokens.GetExchangeRegistryID(stableToken)
-			if err != nil {
-				return err
 			}
 			exchangeProcessor, err := NewExchangeProcessor(ctx, logger, stableToken, exchangeRegistryID, exchangeContract, reserve)
 			if err != nil {
 				return err
 			}
 			exchangeProcessors[stableToken] = exchangeProcessor
+
 			// We want to process exchange events, so we add exchangeProcessor as an event handler
+			exchangeRegistryID, err := celotokens.GetExchangeRegistryID(stableToken)
+			if err != nil {
+				return err
+			}
 			eventHandlers[exchangeRegistryID] = exchangeProcessor
 		}
 

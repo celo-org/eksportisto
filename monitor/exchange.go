@@ -127,15 +127,6 @@ func (p exchangeProcessor) ObserveMetric(opts *bind.CallOpts) error {
 }
 
 func (p exchangeProcessor) HandleEvent(parsedLog *registry.RegistryParsedLog) {
-	// eventName, eventRaw, ok, err := p.exchange.TryParseLog(*eventLog)
-	// if err != nil {
-	// 	p.logger.Warn("Ignoring event: Error parsing exchange event", "err", err, "eventId", eventLog.Topics[0].Hex())
-	// 	return
-	// }
-	// if !ok {
-	// 	return
-	// }
-
 	switch parsedLog.Event {
 	case "Exchanged":
 		event := parsedLog.Log.(*contracts.ExchangeExchanged)

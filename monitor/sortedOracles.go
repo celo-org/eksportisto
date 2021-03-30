@@ -26,10 +26,8 @@ type sortedOraclesProcessor struct {
 	ctx    context.Context
 	logger log.Logger
 
-	// exchanges     map[celotokens.CeloToken]*contracts.Exchange
 	sortedOracles    *contracts.SortedOracles
 	stableTokenInfos map[celotokens.CeloToken]stableTokenInfo
-	// stableTokenAddresses map[celotokens.CeloToken]common.Address
 }
 
 func NewSortedOraclesProcessor(ctx context.Context, logger log.Logger, sortedOracles *contracts.SortedOracles, exchanges map[celotokens.CeloToken]*contracts.Exchange, stableTokenAddresses map[celotokens.CeloToken]common.Address) (*sortedOraclesProcessor, error) {
