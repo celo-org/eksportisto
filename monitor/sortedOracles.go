@@ -17,17 +17,17 @@ import (
 )
 
 type stableTokenInfo struct {
-	address  common.Address
-	exchange *contracts.Exchange
+	address     common.Address
+	exchange    *contracts.Exchange
 	stableToken celotokens.CeloToken
 }
 
 type sortedOraclesProcessor struct {
-	ctx           context.Context
-	logger        log.Logger
+	ctx    context.Context
+	logger log.Logger
 
 	// exchanges     map[celotokens.CeloToken]*contracts.Exchange
-	sortedOracles *contracts.SortedOracles
+	sortedOracles    *contracts.SortedOracles
 	stableTokenInfos map[celotokens.CeloToken]stableTokenInfo
 	// stableTokenAddresses map[celotokens.CeloToken]common.Address
 }
@@ -40,8 +40,8 @@ func NewSortedOraclesProcessor(ctx context.Context, logger log.Logger, sortedOra
 			return nil, fmt.Errorf("No exchange provided for stable token %w", stableToken)
 		}
 		stableTokenInfos[stableToken] = stableTokenInfo{
-			address: stableTokenAddress,
-			exchange: exchange,
+			address:     stableTokenAddress,
+			exchange:    exchange,
 			stableToken: stableToken,
 		}
 	}
