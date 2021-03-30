@@ -2,6 +2,7 @@ package monitor
 
 import (
 	"context"
+	"fmt"
 	"math"
 	"math/big"
 
@@ -15,25 +16,46 @@ import (
 	"github.com/celo-org/kliento/contracts/helpers"
 )
 
+type stableTokenInfo struct {
+	address  common.Address
+	exchange *contracts.Exchange
+	stableToken celotokens.CeloToken
+}
+
 type sortedOraclesProcessor struct {
 	ctx           context.Context
 	logger        log.Logger
+
+	// exchanges     map[celotokens.CeloToken]*contracts.Exchange
 	sortedOracles *contracts.SortedOracles
-	exchange      *contracts.Exchange
+	stableTokenInfos map[celotokens.CeloToken]stableTokenInfo
+	// stableTokenAddresses map[celotokens.CeloToken]common.Address
 }
 
-func NewSortedOraclesProcessor(ctx context.Context, logger log.Logger, sortedOracles *contracts.SortedOracles, exchange *contracts.Exchange) *sortedOraclesProcessor {
-	return &sortedOraclesProcessor{
-		ctx:           ctx,
-		logger:        logger.New("contract", "SortedOracles"),
-		sortedOracles: sortedOracles,
-		exchange:      exchange,
-	}
-}
-
-func (p sortedOraclesProcessor) ObserveState(opts *bind.CallOpts, stableTokenAddresses map[celotokens.CeloToken]common.Address) error {
+func NewSortedOraclesProcessor(ctx context.Context, logger log.Logger, sortedOracles *contracts.SortedOracles, exchanges map[celotokens.CeloToken]*contracts.Exchange, stableTokenAddresses map[celotokens.CeloToken]common.Address) (*sortedOraclesProcessor, error) {
+	stableTokenInfos := make(map[celotokens.CeloToken]stableTokenInfo)
 	for stableToken, stableTokenAddress := range stableTokenAddresses {
-		err := p.observeStateForStableToken(opts, stableToken, stableTokenAddress)
+		exchange, ok := exchanges[stableToken]
+		if !ok || exchange == nil {
+			return nil, fmt.Errorf("No exchange provided for stable token %w", stableToken)
+		}
+		stableTokenInfos[stableToken] = stableTokenInfo{
+			address: stableTokenAddress,
+			exchange: exchange,
+			stableToken: stableToken,
+		}
+	}
+	return &sortedOraclesProcessor{
+		ctx:              ctx,
+		logger:           logger.New("contract", "SortedOracles"),
+		sortedOracles:    sortedOracles,
+		stableTokenInfos: stableTokenInfos,
+	}, nil
+}
+
+func (p sortedOraclesProcessor) ObserveState(opts *bind.CallOpts) error {
+	for _, stableTokenInfo := range p.stableTokenInfos {
+		err := p.observeStateForStableToken(opts, stableTokenInfo)
 		if err != nil {
 			return err
 		}
@@ -41,10 +63,10 @@ func (p sortedOraclesProcessor) ObserveState(opts *bind.CallOpts, stableTokenAdd
 	return nil
 }
 
-func (p sortedOraclesProcessor) observeStateForStableToken(opts *bind.CallOpts, stableToken celotokens.CeloToken, stableTokenAddress common.Address) error {
-	logger := p.logger.New("stableToken", stableToken, "address", stableTokenAddress)
+func (p sortedOraclesProcessor) observeStateForStableToken(opts *bind.CallOpts, stableTokenInfo stableTokenInfo) error {
+	logger := p.logger.New("stableToken", stableTokenInfo.stableToken, "address", stableTokenInfo.address)
 	// SortedOracles.IsOldestReportExpired
-	isOldestReportExpired, lastReportAddress, err := p.sortedOracles.IsOldestReportExpired(opts, stableTokenAddress)
+	isOldestReportExpired, lastReportAddress, err := p.sortedOracles.IsOldestReportExpired(opts, stableTokenInfo.address)
 	if err != nil {
 		return err
 	}
@@ -53,7 +75,7 @@ func (p sortedOraclesProcessor) observeStateForStableToken(opts *bind.CallOpts, 
 	logStateViewCall(logger, "method", "IsOldestReportExpired", "lastReportAddress", lastReportAddress)
 
 	// SortedOracles.NumRates
-	numRates, err := p.sortedOracles.NumRates(opts, stableTokenAddress)
+	numRates, err := p.sortedOracles.NumRates(opts, stableTokenInfo.address)
 	if err != nil {
 		return err
 	}
@@ -61,7 +83,7 @@ func (p sortedOraclesProcessor) observeStateForStableToken(opts *bind.CallOpts, 
 	logStateViewCall(logger, "method", "NumRates", "numRates", numRates)
 
 	// SortedOracles.NumRates
-	medianRateNumerator, medianRateDenominator, err := p.sortedOracles.MedianRate(opts, stableTokenAddress)
+	medianRateNumerator, medianRateDenominator, err := p.sortedOracles.MedianRate(opts, stableTokenInfo.address)
 	if err != nil {
 		return err
 	}
@@ -70,7 +92,7 @@ func (p sortedOraclesProcessor) observeStateForStableToken(opts *bind.CallOpts, 
 	logStateViewCall(logger, "method", "MedianRate", "medianRateDenominator", medianRateDenominator)
 
 	// SortedOracles.MedianTimestamp
-	medianTimestamp, err := p.sortedOracles.MedianTimestamp(opts, stableTokenAddress)
+	medianTimestamp, err := p.sortedOracles.MedianTimestamp(opts, stableTokenInfo.address)
 	if err != nil {
 		return err
 	}
@@ -78,7 +100,7 @@ func (p sortedOraclesProcessor) observeStateForStableToken(opts *bind.CallOpts, 
 	logStateViewCall(logger, "method", "MedianTimestamp", "medianTimestamp", medianTimestamp)
 
 	// SortedOracles.GetRates
-	rateAddresses, rateValues, medianRelations, err := p.sortedOracles.GetRates(opts, stableTokenAddress)
+	rateAddresses, rateValues, medianRelations, err := p.sortedOracles.GetRates(opts, stableTokenInfo.address)
 	if err != nil {
 		return err
 	}
@@ -88,7 +110,7 @@ func (p sortedOraclesProcessor) observeStateForStableToken(opts *bind.CallOpts, 
 	}
 
 	// SortedOracles.GetTimestamps
-	timestampAddresses, timestamp, medianRelations, err := p.sortedOracles.GetTimestamps(opts, stableTokenAddress)
+	timestampAddresses, timestamp, medianRelations, err := p.sortedOracles.GetTimestamps(opts, stableTokenInfo.address)
 	if err != nil {
 		return err
 	}
@@ -97,7 +119,7 @@ func (p sortedOraclesProcessor) observeStateForStableToken(opts *bind.CallOpts, 
 		logStateViewCall(logger, "method", "GetTimestamps", "timestampAddress", timestampAddress, "reportedTimestamp", timestamp[i], "medianRelation", medianRelations[i], "index", i)
 	}
 
-	celoBucketSize, stableBucketSize, err := p.exchange.GetBuyAndSellBuckets(opts, true)
+	celoBucketSize, stableBucketSize, err := stableTokenInfo.exchange.GetBuyAndSellBuckets(opts, true)
 
 	if err != nil {
 		return err
@@ -108,9 +130,9 @@ func (p sortedOraclesProcessor) observeStateForStableToken(opts *bind.CallOpts, 
 	return nil
 }
 
-func (p sortedOraclesProcessor) ObserveMetric(opts *bind.CallOpts, stableTokenAddresses map[celotokens.CeloToken]common.Address, blockTime uint64) error {
-	for stableToken, stableTokenAddress := range stableTokenAddresses {
-		err := p.observeMetricForStableToken(opts, stableToken, stableTokenAddress, blockTime)
+func (p sortedOraclesProcessor) ObserveMetric(opts *bind.CallOpts, blockTime uint64) error {
+	for _, stableTokenInfo := range p.stableTokenInfos {
+		err := p.observeMetricForStableToken(opts, stableTokenInfo, blockTime)
 		if err != nil {
 			return err
 		}
@@ -118,28 +140,29 @@ func (p sortedOraclesProcessor) ObserveMetric(opts *bind.CallOpts, stableTokenAd
 	return nil
 }
 
-func (p sortedOraclesProcessor) observeMetricForStableToken(opts *bind.CallOpts, stableToken celotokens.CeloToken, stableTokenAddress common.Address, blockTime uint64) error {
-	isOldestReportExpired, _, err := p.sortedOracles.IsOldestReportExpired(opts, stableTokenAddress)
+func (p sortedOraclesProcessor) observeMetricForStableToken(opts *bind.CallOpts, stableTokenInfo stableTokenInfo, blockTime uint64) error {
+	stableTokenStr := string(stableTokenInfo.stableToken)
+	isOldestReportExpired, _, err := p.sortedOracles.IsOldestReportExpired(opts, stableTokenInfo.address)
 	if err != nil {
 		return err
 	}
-	sortedOraclesIsOldestReportExpiredGauge, err := metrics.SortedOraclesIsOldestReportExpired.GetMetricWithLabelValues(string(stableToken))
+	sortedOraclesIsOldestReportExpiredGauge, err := metrics.SortedOraclesIsOldestReportExpired.GetMetricWithLabelValues(stableTokenStr)
 	if err != nil {
 		return err
 	}
 	sortedOraclesIsOldestReportExpiredGauge.Set(utils.BoolToFloat64(isOldestReportExpired))
 
-	numRates, err := p.sortedOracles.NumRates(opts, stableTokenAddress)
+	numRates, err := p.sortedOracles.NumRates(opts, stableTokenInfo.address)
 	if err != nil {
 		return err
 	}
-	sortedOraclesNumRatesGauge, err := metrics.SortedOraclesNumRates.GetMetricWithLabelValues(string(stableToken))
+	sortedOraclesNumRatesGauge, err := metrics.SortedOraclesNumRates.GetMetricWithLabelValues(stableTokenStr)
 	if err != nil {
 		return err
 	}
 	sortedOraclesNumRatesGauge.Set(float64(numRates.Uint64()))
 
-	medianRateNumerator, medianRateDenominator, err := p.sortedOracles.MedianRate(opts, stableTokenAddress)
+	medianRateNumerator, medianRateDenominator, err := p.sortedOracles.MedianRate(opts, stableTokenInfo.address)
 	if err != nil {
 		return err
 	}
@@ -152,13 +175,13 @@ func (p sortedOraclesProcessor) observeMetricForStableToken(opts *bind.CallOpts,
 	}
 	medianRateMetric, _ := medianRate.Float64()
 
-	sortedOraclesMedianRateGauge, err := metrics.SortedOraclesMedianRate.GetMetricWithLabelValues(string(stableToken))
+	sortedOraclesMedianRateGauge, err := metrics.SortedOraclesMedianRate.GetMetricWithLabelValues(stableTokenStr)
 	if err != nil {
 		return err
 	}
 	sortedOraclesMedianRateGauge.Set(medianRateMetric)
 
-	_, rateValues, _, err := p.sortedOracles.GetRates(opts, stableTokenAddress)
+	_, rateValues, _, err := p.sortedOracles.GetRates(opts, stableTokenInfo.address)
 	if err != nil {
 		return err
 	}
@@ -172,23 +195,23 @@ func (p sortedOraclesProcessor) observeMetricForStableToken(opts *bind.CallOpts,
 			maxDiff = diff
 		}
 	}
-	sortedOraclesRateMaxDeviationGauge, err := metrics.SortedOraclesRateMaxDeviation.GetMetricWithLabelValues(string(stableToken))
+	sortedOraclesRateMaxDeviationGauge, err := metrics.SortedOraclesRateMaxDeviation.GetMetricWithLabelValues(stableTokenStr)
 	if err != nil {
 		return err
 	}
 	sortedOraclesRateMaxDeviationGauge.Set(maxDiff)
 
-	medianTimestamp, err := p.sortedOracles.MedianTimestamp(opts, stableTokenAddress)
+	medianTimestamp, err := p.sortedOracles.MedianTimestamp(opts, stableTokenInfo.address)
 	if err != nil {
 		return err
 	}
-	sortedOraclesMedianTimestampGauge, err := metrics.SortedOraclesMedianTimestamp.GetMetricWithLabelValues(string(stableToken))
+	sortedOraclesMedianTimestampGauge, err := metrics.SortedOraclesMedianTimestamp.GetMetricWithLabelValues(stableTokenStr)
 	if err != nil {
 		return err
 	}
 	sortedOraclesMedianTimestampGauge.Set(float64(blockTime - medianTimestamp.Uint64()))
 
-	celoBucketSize, stableBucketSize, err := p.exchange.GetBuyAndSellBuckets(opts, true)
+	celoBucketSize, stableBucketSize, err := stableTokenInfo.exchange.GetBuyAndSellBuckets(opts, true)
 
 	if err != nil {
 		return err
@@ -203,7 +226,7 @@ func (p sortedOraclesProcessor) observeMetricForStableToken(opts *bind.CallOpts,
 	}
 
 	stablePriceF, _ := stablePrice.Float64()
-	exchangeImpliedStableRateGauge, err := metrics.ExchangeImpliedStableRate.GetMetricWithLabelValues(string(stableToken))
+	exchangeImpliedStableRateGauge, err := metrics.ExchangeImpliedStableRate.GetMetricWithLabelValues(stableTokenStr)
 	if err != nil {
 		return err
 	}

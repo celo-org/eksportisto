@@ -138,7 +138,7 @@ func (p exchangeProcessor) HandleEvent(parsedLog *registry.RegistryParsedLog) {
 
 	switch parsedLog.Event {
 	case "Exchanged":
-		event := parsedLog.Log.(contracts.ExchangeExchanged)
+		event := parsedLog.Log.(*contracts.ExchangeExchanged)
 
 		// Prevent updating the ExchangedRate metric for small trades that do not provide enough precision when calculating the effective price
 		minSellAmountInWei := big.NewInt(1e6)
@@ -158,7 +158,7 @@ func (p exchangeProcessor) HandleEvent(parsedLog *registry.RegistryParsedLog) {
 		celoPriceF, _ := celoPrice.Float64()
 		p.exchangeCeloExchangedRateGauge.Set(celoPriceF)
 	case "BucketsUpdated":
-		event := parsedLog.Log.(contracts.ExchangeBucketsUpdated)
+		event := parsedLog.Log.(*contracts.ExchangeBucketsUpdated)
 
 		bucketRatio := utils.DivideBigInts(event.StableBucket, event.GoldBucket)
 		bucketRatioF, _ := bucketRatio.Float64()

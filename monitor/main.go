@@ -177,6 +177,10 @@ func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *ty
 
 		transactionCtx := context.Background()
 
+		// Will be populated when creating contract processors
+		eventHandlers := make(map[registry.ContractID]EventHandler)
+
+		// Be sure eventHandlers has been populated before this is called
 		parseAndLogEvent := func(logger log.Logger, eventIdx int, eventLog *types.Log) {
 			eventLogger := logger.New("logTxIndex", eventIdx, "logBlockIndex", eventLog.Index)
 			parsed, err := r.TryParseLog(transactionCtx, *eventLog, h.Number)
@@ -188,6 +192,10 @@ func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *ty
 					eventLogger.Error("event slice encoding failed", "contract", parsed.Contract, "event", parsed.Event, "err", err)
 				} else {
 					logEventLog(eventLogger, append([]interface{}{"contract", parsed.Contract, "event", parsed.Event}, logSlice...)...)
+					// If the contract with the event has an event handler, call it with the parsed event
+					if handler, ok := eventHandlers[registry.ContractID(parsed.Contract)]; ok {
+						handler.HandleEvent(parsed)
+					}
 				}
 			} else {
 				eventLogger.Warn("log source unknown, logging raw event")
@@ -218,6 +226,97 @@ func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *ty
 			logger.Error("block by number rpc unmarshalling failed")
 		} else {
 			txs = block.Transactions()
+		}
+
+		g, processorCtx := errgroup.WithContext(context.Background())
+		opts := &bind.CallOpts{
+			BlockNumber: h.Number,
+			Context:     processorCtx,
+		}
+
+		election, err := r.GetElectionContract(ctx, h.Number)
+		if skipContractMetrics(err) {
+			continue
+		}
+		lockedGold, err := r.GetLockedGoldContract(ctx, h.Number)
+		if skipContractMetrics(err) {
+			continue
+		}
+		reserve, err := r.GetReserveContract(ctx, h.Number)
+		if skipContractMetrics(err) {
+			continue
+		}
+		sortedOracles, err := r.GetSortedOraclesContract(ctx, h.Number)
+		if skipContractMetrics(err) {
+			continue
+		}
+		epochRewards, err := r.GetEpochRewardsContract(ctx, h.Number)
+		if skipContractMetrics(err) {
+			continue
+		}
+
+		celoTokenContracts, err := celoTokens.GetContracts(ctx, h.Number, false)
+		if skipContractMetrics(err) {
+			continue
+		}
+
+		exchangeContracts, err := celoTokens.GetExchangeContracts(ctx, h.Number)
+		if skipContractMetrics(err) {
+			continue
+		}
+
+		stableTokenAddresses, err := celoTokens.GetAddresses(ctx, h.Number, true)
+		if err != nil {
+			return err
+		}
+		// If the stable token has not been registered with the Registry at the
+		// current block, its address will be the zero address. Filter these out.
+		for stableToken, address := range stableTokenAddresses {
+			if address == common.ZeroAddress {
+				delete(stableTokenAddresses, stableToken)
+			}
+		}
+
+		electionProcessor := NewElectionProcessor(processorCtx, logger, election)
+		epochRewardsProcessor := NewEpochRewardsProcessor(processorCtx, logger, epochRewards)
+		lockedGoldProcessor := NewLockedGoldProcessor(processorCtx, logger, lockedGold)
+		reserveProcessor := NewReserveProcessor(processorCtx, logger, reserve)
+		sortedOraclesProcessor, err := NewSortedOraclesProcessor(processorCtx, logger, sortedOracles, exchangeContracts, stableTokenAddresses)
+		if err != nil {
+			return err
+		}
+
+		// Create a celo token processor for each celo token
+		celoTokenProcessors := make(map[celotokens.CeloToken]ContractProcessor)
+		for token, contract := range celoTokenContracts {
+			// If a token's contract has not been registered with the Registry
+			// yet, the contract will be nil. Ignore this.
+			if contract == nil {
+				continue
+			}
+			celoTokenProcessors[token], err = NewCeloTokenProcessor(processorCtx, logger, token, contract)
+			if err != nil {
+				return err
+			}
+		}
+		// Create an processor for each stable token's exchange
+		exchangeProcessors := make(map[celotokens.CeloToken]ContractProcessor)
+		for stableToken, exchangeContract := range exchangeContracts {
+			// If a token's contract has not been registered with the Registry
+			// yet, the contract will be nil. Ignore this.
+			if exchangeContract == nil {
+				continue
+			}
+			exchangeRegistryID, err := celotokens.GetExchangeRegistryID(stableToken)
+			if err != nil {
+				return err
+			}
+			exchangeProcessor, err := NewExchangeProcessor(ctx, logger, stableToken, exchangeRegistryID, exchangeContract, reserve)
+			if err != nil {
+				return err
+			}
+			exchangeProcessors[stableToken] = exchangeProcessor
+			eventHandlers[exchangeRegistryID] = exchangeProcessor
 		}
 
 		for txIndex, tx := range txs {
@@ -258,108 +357,14 @@ func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *ty
 			}
 		}
 
-		g, processorCtx := errgroup.WithContext(context.Background())
-		opts := &bind.CallOpts{
-			BlockNumber: h.Number,
-			Context:     processorCtx,
-		}
-
-		election, err := r.GetElectionContract(ctx, h.Number)
-		if skipContractMetrics(err) {
-			continue
-		}
-		lockedGold, err := r.GetLockedGoldContract(ctx, h.Number)
-		if skipContractMetrics(err) {
-			continue
-		}
-		reserve, err := r.GetReserveContract(ctx, h.Number)
-		if skipContractMetrics(err) {
-			continue
-		}
-		exchange, err := r.GetExchangeContract(ctx, h.Number)
-		if skipContractMetrics(err) {
-			continue
-		}
-		sortedOracles, err := r.GetSortedOraclesContract(ctx, h.Number)
-		if skipContractMetrics(err) {
-			continue
-		}
-
-		epochRewards, err := r.GetEpochRewardsContract(ctx, h.Number)
-		if skipContractMetrics(err) {
-			continue
-		}
-
-		celoTokenContracts, err := celoTokens.GetContracts(ctx, h.Number, false)
-		if skipContractMetrics(err) {
-			continue
-		}
-
-		exchangeContracts, err := celoTokens.GetExchangeContracts(ctx, h.Number)
-		if skipContractMetrics(err) {
-			continue
-		}
-
-		stableTokenAddresses, err := celoTokens.GetAddresses(ctx, h.Number, true)
-		if err != nil {
-			return err
-		}
-		// If the stable token has not been registered with the Registry at the
-		// current block, its address will be the zero address. Filter these out.
-		for stableToken, address := range stableTokenAddresses {
-			if address == common.ZeroAddress {
-				delete(stableTokenAddresses, stableToken)
-			}
-		}
-
-		electionProcessor := NewElectionProcessor(processorCtx, logger, election)
-		epochRewardsProcessor := NewEpochRewardsProcessor(processorCtx, logger, epochRewards)
-		lockedGoldProcessor := NewLockedGoldProcessor(processorCtx, logger, lockedGold)
-		reserveProcessor := NewReserveProcessor(processorCtx, logger, reserve)
-		sortedOraclesProcessor := NewSortedOraclesProcessor(processorCtx, logger, sortedOracles, exchange)
-
-		// Create a celo token processor for each celo token
-		celoTokenProcessors := make(map[celotokens.CeloToken]ContractProcessor)
-		for token, contract := range celoTokenContracts {
-			// If a token's contract has not been registered with the Registry
-			// yet, the contract will be nil. Ignore this.
-			if contract == nil {
-				continue
-			}
-			celoTokenProcessors[token], err = NewCeloTokenProcessor(processorCtx, logger, token, contract)
-			if err != nil {
-				return err
-			}
-		}
-		eventHandlers := make(map[registry.ContractID]EventHandler)
-		// Create an exchange processor for each stable token's exchange
-		exchangeProcessors := make(map[celotokens.CeloToken]ContractProcessor)
-		for stableToken, exchangeContract := range exchangeContracts {
-			// If a token's exchange contract has not been registered with the Registry
-			// yet, the contract will be nil. Ignore this.
-			if exchangeContract == nil {
-				continue
-			}
-			exchangeRegistryID, err := celotokens.GetRegistryID(stableToken)
-			if err != nil {
-				return err
-			}
-			exchangeProcessor, err := NewExchangeProcessor(ctx, logger, stableToken, exchangeRegistryID, exchangeContract, reserve)
-			if err != nil {
-				return err
-			}
-			exchangeProcessors[stableToken] = exchangeProcessor
-			eventHandlers[exchangeRegistryID] = exchangeProcessor
-		}
-
 		if tipMode {
 			g.Go(func() error { return epochRewardsProcessor.ObserveMetric(opts) })
-			g.Go(func() error { return sortedOraclesProcessor.ObserveMetric(opts, stableTokenAddresses, h.Time) })
+			g.Go(func() error { return sortedOraclesProcessor.ObserveMetric(opts, h.Time) })
 			// Celo token processors
 			for _, processor := range celoTokenProcessors {
 				g.Go(func() error { return processor.ObserveMetric(opts) })
 			}
-			// Exchange processors
+			// processors
 			for _, processor := range exchangeProcessors {
 				g.Go(func() error { return processor.ObserveMetric(opts) })
 			}
@@ -367,7 +372,7 @@ func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *ty
 
 		if utils.ShouldSample(h.Number.Uint64(), BlocksPerHour) {
 			g.Go(func() error { return reserveProcessor.ObserveState(opts) })
-			g.Go(func() error { return sortedOraclesProcessor.ObserveState(opts, stableTokenAddresses) })
+			g.Go(func() error { return sortedOraclesProcessor.ObserveState(opts) })
 			// Celo token processors
 			for _, processor := range celoTokenProcessors {
 				g.Go(func() error { return processor.ObserveState(opts) })
@@ -379,7 +384,7 @@ func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *ty
 			g.Go(func() error { return epochRewardsProcessor.ObserveState(opts) })
 			g.Go(func() error { return lockedGoldProcessor.ObserveState(opts) })
 			g.Go(func() error { return reserveProcessor.ObserveState(opts) })
-			// Exchange processors
+			// processors
 			for _, processor := range exchangeProcessors {
 				g.Go(func() error { return processor.ObserveState(opts) })
 			}
