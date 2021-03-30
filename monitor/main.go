@@ -316,6 +316,7 @@ func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *ty
 				return err
 			}
 			exchangeProcessors[stableToken] = exchangeProcessor
+			// We want to process exchange events, so we add exchangeProcessor as an event handler
 			eventHandlers[exchangeRegistryID] = exchangeProcessor
 		}
 
