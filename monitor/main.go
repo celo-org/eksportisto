@@ -307,6 +307,10 @@ func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *ty
 			if exchangeContract == nil {
 				continue
 			}
+			exchangeRegistryID, err := celotokens.GetExchangeRegistryID(stableToken)
+			if err != nil {
+				return err
+			}
 			exchangeProcessor, err := NewExchangeProcessor(ctx, logger, stableToken, exchangeRegistryID, exchangeContract, reserve)
 			if err != nil {
 				return err
@@ -314,10 +318,6 @@ func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *ty
 			exchangeProcessors[stableToken] = exchangeProcessor
 
 			// We want to process exchange events, so we add exchangeProcessor as an event handler
-			exchangeRegistryID, err := celotokens.GetExchangeRegistryID(stableToken)
-			if err != nil {
-				return err
-			}
 			eventHandlers[exchangeRegistryID] = exchangeProcessor
 		}
 
