@@ -187,15 +187,15 @@ func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *ty
 			if err != nil {
 				eventLogger.Error("log parsing failed", "err", err)
 			} else if parsed != nil {
+				// If the contract with the event has an event handler, call it with the parsed event
+				if handler, ok := eventHandlers[registry.ContractID(parsed.Contract)]; ok {
+					handler.HandleEvent(parsed)
+				}
 				logSlice, err := helpers.EventToSlice(parsed.Log)
 				if err != nil {
 					eventLogger.Error("event slice encoding failed", "contract", parsed.Contract, "event", parsed.Event, "err", err)
 				} else {
 					logEventLog(eventLogger, append([]interface{}{"contract", parsed.Contract, "event", parsed.Event}, logSlice...)...)
-					// If the contract with the event has an event handler, call it with the parsed event
-					if handler, ok := eventHandlers[registry.ContractID(parsed.Contract)]; ok {
-						handler.HandleEvent(parsed)
-					}
 				}
 			} else {
 				eventLogger.Warn("log source unknown, logging raw event")

@@ -137,12 +137,14 @@ func (p exchangeProcessor) HandleEvent(parsedLog *registry.RegistryParsedLog) {
 			return
 		}
 
-		num := event.SellAmount
-		dem := event.BuyAmount
+		var num, dem *big.Int
 
 		if event.SoldGold {
 			num = event.BuyAmount
 			dem = event.SellAmount
+		} else {
+			num = event.SellAmount
+			dem = event.BuyAmount
 		}
 
 		celoPrice := utils.DivideBigInts(num, dem)
