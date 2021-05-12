@@ -36,7 +36,7 @@ func NewSortedOraclesProcessor(ctx context.Context, logger log.Logger, sortedOra
 		exchange, ok := exchanges[stableToken]
 		// This should never happen, but let's be safe
 		if !ok || exchange == nil {
-			return nil, fmt.Errorf("No exchange provided for stable token %w", stableToken)
+			return nil, fmt.Errorf("No exchange provided for stable token %s", stableToken)
 		}
 		stableTokenInfos[stableToken] = stableTokenInfo{
 			address:     stableTokenAddress,
