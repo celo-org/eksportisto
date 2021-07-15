@@ -338,25 +338,6 @@ func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *ty
 			for eventIdx, eventLog := range receipt.Logs {
 				parseAndLogEvent(txLogger, eventIdx, eventLog)
 			}
-
-			if !debugEnabled {
-				continue
-			}
-			internalTransfers, err := cc.Debug.TransactionTransfers(transactionCtx, txHash)
-			if skipContractMetrics(err) {
-				continue
-			} else if err != nil {
-				return err
-			}
-			for _, internalTransfer := range internalTransfers {
-				logTransfer(txLogger, "currencySymbol", "CELO", "from", internalTransfer.From, "to", internalTransfer.To, "value", internalTransfer.Value)
-				if tipMode && sensitiveAccounts[internalTransfer.From] != "" {
-					err = notifyFundsMoved(internalTransfer, sensitiveAccounts[internalTransfer.From])
-					if err != nil {
-						logger.Error(err.Error())
-					}
-				}
-			}
 		}
 
 		if tipMode {
