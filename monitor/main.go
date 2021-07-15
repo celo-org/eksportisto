@@ -140,14 +140,6 @@ func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *ty
 
 	celoTokens := celotokens.New(r)
 
-	supported, err := cc.Rpc.SupportedModules()
-	if err != nil {
-		return err
-	}
-	_, debugEnabled := supported["debug"]
-
-	sensitiveAccounts := getSensitiveAccounts(cfg.SensitiveAccountsFilePath)
-
 	var h *types.Header
 	for {
 		select {
@@ -155,8 +147,9 @@ func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *ty
 			return ctx.Err()
 		case h = <-headers:
 		}
-		logHeader(logger, h)
+		blockProcessStartedAt := time.Now()
 
+		logHeader(logger, h)
 		logger = logger.New("blockTimestamp", time.Unix(int64(h.Time), 0).Format(time.RFC3339), "blockNumber", h.Number.Int64(), "blockGasUsed", h.GasUsed)
 
 		finishHeader := func(ctx context.Context) error {
@@ -165,6 +158,7 @@ func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *ty
 			}
 
 			metrics.LastBlockProcessed.Set(float64(h.Number.Int64()))
+			metrics.ProcessBlockDuration.Observe(float64(time.Since(blockProcessStartedAt)) / float64(time.Second))
 			return nil
 		}
 
