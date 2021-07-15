@@ -88,6 +88,17 @@ func (p epochRewardsProcessor) ObserveState(opts *bind.CallOpts) error {
 		"targetVotingGoldFraction", helpers.FromFixed(targetVotingGoldFraction),
 	)
 
+	votingGoldFraction, err := p.epochRewards.GetVotingGoldFraction(opts)
+	if err != nil {
+		return err
+	}
+
+	logStateViewCall(
+		logger,
+		"method", "geVotingGoldFraction",
+		"votingGoldFraction", helpers.FromFixed(votingGoldFraction),
+	)
+
 	// EpochRewards.calculateTargetEpochRewards
 	validatorTargetEpochRewards, voterTargetEpochRewards, communityTargetEpochRewards, carbonOffsettingTargetEpochRewards, err := p.epochRewards.CalculateTargetEpochRewards(opts)
 	if err != nil {
