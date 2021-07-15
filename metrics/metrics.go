@@ -23,6 +23,12 @@ var (
 		Help: "Last Block Processed by eksportisto",
 	})
 
+	ProcessBlockDuration = prometheus.NewHistogram(prometheus.HistogramOpts{
+		Name:    "process_block_duration",
+		Help:    "Time it takes to process a block",
+		Buckets: prometheus.LinearBuckets(0, 0.2, 20),
+	})
+
 	VotingGoldFraction = prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "epochrewards_votinggoldfraction",
 		Help: "Voting Gold Fraction",
@@ -84,6 +90,7 @@ func init() {
 	registerer.MustRegister(GasPrice)
 	registerer.MustRegister(VotingGoldFraction)
 	registerer.MustRegister(LastBlockProcessed)
+	registerer.MustRegister(ProcessBlockDuration)
 
 	registerer.MustRegister(ExchangeCeloBucketSize)
 	registerer.MustRegister(ExchangeStableBucketSize)
