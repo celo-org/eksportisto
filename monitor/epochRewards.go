@@ -106,7 +106,14 @@ func (p epochRewardsProcessor) ObserveState(opts *bind.CallOpts) error {
 		return nil
 	}
 
-	logStateViewCall(logger, "method", "calculateTargetEpochRewards", "validatorTargetEpochRewards", validatorTargetEpochRewards.Uint64(), "voterTargetEpochRewards", voterTargetEpochRewards.Uint64(), "communityTargetEpochRewards", communityTargetEpochRewards.Uint64(), "carbonOffsettingTargetEpochRewards", carbonOffsettingTargetEpochRewards.Uint64())
+	logStateViewCall(
+		logger,
+		"method", "calculateTargetEpochRewards",
+		"validatorTargetEpochRewards", validatorTargetEpochRewards,
+		"voterTargetEpochRewards", voterTargetEpochRewards,
+		"communityTargetEpochRewards", communityTargetEpochRewards,
+		"carbonOffsettingTargetEpochRewards", carbonOffsettingTargetEpochRewards,
+	)
 
 	return nil
 }
