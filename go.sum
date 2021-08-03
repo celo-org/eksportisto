@@ -76,6 +76,7 @@ github.com/celo-org/kliento v0.1.2-0.20201222020354-6f8628db73b2 h1:SJs8hhpsgUwz
 github.com/celo-org/kliento v0.1.2-0.20201222020354-6f8628db73b2/go.mod h1:OrzUyeaXpAgTfhl0+wUG4Y+Tfn+wpL49t2/5S9z9zjQ=
 github.com/celo-org/kliento v0.1.2-0.20201222201650-dabd6f11754d h1:J4nC/xIQR6rLtc2EThBFnw58QSYyPTasGOp7bqyRr9E=
 github.com/celo-org/kliento v0.1.2-0.20201222201650-dabd6f11754d/go.mod h1:OrzUyeaXpAgTfhl0+wUG4Y+Tfn+wpL49t2/5S9z9zjQ=
+github.com/celo-org/kliento v0.2.0 h1:x2upUFg7OsYIp4uHkTjnN1sHxgf/U12iEAMVj5UuBP8=
 github.com/celo-org/kliento v0.2.1-0.20210312165111-9c3cc897c7cc h1:2Al4cIRG635FZcD3aezC+Hh5gE7pu9pyoS0tMA+AmpI=
 github.com/celo-org/kliento v0.2.1-0.20210312165111-9c3cc897c7cc/go.mod h1:M/HTJUVMSAdqynAJHQD3mwsE8lAl6vT/EXED6jqEKSo=
 github.com/celo-org/kliento v0.2.1-0.20210315163928-407560c532d2 h1:WY2yqG6Bb/Npql+xxvm0aUq6ljO/uj+SoRbLQkfP/uI=
