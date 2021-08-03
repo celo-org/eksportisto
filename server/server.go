@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"net/http"
+	_ "net/http/pprof"
 	"time"
 
 	"github.com/celo-org/celo-blockchain/log"
@@ -43,6 +44,9 @@ func defineRoutes(cfg *HttpServerConfig) http.Handler {
 	r := mux.NewRouter()
 	r.HandleFunc("/health", healthCheckHandler)
 	r.Handle("/metrics", promhttp.Handler())
+	if cfg.PprofServerEnabled {
+		r.PathPrefix("/debug/").Handler(http.DefaultServeMux)
+	}
 
 	mainHandler := requestLogHandler(r)
 	mainHandler = http.TimeoutHandler(mainHandler, cfg.RequestTimeout, "Request Timed out")

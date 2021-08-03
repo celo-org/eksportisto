@@ -22,6 +22,7 @@ func main() {
 	flag.UintVar(&httpConfig.Port, "port", 8080, "Listening port for http server")
 	flag.StringVar(&httpConfig.Interface, "address", "", "Listening address for http server")
 	flag.DurationVar(&httpConfig.RequestTimeout, "reqTimeout", 25*time.Second, "Timeout when serving a request")
+	flag.BoolVar(&httpConfig.PprofServerEnabled, "pprof-server", false, "Enable the pprof debug server")
 
 	var monitorConfig monitor.Config
 	flag.StringVar(&monitorConfig.NodeUri, "nodeUri", "ws://localhost:8546", "Connection string for celo-blockchain node")

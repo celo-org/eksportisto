@@ -6,9 +6,10 @@ import (
 )
 
 type HttpServerConfig struct {
-	Port           uint
-	Interface      string
-	RequestTimeout time.Duration
+	Port               uint
+	PprofServerEnabled bool
+	Interface          string
+	RequestTimeout     time.Duration
 }
 
 func (hs *HttpServerConfig) ListenAddress() string {
