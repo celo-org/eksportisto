@@ -128,7 +128,7 @@ func Start(ctx context.Context, cfg *Config) error {
 	return g.Wait()
 }
 
-func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *types.Header, cc *client.CeloClient, logger log.Logger, dbWriter db.RosettaDBWriter, cfg *Config) error {
+func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *types.Header, cc *client.CeloClient, baseLogger log.Logger, dbWriter db.RosettaDBWriter, cfg *Config) error {
 	r, err := registry.New(cc)
 	if err != nil {
 		return err
@@ -155,9 +155,10 @@ func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *ty
 			return ctx.Err()
 		case h = <-headers:
 		}
-		logHeader(logger, h)
+		blockProcessStartedAt := time.Now()
 
-		logger = logger.New("blockTimestamp", time.Unix(int64(h.Time), 0).Format(time.RFC3339), "blockNumber", h.Number.Int64(), "blockGasUsed", h.GasUsed)
+		logHeader(baseLogger, h)
+		logger := baseLogger.New("blockTimestamp", time.Unix(int64(h.Time), 0).Format(time.RFC3339), "blockNumber", h.Number.Int64(), "blockGasUsed", h.GasUsed)
 
 		finishHeader := func(ctx context.Context) error {
 			if err := dbWriter.ApplyChanges(ctx, h.Number); err != nil {
