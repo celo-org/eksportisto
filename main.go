@@ -20,7 +20,7 @@ import (
 func main() {
 	// Create a large heap allocation of 200mb
 	// See https://blog.twitch.tv/en/2019/04/10/go-memory-ballast-how-i-learnt-to-stop-worrying-and-love-the-heap-26c2462549a2/
-	ballast := make([]byte, 2<<29)
+	ballast := make([]byte, 2<<30)
 	_ = ballast
 
 	var httpConfig server.HttpServerConfig
