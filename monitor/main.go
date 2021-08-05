@@ -140,6 +140,14 @@ func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *ty
 
 	celoTokens := celotokens.New(r)
 
+	supported, err := cc.Rpc.SupportedModules()
+	if err != nil {
+		return err
+	}
+	_, debugEnabled := supported["debug"]
+
+	sensitiveAccounts := getSensitiveAccounts(cfg.SensitiveAccountsFilePath)
+
 	var h *types.Header
 	for {
 		select {
