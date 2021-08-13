@@ -13,35 +13,22 @@ type rosettaSqlDb struct {
 	db *sql.DB
 
 	getLastBlockStmt          *sql.Stmt
-	updateLastBlockStmt       *sql.Stmt
 	getRegistryAddressStmt    *sql.Stmt
 	getGasPriceMinimumStmt    *sql.Stmt
 	insertGasPriceMinimumStmt *sql.Stmt
 	insertRegistryAddressStmt *sql.Stmt
+	insertBlockStmt           *sql.Stmt
 }
 
 func initDatabase(db *sql.DB) error {
 	schema := []string{
 		"CREATE table IF NOT EXISTS registry (contract text, fromBlock integer, fromTx integer, address blob)",
 		"CREATE table IF NOT EXISTS gasPriceMinimum (fromBlock integer, val blob)",
-		"CREATE table IF NOT EXISTS stats (lastBlock integer not null DEFAULT 0)",
+		"CREATE table IF NOT EXISTS blocks (number integer not null DEFAULT 0, created_at datetime DEFAULT (datetime('now')))",
 	}
 
 	for _, sqlString := range schema {
 		if _, err := db.Exec(sqlString); err != nil {
-			return err
-		}
-	}
-
-	// Insert an initial lastBlock if none found
-	var count uint
-	if err := db.QueryRow("SELECT count(lastBlock) FROM stats").Scan(&count); err != nil {
-		return err
-	}
-
-	if count == 0 {
-		_, err := db.Exec(`INSERT INTO stats (lastBlock) VALUES(?)`, 0)
-		if err != nil {
 			return err
 		}
 	}
@@ -59,7 +46,7 @@ func NewSqliteDb(dbpath string) (*rosettaSqlDb, error) {
 		return nil, err
 	}
 
-	updateLastBlockStmt, err := db.Prepare("UPDATE stats SET lastBlock = $1")
+	insertBlockStmt, err := db.Prepare("INSERT INTO blocks (number) VALUES (?)")
 	if err != nil {
 		return nil, err
 	}
@@ -74,7 +61,7 @@ func NewSqliteDb(dbpath string) (*rosettaSqlDb, error) {
 		return nil, err
 	}
 
-	getLastBlockStmt, err := db.Prepare("SELECT lastBlock FROM stats")
+	getLastBlockStmt, err := db.Prepare("SELECT coalesce(max(number), 0) as number FROM blocks")
 	if err != nil {
 		return nil, err
 	}
@@ -104,8 +91,8 @@ func NewSqliteDb(dbpath string) (*rosettaSqlDb, error) {
 	return &rosettaSqlDb{
 		db:                        db,
 		getLastBlockStmt:          getLastBlockStmt,
-		updateLastBlockStmt:       updateLastBlockStmt,
 		getRegistryAddressStmt:    getRegistryAddressStmt,
+		insertBlockStmt:           insertBlockStmt,
 		getGasPriceMinimumStmt:    getGasPriceMinimumStmt,
 		insertGasPriceMinimumStmt: insertGasPriceMinimumStmt,
 		insertRegistryAddressStmt: insertRegistryAddressStmt,
@@ -194,13 +181,12 @@ func (cs *rosettaSqlDb) RegistryAddressesStartOf(ctx context.Context, block *big
 }
 
 func (cs *rosettaSqlDb) ApplyChanges(ctx context.Context, blockNumber *big.Int) error {
-
 	tx, err := cs.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
 
-	_, err = tx.StmtContext(ctx, cs.updateLastBlockStmt).ExecContext(ctx, blockNumber.Int64())
+	_, err = tx.StmtContext(ctx, cs.insertBlockStmt).ExecContext(ctx, blockNumber.Int64())
 	if err != nil {
 		if rollbackErr := tx.Rollback(); rollbackErr != nil {
 			return rollbackErr
