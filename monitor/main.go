@@ -115,7 +115,7 @@ func Start(ctx context.Context, cfg *Config) error {
 	} else {
 		bigInt, ok := new(big.Int).SetString(cfg.FromBlock, 10)
 		if !ok {
-			return fmt.Errorf("Unable to parse FromBlock %s", cfg.FromBlock)
+			return fmt.Errorf("unable to parse FromBlock %s", cfg.FromBlock)
 		}
 		startBlock = bigInt
 	}
@@ -128,7 +128,7 @@ func Start(ctx context.Context, cfg *Config) error {
 	return g.Wait()
 }
 
-func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *types.Header, cc *client.CeloClient, logger log.Logger, dbWriter db.RosettaDBWriter, cfg *Config) error {
+func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *types.Header, cc *client.CeloClient, baseLogger log.Logger, dbWriter db.RosettaDBWriter, cfg *Config) error {
 	r, err := registry.New(cc)
 	if err != nil {
 		return err
@@ -155,9 +155,10 @@ func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *ty
 			return ctx.Err()
 		case h = <-headers:
 		}
-		logHeader(logger, h)
+		blockProcessStartedAt := time.Now()
 
-		logger = logger.New("blockTimestamp", time.Unix(int64(h.Time), 0).Format(time.RFC3339), "blockNumber", h.Number.Int64(), "blockGasUsed", h.GasUsed)
+		logHeader(baseLogger, h)
+		logger := baseLogger.New("blockTimestamp", time.Unix(int64(h.Time), 0).Format(time.RFC3339), "blockNumber", h.Number.Int64(), "blockGasUsed", h.GasUsed)
 
 		finishHeader := func(ctx context.Context) error {
 			if err := dbWriter.ApplyChanges(ctx, h.Number); err != nil {
@@ -165,6 +166,7 @@ func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *ty
 			}
 
 			metrics.LastBlockProcessed.Set(float64(h.Number.Int64()))
+			metrics.ProcessBlockDuration.Observe(float64(time.Since(blockProcessStartedAt)) / float64(time.Second))
 			return nil
 		}
 
@@ -321,53 +323,60 @@ func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *ty
 			eventHandlers[exchangeRegistryID] = exchangeProcessor
 		}
 
-		for txIndex, tx := range txs {
-			txHash := tx.Hash()
+		for _txIndex, _tx := range txs {
+			txIndex := _txIndex
+			tx := _tx
 
-			txLogger := logger.New("txHash", txHash, "txIndex", txIndex)
+			g.Go(func() error {
+				txHash := tx.Hash()
+				txLogger := logger.New("txHash", txHash, "txIndex", txIndex)
 
-			receipt, err := cc.Eth.TransactionReceipt(transactionCtx, txHash)
-			if err != nil {
-				return err
-			}
+				receipt, err := cc.Eth.TransactionReceipt(transactionCtx, txHash)
+				if err != nil {
+					return err
+				}
 
-			logTransaction(txLogger, "gasPrice", tx.GasPrice(), "gasUsed", receipt.GasUsed)
+				logTransaction(txLogger, "gasPrice", tx.GasPrice(), "gasUsed", receipt.GasUsed)
 
-			metrics.GasPrice.Set(utils.ScaleFixed(tx.GasPrice()))
+				metrics.GasPrice.Set(utils.ScaleFixed(tx.GasPrice()))
 
-			for eventIdx, eventLog := range receipt.Logs {
-				parseAndLogEvent(txLogger, eventIdx, eventLog)
-			}
+				for eventIdx, eventLog := range receipt.Logs {
+					parseAndLogEvent(txLogger, eventIdx, eventLog)
+				}
 
-			if !debugEnabled {
-				continue
-			}
-			internalTransfers, err := cc.Debug.TransactionTransfers(transactionCtx, txHash)
-			if skipContractMetrics(err) {
-				continue
-			} else if err != nil {
-				return err
-			}
-			for _, internalTransfer := range internalTransfers {
-				logTransfer(txLogger, "currencySymbol", "CELO", "from", internalTransfer.From, "to", internalTransfer.To, "value", internalTransfer.Value)
-				if tipMode && sensitiveAccounts[internalTransfer.From] != "" {
-					err = notifyFundsMoved(internalTransfer, sensitiveAccounts[internalTransfer.From])
-					if err != nil {
-						logger.Error(err.Error())
+				if !debugEnabled {
+					return nil
+				}
+				internalTransfers, err := cc.Debug.TransactionTransfers(transactionCtx, txHash)
+				if skipContractMetrics(err) {
+					return nil
+				} else if err != nil {
+					return err
+				}
+				for _, internalTransfer := range internalTransfers {
+					logTransfer(txLogger, "currencySymbol", "CELO", "from", internalTransfer.From, "to", internalTransfer.To, "value", internalTransfer.Value)
+					if tipMode && sensitiveAccounts[internalTransfer.From] != "" {
+						err = notifyFundsMoved(internalTransfer, sensitiveAccounts[internalTransfer.From])
+						if err != nil {
+							logger.Error(err.Error())
+						}
 					}
 				}
-			}
+				return nil
+			})
 		}
 
 		if tipMode {
 			g.Go(func() error { return epochRewardsProcessor.ObserveMetric(opts) })
 			g.Go(func() error { return sortedOraclesProcessor.ObserveMetric(opts, h.Time) })
 			// Celo token processors
-			for _, processor := range celoTokenProcessors {
+			for _, _processor := range celoTokenProcessors {
+				processor := _processor
 				g.Go(func() error { return processor.ObserveMetric(opts) })
 			}
 			// processors
-			for _, processor := range exchangeProcessors {
+			for _, _processor := range exchangeProcessors {
+				processor := _processor
 				g.Go(func() error { return processor.ObserveMetric(opts) })
 			}
 		}
@@ -376,7 +385,8 @@ func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *ty
 			g.Go(func() error { return reserveProcessor.ObserveState(opts) })
 			g.Go(func() error { return sortedOraclesProcessor.ObserveState(opts) })
 			// Celo token processors
-			for _, processor := range celoTokenProcessors {
+			for _, _processor := range celoTokenProcessors {
+				processor := _processor
 				g.Go(func() error { return processor.ObserveState(opts) })
 			}
 		}
@@ -387,7 +397,8 @@ func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *ty
 			g.Go(func() error { return lockedGoldProcessor.ObserveState(opts) })
 			g.Go(func() error { return reserveProcessor.ObserveState(opts) })
 			// processors
-			for _, processor := range exchangeProcessors {
+			for _, _processor := range exchangeProcessors {
+				processor := _processor
 				g.Go(func() error { return processor.ObserveState(opts) })
 			}
 
