@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"math/big"
 	"net/http"
@@ -12,6 +13,7 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+	"unicode"
 
 	"github.com/celo-org/eksportisto/db"
 	"github.com/celo-org/eksportisto/metrics"
@@ -36,6 +38,7 @@ type Config struct {
 	DataDir                   string
 	SensitiveAccountsFilePath string
 	FromBlock                 string
+	Output                    io.Writer
 }
 
 var EpochSize = uint64(17280)   // 17280 = 12 * 60 * 24
@@ -59,6 +62,18 @@ func getSensitiveAccounts(filePath string) map[common.Address]string {
 	}
 
 	return addresses
+}
+
+func lowerCaseFieldNames(fields []interface{}) []interface{} {
+	newFields := make([]interface{}, len(fields))
+	for i := 0; i < len(fields); i += 2 {
+		fieldRunes := []rune(fields[i].(string))
+		fieldRunes[0] = unicode.ToLower(fieldRunes[0])
+		newFields[i] = string(fieldRunes)
+		newFields[i+1] = fields[i+1]
+	}
+
+	return newFields
 }
 
 func notifyFundsMoved(transfer debug.Transfer, url string) error {
@@ -85,7 +100,7 @@ func notifyFundsMoved(transfer debug.Transfer, url string) error {
 }
 
 func Start(ctx context.Context, cfg *Config) error {
-	handler := log.LvlFilterHandler(log.LvlInfo, log.StreamHandler(os.Stdout, log.JSONFormat()))
+	handler := log.LvlFilterHandler(log.LvlInfo, log.StreamHandler(cfg.Output, log.JSONFormat()))
 	logger := log.New()
 	logger.SetHandler(handler)
 	cc, err := client.Dial(cfg.NodeUri)
@@ -197,7 +212,7 @@ func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *ty
 				if err != nil {
 					eventLogger.Error("event slice encoding failed", "contract", parsed.Contract, "event", parsed.Event, "err", err)
 				} else {
-					logEventLog(eventLogger, append([]interface{}{"contract", parsed.Contract, "event", parsed.Event}, logSlice...)...)
+					logEventLog(eventLogger, append([]interface{}{"contract", parsed.Contract, "event", parsed.Event}, lowerCaseFieldNames(logSlice)...)...)
 				}
 			} else {
 				eventLogger.Warn("log source unknown, logging raw event")

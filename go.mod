@@ -3,6 +3,7 @@ module github.com/celo-org/eksportisto
 go 1.13
 
 require (
+	cloud.google.com/go/pubsub v1.15.0
 	github.com/Nvveen/Gotty v0.0.0-20120604004816-cd527374f1e5 // indirect
 	github.com/celo-org/celo-blockchain v1.3.2
 	github.com/celo-org/kliento v0.2.1-0.20210512182137-971739185f65
@@ -20,8 +21,7 @@ require (
 	github.com/opencontainers/go-digest v1.0.0-rc1 // indirect
 	github.com/opencontainers/image-spec v1.0.1 // indirect
 	github.com/prometheus/client_golang v1.5.1
-	github.com/stretchr/testify v1.5.1 // indirect
-	golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9
+	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 )
 
 // DO NOT CHANGE DIRECTORY: Create a symlink so this works
