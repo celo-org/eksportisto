@@ -8,10 +8,11 @@ import (
 	"github.com/celo-org/celo-blockchain/log"
 	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/spf13/viper"
 )
 
 // Start will start the http metrics server
-func Start(ctx context.Context, cfg *HttpServerConfig) error {
+func StartWithConfig(ctx context.Context, cfg *HttpServerConfig) error {
 
 	handler := defineRoutes(cfg)
 
@@ -48,4 +49,12 @@ func defineRoutes(cfg *HttpServerConfig) http.Handler {
 	mainHandler = http.TimeoutHandler(mainHandler, cfg.RequestTimeout, "Request Timed out")
 
 	return mainHandler
+}
+
+func Start(ctx context.Context) error {
+	return StartWithConfig(ctx, &HttpServerConfig{
+		Port:           viper.GetUint("monitoring.port"),
+		Interface:      viper.GetString("monitoring.address"),
+		RequestTimeout: viper.GetDuration("monitoring.requestTimeoutSeconds") * time.Second,
+	})
 }
