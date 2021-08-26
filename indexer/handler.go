@@ -3,6 +3,8 @@ package indexer
 import (
 	"context"
 	"math/big"
+	"strings"
+	"time"
 
 	"github.com/celo-org/celo-blockchain/common"
 	"github.com/celo-org/celo-blockchain/core/types"
@@ -83,6 +85,11 @@ func (handler *blockHandler) run(ctx context.Context) (err error) {
 	group, ctx := errgroup.WithContext(ctx)
 	rowsChan := make(chan *Row, 1000)
 
+	err = handler.loadBlock(ctx)
+	if err != nil {
+		return err
+	}
+
 	group.Go(func() error { return handler.spawnProcessors(ctx, rowsChan) })
 	group.Go(func() error {
 		rows := make([]*Row, 0, 1000)
@@ -104,6 +111,27 @@ func (handler *blockHandler) run(ctx context.Context) (err error) {
 	return group.Wait()
 }
 
+func (handler *blockHandler) loadBlock(ctx context.Context) error {
+	var err error
+	handler.block, err = handler.celoClient.Eth.BlockByNumber(ctx, handler.blockNumber)
+	if err != nil {
+		if strings.Contains(err.Error(), "cannot unmarshal") {
+			return nil
+		}
+		return err
+	}
+
+	handler.transactions = handler.block.Transactions()
+
+	handler.blockRow = NewRow(
+		"blockTimestamp", time.Unix(int64(handler.block.Time()), 0).Format(time.RFC3339),
+		"blockNumber", handler.block.NumberU64(),
+		"blockGasUsed", handler.block.GasUsed(),
+	).WithId(handler.block.Number().String())
+
+	return nil
+}
+
 // spawnProcessors initializes all processors by using the Factories, and execute
 // extract data methods collecting all rows in the provided channel.
 func (handler *blockHandler) spawnProcessors(ctx context.Context, rowsChan chan *Row) error {
@@ -117,7 +145,7 @@ func (handler *blockHandler) spawnProcessors(ctx context.Context, rowsChan chan 
 		func(processor Processor) {
 			if handler.isTip {
 				group.Go(func() error {
-					return processor.ObserveMetrics(ctx)
+					return handler.checkError(processor.ObserveMetrics(ctx))
 				})
 			}
 			if processor.ShouldCollect() {

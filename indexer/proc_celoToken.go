@@ -37,12 +37,18 @@ func (celoTokenProcessorFactory) InitProcessors(
 			return nil, err
 		}
 
+		totalSupplyGauge, err := metrics.CeloTokenSupply.GetMetricWithLabelValues(string(token))
+		if err != nil {
+			return nil, err
+		}
+
 		processors = append(processors, &celoTokenProcessor{
-			blockHandler:    handler,
-			logger:          handler.logger.New("processor", "celoToken", "contract", string(tokenRegistryID)),
-			token:           token,
-			tokenContract:   contract,
-			tokenRegistryID: tokenRegistryID,
+			blockHandler:     handler,
+			logger:           handler.logger.New("processor", "celoToken", "contract", string(tokenRegistryID)),
+			token:            token,
+			tokenContract:    contract,
+			tokenRegistryID:  tokenRegistryID,
+			totalSupplyGauge: totalSupplyGauge,
 		})
 	}
 
@@ -56,15 +62,6 @@ type celoTokenProcessor struct {
 	tokenContract    contracts.CeloTokenContract
 	tokenRegistryID  registry.ContractID
 	totalSupplyGauge prometheus.Gauge
-}
-
-func (proc *celoTokenProcessor) Init(ctx context.Context) error {
-	var err error
-	proc.totalSupplyGauge, err = metrics.CeloTokenSupply.GetMetricWithLabelValues(string(proc.token))
-	if err != nil {
-		return err
-	}
-	return nil
 }
 
 func (proc *celoTokenProcessor) EventHandler() (registry.ContractID, EventHandler) {

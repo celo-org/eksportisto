@@ -190,7 +190,6 @@ func (proc sortedOraclesProcessor) ObserveMetrics(ctx context.Context) error {
 		BlockNumber: proc.blockNumber,
 		Context:     ctx,
 	}
-	blockTime := proc.block.Time()
 
 	stableTokenStr := string(proc.stableToken)
 	isOldestReportExpired, _, err := proc.sortedOracles.IsOldestReportExpired(opts, proc.address)
@@ -260,7 +259,11 @@ func (proc sortedOraclesProcessor) ObserveMetrics(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	sortedOraclesMedianTimestampGauge.Set(float64(blockTime - medianTimestamp.Uint64()))
+
+	if proc.block != nil {
+		blockTime := proc.block.Time()
+		sortedOraclesMedianTimestampGauge.Set(float64(blockTime - medianTimestamp.Uint64()))
+	}
 
 	celoBucketSize, stableBucketSize, err := proc.exchange.GetBuyAndSellBuckets(opts, true)
 

@@ -5,8 +5,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"strings"
-	"time"
 
 	"github.com/celo-org/celo-blockchain/common"
 	"github.com/celo-org/celo-blockchain/core/types"
@@ -23,6 +21,10 @@ func (chaindataProcessorFactory) InitProcessors(
 	_ context.Context,
 	handler *blockHandler,
 ) ([]Processor, error) {
+	if handler.block == nil {
+		return nil, &SkipProcessorError{Reason: fmt.Errorf("block unmarshal error")}
+	}
+
 	return []Processor{
 		&chaindataProcessor{
 			blockHandler: handler,
@@ -46,22 +48,6 @@ func (proc *chaindataProcessor) ShouldCollect() bool {
 }
 
 func (proc *chaindataProcessor) CollectData(ctx context.Context, rows chan *Row) error {
-	var err error
-	proc.block, err = proc.celoClient.Eth.BlockByNumber(ctx, proc.blockNumber)
-	if err != nil {
-		if strings.Contains(err.Error(), "cannot unmarshal") {
-			return &SkipProcessorError{Reason: err}
-		}
-		return err
-	}
-
-	proc.transactions = proc.block.Transactions()
-	proc.blockRow = NewRow(
-		"blockTimestamp", time.Unix(int64(proc.block.Time()), 0).Format(time.RFC3339),
-		"blockNumber", proc.block.NumberU64(),
-		"blockGasUsed", proc.block.GasUsed(),
-	).WithId(proc.block.Number().String())
-
 	rows <- proc.blockRow.Extend("type", "Block")
 	group, ctx := errgroup.WithContext(ctx)
 	for txIndex, tx := range proc.transactions {

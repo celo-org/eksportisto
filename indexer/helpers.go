@@ -74,8 +74,6 @@ func (handler *blockHandler) extractEvent(
 			).Extend(logSlice...)
 		}
 	} else {
-		logger.Warn("log source unknown, logging raw event")
-
 		getTopic := func(index int) interface{} {
 			if len(eventLog.Topics) > index {
 				return eventLog.Topics[index]
