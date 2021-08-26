@@ -74,7 +74,7 @@ func (proc *celoTokenProcessor) ShouldCollect() bool {
 	return utils.ShouldSample(proc.blockNumber.Uint64(), BlocksPerHour)
 }
 
-func (proc celoTokenProcessor) CollectData(ctx context.Context, rows chan interface{}) error {
+func (proc celoTokenProcessor) CollectData(ctx context.Context, rows chan *Row) error {
 	opts := &bind.CallOpts{
 		BlockNumber: proc.blockNumber,
 		Context:     ctx,

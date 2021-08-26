@@ -34,7 +34,7 @@ func (proc *epochLogsProcessor) ShouldCollect() bool {
 	return utils.ShouldSample(proc.blockNumber.Uint64(), EpochSize)
 }
 
-func (proc *epochLogsProcessor) CollectData(ctx context.Context, rows chan interface{}) error {
+func (proc *epochLogsProcessor) CollectData(ctx context.Context, rows chan *Row) error {
 	filterLogs, err := proc.celoClient.Eth.FilterLogs(ctx, celo.FilterQuery{
 		FromBlock: proc.blockNumber,
 		ToBlock:   proc.blockNumber,

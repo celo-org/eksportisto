@@ -18,10 +18,10 @@ var (
 		Help: "Gas paid in a tx",
 	})
 
-	LastBlockProcessed = prometheus.NewGauge(prometheus.GaugeOpts{
+	LastBlockProcessed = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "last_block_processed",
 		Help: "Last Block Processed by eksportisto",
-	})
+	}, []string{"queue"})
 
 	ProcessBlockDuration = prometheus.NewHistogram(prometheus.HistogramOpts{
 		Name:    "process_block_duration",

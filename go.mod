@@ -3,6 +3,7 @@ module github.com/celo-org/eksportisto
 go 1.13
 
 require (
+	cloud.google.com/go/bigquery v1.8.0
 	github.com/Nvveen/Gotty v0.0.0-20120604004816-cd527374f1e5 // indirect
 	github.com/celo-org/celo-blockchain v1.3.2
 	github.com/celo-org/kliento v0.2.1-0.20210512182137-971739185f65

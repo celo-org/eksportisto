@@ -43,7 +43,7 @@ func (proc *epochRewardsProcessor) ShouldCollect() bool {
 	return utils.ShouldSample(proc.blockNumber.Uint64(), EpochSize)
 }
 
-func (proc epochRewardsProcessor) CollectData(ctx context.Context, rows chan interface{}) error {
+func (proc epochRewardsProcessor) CollectData(ctx context.Context, rows chan *Row) error {
 	opts := &bind.CallOpts{
 		BlockNumber: proc.blockNumber,
 		Context:     ctx,

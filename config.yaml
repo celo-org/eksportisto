@@ -22,11 +22,14 @@ publisher:
     enabled: false
 
 indexer:
+  bigquery:
+    projectID: celo-testnet-production
+    dataset: rc1_eksportisto_14
+    table: test
+  dest: bigquery
   sleepIntervalMilliseconds: 100
-  workers: 3
+  workers: 1
   workerNodeURIs:
-    - "http://localhost:6545"
-    - "http://localhost:6545"
     - "http://localhost:6545"
   
 

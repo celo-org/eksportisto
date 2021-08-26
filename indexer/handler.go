@@ -2,16 +2,12 @@ package indexer
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
 	"math/big"
 
 	"github.com/celo-org/celo-blockchain/common"
 	"github.com/celo-org/celo-blockchain/core/types"
 	"github.com/celo-org/celo-blockchain/log"
-	"github.com/celo-org/eksportisto/indexer/data"
 	"github.com/celo-org/kliento/celotokens"
-	"github.com/celo-org/kliento/contracts/helpers"
 	"github.com/celo-org/kliento/registry"
 	"golang.org/x/sync/errgroup"
 )
@@ -57,7 +53,7 @@ func (w *worker) newBaseBlockHandler() (*baseBlockHandler, error) {
 type blockHandler struct {
 	*baseBlockHandler
 	blockNumber   *big.Int
-	blockRow      *data.Row
+	blockRow      *Row
 	logger        log.Logger
 	isTip         bool
 	block         *types.Block
@@ -67,29 +63,29 @@ type blockHandler struct {
 
 // newBlockHandler is called to instantiate a handler for a current
 // block height. The struct lives as long as a block is being processed.
-func (w *worker) newBlockHandler(blockNumber uint64, isTip bool) (*blockHandler, error) {
+func (w *worker) newBlockHandler(b block) (*blockHandler, error) {
 	handler := &blockHandler{
 		baseBlockHandler: w.baseBlockHandler,
-		blockNumber:      big.NewInt(int64(blockNumber)),
-		logger:           w.logger.New("block", blockNumber),
-		blockRow:         data.NewRow("blockNumber", blockNumber),
-		isTip:            isTip,
+		blockNumber:      big.NewInt(int64(b.number)),
+		logger:           w.logger.New("block", b.number),
+		blockRow:         NewRow("blockNumber", b.number),
+		isTip:            b.fromTip(),
 		eventHandlers:    make(map[registry.ContractID]EventHandler),
 	}
 
 	return handler, nil
 }
 
-// run starts the processing of a block
+// run starts the processing of a block by firing all processors
+// and a routine to collect rows from a channel
 func (handler *blockHandler) run(ctx context.Context) (err error) {
 	handler.registry.EnableCaching(ctx, handler.blockNumber)
 	group, ctx := errgroup.WithContext(ctx)
-	rowsChan := make(chan interface{}, 1000)
+	rowsChan := make(chan *Row, 1000)
 
 	group.Go(func() error { return handler.spawnProcessors(ctx, rowsChan) })
 	group.Go(func() error {
-		// Collect all rows from the channel
-		// rows := make([]interface{}, 100)
+		rows := make([]*Row, 0, 1000)
 	Loop:
 		for {
 			select {
@@ -97,14 +93,12 @@ func (handler *blockHandler) run(ctx context.Context) (err error) {
 				if !hasMore {
 					break Loop
 				}
-				marshal, _ := json.Marshal(row)
-				handler.logger.Info(string(marshal))
-				// rows = append(rows, row)
+				rows = append(rows, row)
 			case <-ctx.Done():
 				break Loop
 			}
 		}
-		return nil
+		return handler.output.Write(rows)
 	})
 
 	return group.Wait()
@@ -112,7 +106,7 @@ func (handler *blockHandler) run(ctx context.Context) (err error) {
 
 // spawnProcessors initializes all processors by using the Factories, and execute
 // extract data methods collecting all rows in the provided channel.
-func (handler *blockHandler) spawnProcessors(ctx context.Context, rowsChan chan interface{}) error {
+func (handler *blockHandler) spawnProcessors(ctx context.Context, rowsChan chan *Row) error {
 	group, ctx := errgroup.WithContext(ctx)
 	processors, err := handler.initializeProcessors(ctx)
 	if err != nil {
@@ -140,7 +134,9 @@ func (handler *blockHandler) spawnProcessors(ctx context.Context, rowsChan chan 
 }
 
 // initializeProcessors creates instances of all the processors that can run at
-// the current blockHeight. Some are skipped if contracts are not deployed yet
+// the current blockHeight. Some are skipped if contracts are not deployed yet.
+// This is parallelized because factory initialization sometimes talks to nodes
+// as well and that blocks execution if we do it sequentially.
 func (handler *blockHandler) initializeProcessors(ctx context.Context) ([]Processor, error) {
 	processorChan := make(chan Processor, 100)
 	group, ctx := errgroup.WithContext(ctx)
@@ -148,7 +144,7 @@ func (handler *blockHandler) initializeProcessors(ctx context.Context) ([]Proces
 	for _, processorFactory := range Factories {
 		func(processorFactory ProcessorFactory) {
 			group.Go(func() error {
-				return handler.initializeFactory(ctx, processorFactory, processorChan)
+				return handler.initializeProcessorsForFactory(ctx, processorFactory, processorChan)
 			})
 		}(processorFactory)
 	}
@@ -168,7 +164,10 @@ func (handler *blockHandler) initializeProcessors(ctx context.Context) ([]Proces
 	return processors, nil
 }
 
-func (handler *blockHandler) initializeFactory(
+// initializeProcessorsForFactory sets up all processors
+// for a factory if they can run for the current block height
+// and sends them on a channel
+func (handler *blockHandler) initializeProcessorsForFactory(
 	ctx context.Context,
 	factory ProcessorFactory,
 	processorChan chan Processor,
@@ -199,52 +198,6 @@ func (handler *blockHandler) initializeFactory(
 		}
 
 		processorChan <- processor
-	}
-	return nil
-}
-
-func (handler *blockHandler) extractEvent(ctx context.Context, txHash common.Hash, eventIdx int, eventLog *types.Log, txRow *data.Row, rows chan interface{}) error {
-	logger := handler.logger.New("txHash", txHash.String(), "logTxIndex", eventIdx, "logBlockIndex", eventLog.Index)
-	eventRow := txRow.Extend("logTxIndex", eventIdx, "logBlockIndex", eventLog.Index).WithId(
-		fmt.Sprintf("%s.event.%d", txHash.String(), eventIdx),
-	)
-
-	parsed, err := handler.registry.TryParseLog(ctx, *eventLog, handler.blockNumber)
-	if err != nil {
-		logger.Error("log parsing failed", "err", err)
-	} else if parsed != nil {
-		// If the contract with the event has an event handler, call it with the parsed event
-		if handler.isTip {
-			if handler, ok := handler.eventHandlers[registry.ContractID(parsed.Contract)]; ok {
-				handler.HandleEvent(parsed)
-			}
-		}
-		logSlice, err := helpers.EventToSlice(parsed.Log)
-		if err != nil {
-			logger.Error("event slice encoding failed", "contract", parsed.Contract, "event", parsed.Event, "err", err)
-		} else {
-			rows <- eventRow.Extend(
-				"contract", parsed.Contract,
-				"event", parsed.Event,
-			).Extend(logSlice...)
-		}
-	} else {
-		logger.Warn("log source unknown, logging raw event")
-
-		getTopic := func(index int) interface{} {
-			if len(eventLog.Topics) > index {
-				return eventLog.Topics[index]
-			} else {
-				return nil
-			}
-		}
-		rows <- eventRow.Extend(
-			"topic0", getTopic(0),
-			"topic1", getTopic(1),
-			"topic2", getTopic(2),
-			"topic3", getTopic(3),
-			"data", eventLog.Data,
-		)
 	}
 	return nil
 }

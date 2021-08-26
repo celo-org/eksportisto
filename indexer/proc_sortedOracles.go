@@ -62,7 +62,7 @@ func (proc *sortedOraclesProcessor) Init(ctx context.Context) error {
 		exchange, ok := exchanges[stableToken]
 		// This should never happen, but let's be safe
 		if !ok || exchange == nil {
-			return fmt.Errorf("no exchange provided for stable token %s", stableToken)
+			return &SkipProcessorError{Reason: fmt.Errorf("no exchange provided for stable token %s", stableToken)}
 		}
 		registryID, err := celotokens.GetRegistryID(stableToken)
 		if err != nil {
@@ -87,7 +87,7 @@ func (proc *sortedOraclesProcessor) ShouldCollect() bool {
 	return utils.ShouldSample(proc.blockNumber.Uint64(), BlocksPerHour)
 }
 
-func (proc sortedOraclesProcessor) CollectData(ctx context.Context, rows chan interface{}) error {
+func (proc sortedOraclesProcessor) CollectData(ctx context.Context, rows chan *Row) error {
 	opts := &bind.CallOpts{
 		BlockNumber: proc.blockNumber,
 		Context:     ctx,
@@ -102,8 +102,17 @@ func (proc sortedOraclesProcessor) CollectData(ctx context.Context, rows chan in
 	return nil
 }
 
-func (proc sortedOraclesProcessor) collectDataForStableToken(opts *bind.CallOpts, stableTokenInfo stableTokenInfo, rows chan interface{}) error {
-	contractRow := proc.blockRow.Contract("SortedOracles", "stableToken", stableTokenInfo.stableToken, "address", stableTokenInfo.address).AppendID(stableTokenInfo.address.String())
+func (proc sortedOraclesProcessor) collectDataForStableToken(
+	opts *bind.CallOpts,
+	stableTokenInfo stableTokenInfo,
+	rows chan *Row,
+) error {
+	contractRow := proc.blockRow.Contract(
+		"SortedOracles",
+		"stableToken", stableTokenInfo.stableToken,
+		"address", stableTokenInfo.address,
+	).AppendID(stableTokenInfo.address.String())
+
 	// SortedOracles.IsOldestReportExpired
 	isOldestReportExpired, lastReportAddress, err := proc.sortedOracles.IsOldestReportExpired(opts, stableTokenInfo.address)
 	if err != nil {
@@ -206,7 +215,11 @@ func (proc sortedOraclesProcessor) ObserveMetrics(ctx context.Context) error {
 	return nil
 }
 
-func (proc sortedOraclesProcessor) observeMetricForStableToken(opts *bind.CallOpts, stableTokenInfo stableTokenInfo, blockTime uint64) error {
+func (proc sortedOraclesProcessor) observeMetricForStableToken(
+	opts *bind.CallOpts,
+	stableTokenInfo stableTokenInfo,
+	blockTime uint64,
+) error {
 	stableTokenStr := string(stableTokenInfo.stableToken)
 	isOldestReportExpired, _, err := proc.sortedOracles.IsOldestReportExpired(opts, stableTokenInfo.address)
 	if err != nil {

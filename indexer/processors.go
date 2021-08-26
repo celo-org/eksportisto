@@ -8,9 +8,10 @@ import (
 	"github.com/celo-org/kliento/registry"
 )
 
+// Generic interface for a processor that runs for a block
 type Processor interface {
 	ShouldCollect() bool
-	CollectData(context.Context, chan interface{}) error
+	CollectData(context.Context, chan *Row) error
 	ObserveMetrics(context.Context) error
 	Init(context.Context) error
 	Logger() log.Logger
@@ -26,7 +27,7 @@ type EventHandler interface {
 }
 
 var Factories = []ProcessorFactory{
-	// Ordering is important here, as some processors
+	// Ordering can be important here, as some processors
 	// rely on previous ones to load data.
 	chaindataProcessorFactory{},
 	exchangeProcessorFactory{},
@@ -39,6 +40,7 @@ var Factories = []ProcessorFactory{
 	epochLogsProcessorFactory{},
 }
 
+// Error that doesn't bubble up, but only results in the processor being skipped
 type SkipProcessorError struct {
 	Reason error
 }

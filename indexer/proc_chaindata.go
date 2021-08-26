@@ -11,7 +11,6 @@ import (
 	"github.com/celo-org/celo-blockchain/common"
 	"github.com/celo-org/celo-blockchain/core/types"
 	"github.com/celo-org/celo-blockchain/log"
-	"github.com/celo-org/eksportisto/indexer/data"
 	"github.com/celo-org/eksportisto/metrics"
 	"github.com/celo-org/kliento/client/debug"
 	"github.com/celo-org/kliento/registry"
@@ -45,11 +44,11 @@ func (proc *chaindataProcessor) Init(ctx context.Context) error {
 	}
 
 	proc.transactions = proc.block.Transactions()
-	proc.blockRow = data.NewRow(
+	proc.blockRow = NewRow(
 		"blockTimestamp", time.Unix(int64(proc.block.Time()), 0).Format(time.RFC3339),
 		"blockNumber", proc.block.NumberU64(),
 		"blockGasUsed", proc.block.GasUsed(),
-	)
+	).WithId(proc.block.Number().String())
 
 	return nil
 }
@@ -59,7 +58,8 @@ func (proc *chaindataProcessor) ShouldCollect() bool {
 	return true
 }
 
-func (proc *chaindataProcessor) CollectData(ctx context.Context, rows chan interface{}) error {
+func (proc *chaindataProcessor) CollectData(ctx context.Context, rows chan *Row) error {
+	rows <- proc.blockRow.Extend("type", "Block")
 	group, ctx := errgroup.WithContext(ctx)
 	for txIndex, tx := range proc.transactions {
 		func(txIndex int, tx *types.Transaction) {
@@ -73,7 +73,7 @@ func (proc *chaindataProcessor) collectTransaction(
 	ctx context.Context,
 	txIndex int,
 	tx *types.Transaction,
-	rows chan interface{},
+	rows chan *Row,
 ) error {
 	txHash := tx.Hash()
 
@@ -103,7 +103,12 @@ func (proc *chaindataProcessor) collectTransaction(
 	return nil
 }
 
-func (proc *chaindataProcessor) extractInternalTransactions(ctx context.Context, txHash common.Hash, txRow *data.Row, rows chan interface{}) error {
+func (proc *chaindataProcessor) extractInternalTransactions(
+	ctx context.Context,
+	txHash common.Hash,
+	txRow *Row,
+	rows chan *Row,
+) error {
 	internalTransfers, err := proc.celoClient.Debug.TransactionTransfers(ctx, txHash)
 	if err != nil {
 		return err
@@ -116,6 +121,7 @@ func (proc *chaindataProcessor) extractInternalTransactions(ctx context.Context,
 	// }
 	for index, internalTransfer := range internalTransfers {
 		rows <- txRow.Extend(
+			"type", "Transfer",
 			"currencySymbol", "CELO",
 			"from", internalTransfer.From,
 			"to", internalTransfer.To,

@@ -41,7 +41,7 @@ func (proc *reserveProcessor) ShouldCollect() bool {
 	return utils.ShouldSample(proc.blockNumber.Uint64(), BlocksPerHour) || utils.ShouldSample(proc.blockNumber.Uint64(), EpochSize)
 }
 
-func (proc reserveProcessor) CollectData(ctx context.Context, rows chan interface{}) error {
+func (proc reserveProcessor) CollectData(ctx context.Context, rows chan *Row) error {
 	opts := &bind.CallOpts{
 		BlockNumber: proc.blockNumber,
 		Context:     ctx,
