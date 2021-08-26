@@ -246,7 +246,7 @@
     },
     {
         "name": "isOldestReportExpired",
-        "type": "STRING",
+        "type": "BOOLEAN",
         "mode": "NULLABLE"
     },
     {
