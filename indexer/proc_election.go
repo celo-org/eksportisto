@@ -12,20 +12,26 @@ import (
 
 type electionProcessorFactory struct{}
 
-func (electionProcessorFactory) New(_ context.Context, handler *blockHandler) ([]Processor, error) {
-	return []Processor{&electionProcessor{blockHandler: handler, logger: handler.logger.New("processor", "election", "contract", "Election")}}, nil
+func (electionProcessorFactory) InitProcessors(
+	ctx context.Context,
+	handler *blockHandler,
+) ([]Processor, error) {
+	election, err := handler.registry.GetElectionContract(ctx, handler.blockNumber)
+	if err != nil {
+		return nil, err
+	}
+
+	return []Processor{
+		&electionProcessor{
+			blockHandler: handler,
+			logger:       handler.logger.New("processor", "election", "contract", "Election"),
+			election:     election,
+		},
+	}, nil
 }
 
 func (proc *electionProcessor) EventHandler() (registry.ContractID, EventHandler) {
 	return "", nil
-}
-func (proc *electionProcessor) Init(ctx context.Context) error {
-	var err error
-	proc.election, err = proc.registry.GetElectionContract(ctx, proc.blockNumber)
-	if err != nil {
-		return err
-	}
-	return nil
 }
 
 type electionProcessor struct {

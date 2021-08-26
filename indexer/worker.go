@@ -39,7 +39,12 @@ func (svc *indexer) newWorker(ctx context.Context, index int) (*worker, error) {
 	logger := svc.logger.New("workerIndex", index)
 	logger.Info("Starting worker")
 
-	nodeURI := viper.GetString(fmt.Sprintf("indexer.workerNodeURIs.%d", index))
+	nodeURI := viper.GetString("indexer.celoNodeURI")
+	nodeURIOverride := viper.GetString(fmt.Sprintf("indexer.workerCeloNodeURIOverride.%d", index))
+	if nodeURIOverride != "" {
+		nodeURI = nodeURIOverride
+	}
+
 	logger.Info("Connecting to node", "nodeURI", nodeURI)
 
 	celoClient, err := client.Dial(nodeURI)

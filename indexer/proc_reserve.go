@@ -13,8 +13,21 @@ import (
 
 type reserveProcessorFactory struct{}
 
-func (reserveProcessorFactory) New(_ context.Context, handler *blockHandler) ([]Processor, error) {
-	return []Processor{&reserveProcessor{blockHandler: handler, logger: handler.logger.New("processor", "reserve", "contract", "Reserve")}}, nil
+func (reserveProcessorFactory) InitProcessors(
+	ctx context.Context,
+	handler *blockHandler,
+) ([]Processor, error) {
+	reserve, err := handler.registry.GetReserveContract(ctx, handler.blockNumber)
+	if err != nil {
+		return nil, err
+	}
+	return []Processor{
+		&reserveProcessor{
+			blockHandler: handler,
+			logger:       handler.logger.New("processor", "reserve", "contract", "Reserve"),
+			reserve:      reserve,
+		},
+	}, nil
 }
 
 type reserveProcessor struct {
@@ -26,18 +39,11 @@ type reserveProcessor struct {
 func (proc *reserveProcessor) EventHandler() (registry.ContractID, EventHandler) {
 	return "", nil
 }
-func (proc *reserveProcessor) Init(ctx context.Context) error {
-	var err error
-	proc.reserve, err = proc.registry.GetReserveContract(ctx, proc.blockNumber)
-	if err != nil {
-		return err
-	}
-	return nil
-}
 
 func (proc *reserveProcessor) ShouldCollect() bool {
 	// This processor will run once per hour or at epoch change
-	return utils.ShouldSample(proc.blockNumber.Uint64(), BlocksPerHour) || utils.ShouldSample(proc.blockNumber.Uint64(), EpochSize)
+	return (utils.ShouldSample(proc.blockNumber.Uint64(), BlocksPerHour) ||
+		utils.ShouldSample(proc.blockNumber.Uint64(), EpochSize))
 }
 
 func (proc reserveProcessor) CollectData(ctx context.Context, rows chan *Row) error {
@@ -70,7 +76,10 @@ func (proc reserveProcessor) CollectData(ctx context.Context, rows chan *Row) er
 		return err
 	}
 
-	rows <- contractRow.ViewCall("getOtherReserveAddressesGoldBalance", "otherReserveAddressesGoldBalance", otherReserveAddressesGoldBalance.String())
+	rows <- contractRow.ViewCall(
+		"getOtherReserveAddressesGoldBalance",
+		"otherReserveAddressesGoldBalance", otherReserveAddressesGoldBalance.String(),
+	)
 
 	// Reserve.getUnfrozenBalance
 	unfrozenBalance, err := proc.reserve.GetUnfrozenBalance(opts)

@@ -16,9 +16,16 @@ import (
 
 type exchangeProcessorFactory struct{}
 
-func (exchangeProcessorFactory) New(ctx context.Context, handler *blockHandler) ([]Processor, error) {
+func (exchangeProcessorFactory) InitProcessors(
+	ctx context.Context,
+	handler *blockHandler,
+) ([]Processor, error) {
 	processors := make([]Processor, 0, 20)
 	exchangeContracts, err := handler.celoTokens.GetExchangeContracts(ctx, handler.blockNumber)
+	if err != nil {
+		return nil, err
+	}
+	reserve, err := handler.registry.GetReserveContract(ctx, handler.blockNumber)
 	if err != nil {
 		return nil, err
 	}
@@ -29,12 +36,47 @@ func (exchangeProcessorFactory) New(ctx context.Context, handler *blockHandler) 
 			return nil, err
 		}
 
+		if exchangeContract == nil {
+			continue
+		}
+
+		stableTokenStr := string(stableToken)
+		exchangeBucketRatioGauge, err := metrics.ExchangeBucketRatio.GetMetricWithLabelValues(stableTokenStr)
+		if err != nil {
+			return nil, err
+		}
+		exchangeCeloBucketRatioHistogram, err := metrics.ExchangeCeloBucketRatio.GetMetricWithLabelValues(stableTokenStr)
+		if err != nil {
+			return nil, err
+		}
+		exchangeCeloBucketSizeGauge, err := metrics.ExchangeCeloBucketSize.GetMetricWithLabelValues(stableTokenStr)
+		if err != nil {
+			return nil, err
+		}
+		exchangeCeloExchangedRateGauge, err := metrics.ExchangeCeloExchangedRate.GetMetricWithLabelValues(stableTokenStr)
+		if err != nil {
+			return nil, err
+		}
+		exchangeStableBucketSizeGauge, err := metrics.ExchangeStableBucketSize.GetMetricWithLabelValues(stableTokenStr)
+		if err != nil {
+			return nil, err
+		}
+
 		processors = append(processors, &exchangeProcessor{
-			blockHandler:       handler,
-			logger:             handler.logger.New("stableToken", stableToken, "contract", string(exchangeRegistryID)),
-			stableToken:        stableToken,
-			exchange:           exchangeContract,
-			exchangeRegistryID: exchangeRegistryID,
+			blockHandler: handler,
+			logger: handler.logger.New(
+				"stableToken", stableToken,
+				"contract", string(exchangeRegistryID),
+			),
+			stableToken:                      stableToken,
+			exchange:                         exchangeContract,
+			exchangeRegistryID:               exchangeRegistryID,
+			reserve:                          reserve,
+			exchangeBucketRatioGauge:         exchangeBucketRatioGauge,
+			exchangeCeloBucketRatioHistogram: exchangeCeloBucketRatioHistogram,
+			exchangeCeloBucketSizeGauge:      exchangeCeloBucketSizeGauge,
+			exchangeCeloExchangedRateGauge:   exchangeCeloExchangedRateGauge,
+			exchangeStableBucketSizeGauge:    exchangeStableBucketSizeGauge,
 		})
 	}
 
@@ -53,36 +95,6 @@ type exchangeProcessor struct {
 	exchangeCeloExchangedRateGauge   prometheus.Gauge
 	exchangeStableBucketSizeGauge    prometheus.Gauge
 	exchangeRegistryID               registry.ContractID
-}
-
-func (proc *exchangeProcessor) Init(ctx context.Context) error {
-	var err error
-	stableTokenStr := string(proc.stableToken)
-	proc.reserve, err = proc.registry.GetReserveContract(ctx, proc.blockNumber)
-	if err != nil {
-		return err
-	}
-	proc.exchangeBucketRatioGauge, err = metrics.ExchangeBucketRatio.GetMetricWithLabelValues(stableTokenStr)
-	if err != nil {
-		return err
-	}
-	proc.exchangeCeloBucketRatioHistogram, err = metrics.ExchangeCeloBucketRatio.GetMetricWithLabelValues(stableTokenStr)
-	if err != nil {
-		return err
-	}
-	proc.exchangeCeloBucketSizeGauge, err = metrics.ExchangeCeloBucketSize.GetMetricWithLabelValues(stableTokenStr)
-	if err != nil {
-		return err
-	}
-	proc.exchangeCeloExchangedRateGauge, err = metrics.ExchangeCeloExchangedRate.GetMetricWithLabelValues(stableTokenStr)
-	if err != nil {
-		return err
-	}
-	proc.exchangeStableBucketSizeGauge, err = metrics.ExchangeStableBucketSize.GetMetricWithLabelValues(stableTokenStr)
-	if err != nil {
-		return err
-	}
-	return nil
 }
 
 func (proc *exchangeProcessor) EventHandler() (registry.ContractID, EventHandler) {

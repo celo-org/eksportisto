@@ -12,12 +12,11 @@ type Processor interface {
 	ShouldCollect() bool
 	CollectData(context.Context, chan *Row) error
 	ObserveMetrics(context.Context) error
-	Init(context.Context) error
 	EventHandler() (registry.ContractID, EventHandler)
 }
 
 type ProcessorFactory interface {
-	New(context.Context, *blockHandler) ([]Processor, error)
+	InitProcessors(context.Context, *blockHandler) ([]Processor, error)
 }
 
 type EventHandler interface {

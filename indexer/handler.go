@@ -122,7 +122,7 @@ func (handler *blockHandler) spawnProcessors(ctx context.Context, rowsChan chan 
 			}
 			if processor.ShouldCollect() {
 				group.Go(func() error {
-					return processor.CollectData(ctx, rowsChan)
+					return handler.checkError(processor.CollectData(ctx, rowsChan))
 				})
 			}
 		}(processor)
@@ -172,26 +172,11 @@ func (handler *blockHandler) initializeProcessorsForFactory(
 	factory ProcessorFactory,
 	processorChan chan Processor,
 ) error {
-	processors, err := factory.New(ctx, handler)
-	if err != nil && registry.IsExpectedBeforeContractsDeployed(err) {
-		handler.logger.Info("Skipping processor creation", "reason", err.Error())
-		return nil
-	} else if err != nil {
-		return err
+	processors, err := factory.InitProcessors(ctx, handler)
+	if err != nil {
+		return handler.checkError(err)
 	}
 	for _, processor := range processors {
-		err := processor.Init(ctx)
-		if err != nil {
-			if skipError, ok := err.(*SkipProcessorError); ok {
-				handler.logger.Info("Skipping processor", "reason", skipError.Reason.Error())
-				return nil
-			} else if registry.IsExpectedBeforeContractsDeployed(err) {
-				handler.logger.Info("Skipping processor", "reason", err)
-				return nil
-			} else {
-				return err
-			}
-		}
 		contractId, eventHandler := processor.EventHandler()
 		if eventHandler != nil {
 			handler.eventHandlers[contractId] = eventHandler
@@ -200,4 +185,20 @@ func (handler *blockHandler) initializeProcessorsForFactory(
 		processorChan <- processor
 	}
 	return nil
+}
+
+func (handler *blockHandler) checkError(err error) error {
+	if err == nil {
+		return nil
+	}
+
+	if registry.IsExpectedBeforeContractsDeployed(err) {
+		handler.logger.Info("Skipping processor creation", "reason", err.Error())
+		return nil
+	} else if skipError, ok := err.(*SkipProcessorError); ok {
+		handler.logger.Info("Skipping processor", "reason", skipError.Reason.Error())
+		return nil
+	} else {
+		return err
+	}
 }

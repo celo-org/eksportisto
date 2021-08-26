@@ -15,7 +15,10 @@ import (
 
 type celoTokenProcessorFactory struct{}
 
-func (celoTokenProcessorFactory) New(ctx context.Context, handler *blockHandler) ([]Processor, error) {
+func (celoTokenProcessorFactory) InitProcessors(
+	ctx context.Context,
+	handler *blockHandler,
+) ([]Processor, error) {
 	processors := make([]Processor, 0, 20)
 	celoTokenContracts, err := handler.celoTokens.GetContracts(ctx, handler.blockNumber, false)
 	if err != nil {

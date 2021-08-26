@@ -365,6 +365,11 @@
         "mode": "NULLABLE"
     },
     {
+        "name": "targetTotalSupply",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
         "name": "targetGoldTotalSupply",
         "type": "STRING",
         "mode": "NULLABLE"
@@ -407,6 +412,36 @@
     {
         "name": "rewardsMultiplier",
         "type": "FLOAT",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "max",
+        "type": "FLOAT",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "target",
+        "type": "FLOAT",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "adjustmentFactor",
+        "type": "FLOAT",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "overspendAdjustmentFactor",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "underspendAdjustmentFactor",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "targetVotingGoldFraction",
+        "type": "STRING",
         "mode": "NULLABLE"
     },
     {

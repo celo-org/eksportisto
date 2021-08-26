@@ -14,12 +14,22 @@ import (
 
 type epochRewardsProcessorFactory struct{}
 
-func (epochRewardsProcessorFactory) New(_ context.Context, handler *blockHandler) ([]Processor, error) {
-	return []Processor{&epochRewardsProcessor{blockHandler: handler, logger: handler.logger.New("processor", "epochRewards", "contract", "EpochRewards")}}, nil
-}
+func (epochRewardsProcessorFactory) InitProcessors(
+	ctx context.Context,
+	handler *blockHandler,
+) ([]Processor, error) {
+	epochRewards, err := handler.registry.GetEpochRewardsContract(ctx, handler.blockNumber)
+	if err != nil {
+		return nil, err
+	}
 
-func (proc *epochRewardsProcessor) EventHandler() (registry.ContractID, EventHandler) {
-	return "", nil
+	return []Processor{
+		&epochRewardsProcessor{
+			blockHandler: handler,
+			logger:       handler.logger.New("processor", "epochRewards", "contract", "EpochRewards"),
+			epochRewards: epochRewards,
+		},
+	}, nil
 }
 
 type epochRewardsProcessor struct {
@@ -28,13 +38,8 @@ type epochRewardsProcessor struct {
 	epochRewards *contracts.EpochRewards
 }
 
-func (proc *epochRewardsProcessor) Init(ctx context.Context) error {
-	var err error
-	proc.epochRewards, err = proc.registry.GetEpochRewardsContract(ctx, proc.blockNumber)
-	if err != nil {
-		return err
-	}
-	return nil
+func (proc *epochRewardsProcessor) EventHandler() (registry.ContractID, EventHandler) {
+	return "", nil
 }
 
 func (proc *epochRewardsProcessor) ShouldCollect() bool {

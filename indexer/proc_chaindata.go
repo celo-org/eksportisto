@@ -19,8 +19,16 @@ import (
 
 type chaindataProcessorFactory struct{}
 
-func (chaindataProcessorFactory) New(_ context.Context, handler *blockHandler) ([]Processor, error) {
-	return []Processor{&chaindataProcessor{blockHandler: handler, logger: handler.logger.New("processor", "chaindata")}}, nil
+func (chaindataProcessorFactory) InitProcessors(
+	_ context.Context,
+	handler *blockHandler,
+) ([]Processor, error) {
+	return []Processor{
+		&chaindataProcessor{
+			blockHandler: handler,
+			logger:       handler.logger.New("processor", "chaindata"),
+		},
+	}, nil
 }
 
 func (proc *chaindataProcessor) EventHandler() (registry.ContractID, EventHandler) {
@@ -32,7 +40,12 @@ type chaindataProcessor struct {
 	logger log.Logger
 }
 
-func (proc *chaindataProcessor) Init(ctx context.Context) error {
+func (proc *chaindataProcessor) ShouldCollect() bool {
+	// This processor will always run
+	return true
+}
+
+func (proc *chaindataProcessor) CollectData(ctx context.Context, rows chan *Row) error {
 	var err error
 	proc.block, err = proc.celoClient.Eth.BlockByNumber(ctx, proc.blockNumber)
 	if err != nil {
@@ -49,15 +62,6 @@ func (proc *chaindataProcessor) Init(ctx context.Context) error {
 		"blockGasUsed", proc.block.GasUsed(),
 	).WithId(proc.block.Number().String())
 
-	return nil
-}
-
-func (proc *chaindataProcessor) ShouldCollect() bool {
-	// This processor will always run
-	return true
-}
-
-func (proc *chaindataProcessor) CollectData(ctx context.Context, rows chan *Row) error {
 	rows <- proc.blockRow.Extend("type", "Block")
 	group, ctx := errgroup.WithContext(ctx)
 	for txIndex, tx := range proc.transactions {

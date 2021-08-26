@@ -12,8 +12,21 @@ import (
 
 type lockedGoldProcessorFactory struct{}
 
-func (lockedGoldProcessorFactory) New(_ context.Context, handler *blockHandler) ([]Processor, error) {
-	return []Processor{&lockedGoldProcessor{blockHandler: handler, logger: handler.logger.New("processor", "lockedGold", "contract", "LockedGold")}}, nil
+func (lockedGoldProcessorFactory) InitProcessors(
+	ctx context.Context,
+	handler *blockHandler,
+) ([]Processor, error) {
+	lockedGold, err := handler.registry.GetLockedGoldContract(ctx, handler.blockNumber)
+	if err != nil {
+		return nil, err
+	}
+	return []Processor{
+		&lockedGoldProcessor{
+			blockHandler: handler,
+			logger:       handler.logger.New("processor", "lockedGold", "contract", "LockedGold"),
+			lockedGold:   lockedGold,
+		},
+	}, nil
 }
 
 type lockedGoldProcessor struct {
@@ -24,14 +37,6 @@ type lockedGoldProcessor struct {
 
 func (proc *lockedGoldProcessor) EventHandler() (registry.ContractID, EventHandler) {
 	return "", nil
-}
-func (proc *lockedGoldProcessor) Init(ctx context.Context) error {
-	var err error
-	proc.lockedGold, err = proc.registry.GetLockedGoldContract(ctx, proc.blockNumber)
-	if err != nil {
-		return err
-	}
-	return nil
 }
 
 func (proc *lockedGoldProcessor) ShouldCollect() bool {

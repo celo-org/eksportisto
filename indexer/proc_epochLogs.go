@@ -11,8 +11,16 @@ import (
 
 type epochLogsProcessorFactory struct{}
 
-func (epochLogsProcessorFactory) New(_ context.Context, handler *blockHandler) ([]Processor, error) {
-	return []Processor{&epochLogsProcessor{blockHandler: handler, logger: handler.logger.New("processor", "epochLogs")}}, nil
+func (epochLogsProcessorFactory) InitProcessors(
+	_ context.Context,
+	handler *blockHandler,
+) ([]Processor, error) {
+	return []Processor{
+		&epochLogsProcessor{
+			blockHandler: handler,
+			logger:       handler.logger.New("processor", "epochLogs"),
+		},
+	}, nil
 }
 
 func (proc *epochLogsProcessor) EventHandler() (registry.ContractID, EventHandler) {
@@ -22,10 +30,6 @@ func (proc *epochLogsProcessor) EventHandler() (registry.ContractID, EventHandle
 type epochLogsProcessor struct {
 	*blockHandler
 	logger log.Logger
-}
-
-func (proc *epochLogsProcessor) Init(ctx context.Context) error {
-	return nil
 }
 
 func (proc *epochLogsProcessor) ShouldCollect() bool {
