@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/celo-org/celo-blockchain/log"
+	"github.com/celo-org/eksportisto/metrics"
 	"github.com/celo-org/eksportisto/rdb"
 	"github.com/go-redis/redis/v8"
 	"github.com/spf13/viper"
@@ -41,7 +42,7 @@ func newBackfill(ctx context.Context) (*backfillService, error) {
 	}, nil
 }
 
-func (svc *backfillService) queueEmpty(ctx context.Context) (bool, error) {
+func (svc *backfillService) isQueueEmpty(ctx context.Context) (bool, error) {
 	length, err := svc.db.LLen(ctx, rdb.BackfillQueue).Result()
 	return length == 0, err
 }
@@ -93,11 +94,11 @@ func (svc *backfillService) queueBatch(ctx context.Context) error {
 func (svc *backfillService) start(ctx context.Context) error {
 	svc.logger.Info("Starting backfill process")
 	for {
-		empty, err := svc.queueEmpty(ctx)
+		isEmpty, err := svc.isQueueEmpty(ctx)
 		if err != nil {
 			return err
 		}
-		if empty {
+		if isEmpty {
 			if err := svc.updateCursor(ctx); err != nil {
 				return err
 			}
@@ -105,6 +106,13 @@ func (svc *backfillService) start(ctx context.Context) error {
 				return err
 			}
 		}
+
+		queueSize, err := svc.db.LLen(ctx, rdb.BackfillQueue).Uint64()
+		if err != nil {
+			return err
+		}
+		metrics.BlockQueueSize.WithLabelValues(rdb.BackfillQueue).Set(float64(queueSize))
+
 		time.Sleep(svc.sleepInterval)
 	}
 }

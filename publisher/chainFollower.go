@@ -6,6 +6,7 @@ import (
 
 	"github.com/celo-org/celo-blockchain/core/types"
 	"github.com/celo-org/celo-blockchain/log"
+	"github.com/celo-org/eksportisto/metrics"
 	"github.com/celo-org/eksportisto/rdb"
 	"github.com/celo-org/kliento/client"
 	kliento_mon "github.com/celo-org/kliento/monitor"
@@ -61,6 +62,12 @@ func (svc *chainFollower) start(ctx context.Context) error {
 				return err
 			}
 			svc.logger.Info("Queued block at tip", "number", header.Number.Uint64())
+
+			queueSize, err := svc.db.LLen(ctx, rdb.TipQueue).Uint64()
+			if err != nil {
+				return err
+			}
+			metrics.BlockQueueSize.WithLabelValues(rdb.TipQueue).Set(float64(queueSize))
 		}
 	})
 

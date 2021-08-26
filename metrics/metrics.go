@@ -8,6 +8,11 @@ var (
 		Help: "Gas used in a block",
 	})
 
+	BlockQueueSize = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "block_queue_size",
+		Help: "Current size of the block queue",
+	}, []string{"queue"})
+
 	CeloTokenSupply = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "celo_token_supply",
 		Help: "Total supply of a supported token",
@@ -91,6 +96,7 @@ func init() {
 	registerer.MustRegister(VotingGoldFraction)
 	registerer.MustRegister(LastBlockProcessed)
 	registerer.MustRegister(ProcessBlockDuration)
+	registerer.MustRegister(BlockQueueSize)
 
 	registerer.MustRegister(ExchangeCeloBucketSize)
 	registerer.MustRegister(ExchangeStableBucketSize)
