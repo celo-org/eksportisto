@@ -38,7 +38,7 @@ func newBackfill(ctx context.Context) (*backfillService, error) {
 		logger:        logger,
 		cursor:        cursor,
 		batchSize:     viper.GetUint64("publisher.backfill.batchSize"),
-		sleepInterval: viper.GetDuration("publisher.backfill.sleepIntervalSeconds") * time.Second,
+		sleepInterval: viper.GetDuration("publisher.backfill.sleepIntervalMilliseconds") * time.Millisecond,
 	}, nil
 }
 

@@ -104,12 +104,14 @@ func (w *worker) start(ctx context.Context) error {
 				w.logger.Info("Skipping block: already indexed", "number", block.number)
 			} else {
 				// Reconnect the node 25% of the time as an experiment
+				// in dealing with our full nodes that seam to act weird
 				if rand.Intn(4) == 0 {
 					w.celoClient, err = client.Dial(w.nodeURI)
 					if err != nil {
 						return err
 					}
 				}
+
 				blockProcessStartedAt := time.Now()
 				handler, err := w.newBlockHandler(block)
 				if err != nil {

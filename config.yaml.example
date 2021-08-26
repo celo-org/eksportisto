@@ -17,7 +17,7 @@ publisher:
     enabled: true
     startBlock: 0
     batchSize: 100
-    sleepIntervalSeconds: 2
+    sleepIntervalMilliseconds: 100
   chainFollower:
     enabled: false
 
