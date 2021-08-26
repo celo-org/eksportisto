@@ -21,6 +21,7 @@ type worker struct {
 	baseBlockHandler *baseBlockHandler
 	parent           *indexer
 	output           Output
+	nodeURI          string
 }
 
 type block struct {
@@ -72,6 +73,7 @@ func (svc *indexer) newWorker(ctx context.Context, index int) (*worker, error) {
 		logger:     logger,
 		parent:     svc,
 		output:     output,
+		nodeURI:    nodeURI,
 	}
 
 	w.baseBlockHandler, err = w.newBaseBlockHandler()
