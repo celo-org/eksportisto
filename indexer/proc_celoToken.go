@@ -64,7 +64,6 @@ func (proc *celoTokenProcessor) Init(ctx context.Context) error {
 	return nil
 }
 
-func (proc *celoTokenProcessor) Logger() log.Logger { return proc.logger }
 func (proc *celoTokenProcessor) EventHandler() (registry.ContractID, EventHandler) {
 	return "", nil
 }

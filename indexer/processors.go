@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/celo-org/celo-blockchain/log"
 	"github.com/celo-org/kliento/registry"
 )
 
@@ -14,7 +13,6 @@ type Processor interface {
 	CollectData(context.Context, chan *Row) error
 	ObserveMetrics(context.Context) error
 	Init(context.Context) error
-	Logger() log.Logger
 	EventHandler() (registry.ContractID, EventHandler)
 }
 

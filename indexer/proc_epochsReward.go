@@ -18,7 +18,6 @@ func (epochRewardsProcessorFactory) New(_ context.Context, handler *blockHandler
 	return []Processor{&epochRewardsProcessor{blockHandler: handler, logger: handler.logger.New("processor", "epochRewards", "contract", "EpochRewards")}}, nil
 }
 
-func (proc *epochRewardsProcessor) Logger() log.Logger { return proc.logger }
 func (proc *epochRewardsProcessor) EventHandler() (registry.ContractID, EventHandler) {
 	return "", nil
 }

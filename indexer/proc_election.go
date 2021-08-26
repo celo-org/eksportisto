@@ -16,7 +16,6 @@ func (electionProcessorFactory) New(_ context.Context, handler *blockHandler) ([
 	return []Processor{&electionProcessor{blockHandler: handler, logger: handler.logger.New("processor", "election", "contract", "Election")}}, nil
 }
 
-func (proc *electionProcessor) Logger() log.Logger { return proc.logger }
 func (proc *electionProcessor) EventHandler() (registry.ContractID, EventHandler) {
 	return "", nil
 }

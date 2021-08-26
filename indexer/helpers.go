@@ -70,6 +70,7 @@ func (handler *blockHandler) extractEvent(
 				"type", "Event",
 				"contract", parsed.Contract,
 				"event", parsed.Event,
+				"loggedBy", eventLog.Address.Hex(),
 			).Extend(logSlice...)
 		}
 	} else {
@@ -83,6 +84,7 @@ func (handler *blockHandler) extractEvent(
 			}
 		}
 		rows <- eventRow.Extend(
+			"loggedBy", eventLog.Address.Hex(),
 			"type", "Event",
 			"topic0", getTopic(0),
 			"topic1", getTopic(1),

@@ -38,7 +38,6 @@ type sortedOraclesProcessor struct {
 	stableTokenInfos map[celotokens.CeloToken]stableTokenInfo
 }
 
-func (proc *sortedOraclesProcessor) Logger() log.Logger { return proc.logger }
 func (proc *sortedOraclesProcessor) EventHandler() (registry.ContractID, EventHandler) {
 	return "", nil
 }

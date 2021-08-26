@@ -22,7 +22,6 @@ type lockedGoldProcessor struct {
 	lockedGold *contracts.LockedGold
 }
 
-func (proc *lockedGoldProcessor) Logger() log.Logger { return proc.logger }
 func (proc *lockedGoldProcessor) EventHandler() (registry.ContractID, EventHandler) {
 	return "", nil
 }

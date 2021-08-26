@@ -135,6 +135,11 @@
         "mode": "NULLABLE"
     },
     {
+        "name": "loggedBy",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
         "name": "topic0",
         "type": "STRING",
         "mode": "NULLABLE"

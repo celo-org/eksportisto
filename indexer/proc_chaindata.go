@@ -23,7 +23,6 @@ func (chaindataProcessorFactory) New(_ context.Context, handler *blockHandler) (
 	return []Processor{&chaindataProcessor{blockHandler: handler, logger: handler.logger.New("processor", "chaindata")}}, nil
 }
 
-func (proc *chaindataProcessor) Logger() log.Logger { return proc.logger }
 func (proc *chaindataProcessor) EventHandler() (registry.ContractID, EventHandler) {
 	return "", nil
 }

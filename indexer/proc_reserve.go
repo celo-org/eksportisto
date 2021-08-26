@@ -23,7 +23,6 @@ type reserveProcessor struct {
 	reserve *contracts.Reserve
 }
 
-func (proc *reserveProcessor) Logger() log.Logger { return proc.logger }
 func (proc *reserveProcessor) EventHandler() (registry.ContractID, EventHandler) {
 	return "", nil
 }

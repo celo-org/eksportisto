@@ -85,7 +85,6 @@ func (proc *exchangeProcessor) Init(ctx context.Context) error {
 	return nil
 }
 
-func (proc *exchangeProcessor) Logger() log.Logger { return proc.logger }
 func (proc *exchangeProcessor) EventHandler() (registry.ContractID, EventHandler) {
 	return proc.exchangeRegistryID, proc
 }

@@ -77,36 +77,6 @@ func (svc *indexer) newWorker(ctx context.Context, index int) (*worker, error) {
 	return w, nil
 }
 
-// dequeueBlock is used to get the next block to process. It will first
-// try the TipQueue (which follows the tip of the chain) and if that's
-// empty it will try the BackfillQueue which is responsible for
-// backfilling and missing blocks
-func (w *worker) dequeueBlock(ctx context.Context, blocks chan block) (bool, error) {
-	result, err := w.db.LPop(ctx, rdb.TipQueue).Uint64()
-	if err != nil && err != redis.Nil {
-		return false, err
-	}
-
-	if err == nil {
-		blocks <- block{result, rdb.TipQueue}
-		w.logger.Info("Dequeued block", "block", result, "queue", "tip")
-		return true, nil
-	}
-
-	result, err = w.db.LPop(ctx, rdb.BackfillQueue).Uint64()
-	if err != nil && err != redis.Nil {
-		return false, err
-	}
-
-	if err == nil {
-		w.logger.Info("Dequeued block", "block", result, "queue", "backfill")
-		blocks <- block{result, rdb.BackfillQueue}
-		return true, nil
-	}
-
-	return false, nil
-}
-
 // start starts a worker's main loop which consists of
 // trying to dequeue a block, checking if it's already
 // processed and firing a handler for it.
@@ -141,13 +111,43 @@ func (w *worker) start(ctx context.Context) error {
 				}
 			}
 		default:
-			queued, err := w.dequeueBlock(ctx, blocks)
+			foundBlock, err := w.dequeueBlock(ctx, blocks)
 			if err != nil {
 				return err
 			}
-			if !queued {
+			if !foundBlock {
 				time.Sleep(w.parent.sleepInterval)
 			}
 		}
 	}
+}
+
+// dequeueBlock is used to get the next block to process. It will first
+// try the TipQueue (which follows the tip of the chain) and if that's
+// empty it will try the BackfillQueue which is responsible for
+// backfilling and missing blocks
+func (w *worker) dequeueBlock(ctx context.Context, blocks chan block) (bool, error) {
+	result, err := w.db.LPop(ctx, rdb.TipQueue).Uint64()
+	if err != nil && err != redis.Nil {
+		return false, err
+	}
+
+	if err == nil {
+		blocks <- block{result, rdb.TipQueue}
+		w.logger.Info("Dequeued block", "block", result, "queue", "tip")
+		return true, nil
+	}
+
+	result, err = w.db.LPop(ctx, rdb.BackfillQueue).Uint64()
+	if err != nil && err != redis.Nil {
+		return false, err
+	}
+
+	if err == nil {
+		w.logger.Info("Dequeued block", "block", result, "queue", "backfill")
+		blocks <- block{result, rdb.BackfillQueue}
+		return true, nil
+	}
+
+	return false, nil
 }
