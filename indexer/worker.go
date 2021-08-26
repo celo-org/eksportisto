@@ -3,6 +3,7 @@ package indexer
 import (
 	"context"
 	"fmt"
+	"math/rand"
 	"time"
 
 	"github.com/celo-org/celo-blockchain/log"
@@ -102,6 +103,13 @@ func (w *worker) start(ctx context.Context) error {
 			if indexed {
 				w.logger.Info("Skipping block: already indexed", "number", block.number)
 			} else {
+				// Reconnect the node 25% of the time as an experiment
+				if rand.Intn(4) == 0 {
+					w.celoClient, err = client.Dial(w.nodeURI)
+					if err != nil {
+						return err
+					}
+				}
 				blockProcessStartedAt := time.Now()
 				handler, err := w.newBlockHandler(block)
 				if err != nil {
