@@ -31,3 +31,7 @@ different priority and processes and stores them in a data store.`,
 		}
 	},
 }
+
+func init() {
+	indexerCmd.PersistentFlags().String("indexer-source", "", "What queue to read blocks from")
+}
