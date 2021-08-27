@@ -3,6 +3,7 @@ package indexer
 import (
 	"context"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/celo-org/celo-blockchain/log"
@@ -18,44 +19,29 @@ type worker struct {
 	celoClient       *client.CeloClient
 	db               *rdb.RedisDB
 	logger           log.Logger
-	index            int
 	baseBlockHandler *baseBlockHandler
-	parent           *indexer
 	output           Output
+	input            rdb.Queue
 	nodeURI          string
-}
-
-type block struct {
-	number uint64
-	source string
-}
-
-func (b block) fromTip() bool {
-	return b.source == rdb.TipQueue
+	sleepInterval    time.Duration
 }
 
 // newWorker sets up the struct responsible for a worker process.
 // The workers process blocks in parallel and have their own
 // connections to nodes (ideally different) and redis.
-func (svc *indexer) newWorker(ctx context.Context, index int) (*worker, error) {
-	logger := svc.logger.New("workerIndex", index)
-	logger.Info("Starting worker")
+func newWorker(ctx context.Context) (*worker, error) {
+	handler := log.LvlFilterHandler(log.LvlInfo, log.StreamHandler(os.Stdout, log.JSONFormat()))
+	logger := log.New()
+	logger.SetHandler(handler)
 
 	nodeURI := viper.GetString("indexer.celoNodeURI")
-	nodeURIOverride := viper.GetString(fmt.Sprintf("indexer.workerCeloNodeURIOverride.%d", index))
-	if nodeURIOverride != "" {
-		nodeURI = nodeURIOverride
-	}
-
-	logger.Info("Connecting to node", "nodeURI", nodeURI)
-
 	celoClient, err := client.Dial(nodeURI)
 	if err != nil {
 		return nil, err
 	}
 
 	var output Output
-	dest := viper.GetString("indexer.dest")
+	dest := viper.GetString("indexer.destination")
 	if dest == "stdout" {
 		output = newStdoutOutput()
 	} else if dest == "bigquery" {
@@ -67,14 +53,21 @@ func (svc *indexer) newWorker(ctx context.Context, index int) (*worker, error) {
 		return nil, fmt.Errorf("indexer.dest invalid, expecting: stdout, bigquery")
 	}
 
+	input, err := parseInput(viper.GetString("indexer.source"))
+	if err != nil {
+		return nil, err
+	}
+
+	logger.Info("Starting Worker", "nodeURI", nodeURI, "source", input, "destination", dest)
+
 	w := &worker{
-		celoClient: celoClient,
-		db:         rdb.NewRedisDatabase(),
-		index:      index,
-		logger:     logger,
-		parent:     svc,
-		output:     output,
-		nodeURI:    nodeURI,
+		logger:        logger,
+		sleepInterval: viper.GetDuration("indexer.sleepIntervalMilliseconds") * time.Millisecond,
+		celoClient:    celoClient,
+		db:            rdb.NewRedisDatabase(),
+		output:        output,
+		input:         input,
+		nodeURI:       nodeURI,
 	}
 
 	w.baseBlockHandler, err = w.newBaseBlockHandler()
@@ -85,23 +78,27 @@ func (svc *indexer) newWorker(ctx context.Context, index int) (*worker, error) {
 	return w, nil
 }
 
+func (w *worker) isTip() bool {
+	return w.input == rdb.TipQueue
+}
+
 // start starts a worker's main loop which consists of
 // trying to dequeue a block, checking if it's already
 // processed and firing a handler for it.
 func (w *worker) start(ctx context.Context) error {
-	blocks := make(chan block, 2)
+	blocks := make(chan uint64, 2)
 
 	for {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
 		case block := <-blocks:
-			indexed, err := w.db.HGet(ctx, rdb.BlocksMap, fmt.Sprintf("%d", block.number)).Bool()
+			indexed, err := w.db.HGet(ctx, rdb.BlocksMap, fmt.Sprintf("%d", block)).Bool()
 			if err != nil && err != redis.Nil {
 				return err
 			}
 			if indexed {
-				w.logger.Info("Skipping block: already indexed", "number", block.number)
+				w.logger.Info("Skipping block: already indexed", "number", block)
 			} else {
 				blockProcessStartedAt := time.Now()
 				handler, err := w.newBlockHandler(block)
@@ -116,50 +113,24 @@ func (w *worker) start(ctx context.Context) error {
 						handler.logger.Error("Failed block", "err", err)
 					}
 				} else {
-					metrics.LastBlockProcessed.WithLabelValues(block.source).Set(float64(block.number))
+					metrics.LastBlockProcessed.WithLabelValues(w.input).Set(float64(block))
 					metrics.ProcessBlockDuration.Observe(float64(time.Since(blockProcessStartedAt)) / float64(time.Second))
-					w.db.HSet(ctx, rdb.BlocksMap, fmt.Sprintf("%d", block.number), true)
+					w.db.HSet(ctx, rdb.BlocksMap, fmt.Sprintf("%d", block), true)
 					handler.logger.Info("Block done")
 				}
 			}
 		default:
-			foundBlock, err := w.dequeueBlock(ctx, blocks)
-			if err != nil {
+			block, err := w.db.LPop(ctx, w.input).Uint64()
+			if err != nil && err != redis.Nil {
 				return err
 			}
-			if !foundBlock {
-				time.Sleep(w.parent.sleepInterval)
+
+			if err == nil {
+				blocks <- block
+				w.logger.Info("Dequeued block", "block", block, "queue", w.input)
+			} else {
+				time.Sleep(w.sleepInterval)
 			}
 		}
 	}
-}
-
-// dequeueBlock is used to get the next block to process. It will first
-// try the TipQueue (which follows the tip of the chain) and if that's
-// empty it will try the BackfillQueue which is responsible for
-// backfilling and missing blocks
-func (w *worker) dequeueBlock(ctx context.Context, blocks chan block) (bool, error) {
-	result, err := w.db.LPop(ctx, rdb.TipQueue).Uint64()
-	if err != nil && err != redis.Nil {
-		return false, err
-	}
-
-	if err == nil {
-		blocks <- block{result, rdb.TipQueue}
-		w.logger.Info("Dequeued block", "block", result, "queue", "tip")
-		return true, nil
-	}
-
-	result, err = w.db.LPop(ctx, rdb.BackfillQueue).Uint64()
-	if err != nil && err != redis.Nil {
-		return false, err
-	}
-
-	if err == nil {
-		w.logger.Info("Dequeued block", "block", result, "queue", "backfill")
-		blocks <- block{result, rdb.BackfillQueue}
-		return true, nil
-	}
-
-	return false, nil
 }

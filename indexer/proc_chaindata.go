@@ -118,7 +118,7 @@ func (proc *chaindataProcessor) extractInternalTransactions(
 			"value", internalTransfer.Value,
 		).WithId(fmt.Sprintf("%s.internalTransfer.%d", txHash.String(), index))
 
-		if proc.isTip && proc.sensitiveAccounts[internalTransfer.From] != "" {
+		if proc.isTip() && proc.sensitiveAccounts[internalTransfer.From] != "" {
 			err = proc.notifyFundsMoved(internalTransfer, proc.sensitiveAccounts[internalTransfer.From])
 			if err != nil {
 				proc.logger.Error(err.Error())

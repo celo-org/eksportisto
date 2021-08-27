@@ -8,12 +8,14 @@ import (
 	"github.com/spf13/viper"
 )
 
+type Queue = string
+
 const (
-	BackfillQueue               = "blocks:queue:backfill"
-	BackfillCursor              = "blocks:cursor"
-	BlocksMap                   = "blocks:indexed"
-	TipQueue                    = "blocks:queue:tip"
-	GetIndexedBlocksBatchScript = `
+	BackfillQueue               Queue  = "blocks:queue:backfill"
+	TipQueue                    Queue  = "blocks:queue:tip"
+	BackfillCursor              string = "blocks:cursor"
+	BlocksMap                   string = "blocks:indexed"
+	GetIndexedBlocksBatchScript string = `
 local startKey = tonumber(ARGV[1])
 local endKey = startKey + tonumber(ARGV[2])
 local res = {}

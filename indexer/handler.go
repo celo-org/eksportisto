@@ -58,7 +58,6 @@ type blockHandler struct {
 	blockNumber   *big.Int
 	blockRow      *Row
 	logger        log.Logger
-	isTip         bool
 	block         *types.Block
 	transactions  types.Transactions
 	eventHandlers map[registry.ContractID]EventHandler
@@ -66,13 +65,12 @@ type blockHandler struct {
 
 // newBlockHandler is called to instantiate a handler for a current
 // block height. The struct lives as long as a block is being processed.
-func (w *worker) newBlockHandler(b block) (*blockHandler, error) {
+func (w *worker) newBlockHandler(block uint64) (*blockHandler, error) {
 	handler := &blockHandler{
 		baseBlockHandler: w.baseBlockHandler,
-		blockNumber:      big.NewInt(int64(b.number)),
-		logger:           w.logger.New("block", b.number),
-		blockRow:         NewRow("blockNumber", b.number),
-		isTip:            b.fromTip(),
+		blockNumber:      big.NewInt(int64(block)),
+		logger:           w.logger.New("block", block),
+		blockRow:         NewRow("blockNumber", block),
 		eventHandlers:    make(map[registry.ContractID]EventHandler),
 	}
 
@@ -144,7 +142,7 @@ func (handler *blockHandler) spawnProcessors(ctx context.Context, rowsChan chan 
 
 	for _, processor := range processors {
 		func(processor Processor) {
-			if handler.isTip {
+			if handler.isTip() {
 				group.Go(func() error {
 					return handler.checkError(processor.ObserveMetrics(ctx))
 				})

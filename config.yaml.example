@@ -26,19 +26,7 @@ indexer:
     projectID: celo-testnet-production
     dataset: rc1_eksportisto_14
     table: test
+  source: backfill
   dest: bigquery
   sleepIntervalMilliseconds: 100
   celoNodeURI: "http://localhost:8545"
-  workers: 9
-  workerCeloNodeURIOverride:
-    - "http://localhost:8545"
-    - "http://localhost:7545"
-    - "http://localhost:6545"
-    - "http://localhost:8545"
-    - "http://localhost:7545"
-    - "http://localhost:6545"
-    - "http://localhost:8545"
-    - "http://localhost:7545"
-    - "http://localhost:6545"
-  
-
