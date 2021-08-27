@@ -8,6 +8,7 @@ import (
 	"github.com/celo-org/eksportisto/utils"
 	"github.com/celo-org/kliento/contracts"
 	"github.com/celo-org/kliento/registry"
+	"github.com/go-errors/errors"
 )
 
 type lockedGoldProcessorFactory struct{}
@@ -18,7 +19,7 @@ func (lockedGoldProcessorFactory) InitProcessors(
 ) ([]Processor, error) {
 	lockedGold, err := handler.registry.GetLockedGoldContract(ctx, handler.blockNumber)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, 1)
 	}
 	return []Processor{
 		&lockedGoldProcessor{
@@ -54,7 +55,7 @@ func (proc lockedGoldProcessor) CollectData(ctx context.Context, rows chan *Row)
 	// LockedGold.getTotalLockedGold
 	totalNonvoting, err := proc.lockedGold.GetNonvotingLockedGold(opts)
 	if err != nil {
-		return err
+		return errors.Wrap(err, 1)
 	}
 
 	rows <- contractRow.ViewCall("getNonvotingLockedGold", "totalNonvoting", totalNonvoting.String())
@@ -62,7 +63,7 @@ func (proc lockedGoldProcessor) CollectData(ctx context.Context, rows chan *Row)
 	// LockedGold.getTotalLockedGold
 	totalLockedGold, err := proc.lockedGold.GetTotalLockedGold(opts)
 	if err != nil {
-		return err
+		return errors.Wrap(err, 1)
 	}
 
 	rows <- contractRow.ViewCall("getTotalLockedGold", "totalLockedGold", totalLockedGold)

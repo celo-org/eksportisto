@@ -15,6 +15,7 @@ import (
 	"github.com/celo-org/kliento/contracts"
 	"github.com/celo-org/kliento/contracts/helpers"
 	"github.com/celo-org/kliento/registry"
+	"github.com/go-errors/errors"
 )
 
 type sortedOraclesProcessorFactory struct{}
@@ -25,15 +26,15 @@ func (sortedOraclesProcessorFactory) InitProcessors(
 ) ([]Processor, error) {
 	sortedOracles, err := handler.registry.GetSortedOraclesContract(ctx, handler.blockNumber)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, 1)
 	}
 	stableTokenAddresses, err := handler.celoTokens.GetAddresses(ctx, handler.blockNumber, true)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, 1)
 	}
 	exchanges, err := handler.celoTokens.GetExchangeContracts(ctx, handler.blockNumber)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, 1)
 	}
 
 	processors := make([]Processor, 0, 10)
@@ -46,7 +47,7 @@ func (sortedOraclesProcessorFactory) InitProcessors(
 		}
 		registryID, err := celotokens.GetRegistryID(stableToken)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, 1)
 		}
 
 		processors = append(processors, &sortedOraclesProcessor{
@@ -102,7 +103,7 @@ func (proc sortedOraclesProcessor) CollectData(ctx context.Context, rows chan *R
 	// SortedOracles.IsOldestReportExpired
 	isOldestReportExpired, lastReportAddress, err := proc.sortedOracles.IsOldestReportExpired(opts, proc.address)
 	if err != nil {
-		return err
+		return errors.Wrap(err, 1)
 	}
 
 	rows <- contractRow.ViewCall(
@@ -113,7 +114,7 @@ func (proc sortedOraclesProcessor) CollectData(ctx context.Context, rows chan *R
 	// SortedOracles.NumRates
 	numRates, err := proc.sortedOracles.NumRates(opts, proc.address)
 	if err != nil {
-		return err
+		return errors.Wrap(err, 1)
 	}
 
 	rows <- contractRow.ViewCall("NumRates", "numRates", numRates)
@@ -121,7 +122,7 @@ func (proc sortedOraclesProcessor) CollectData(ctx context.Context, rows chan *R
 	// SortedOracles.NumRates
 	medianRateNumerator, medianRateDenominator, err := proc.sortedOracles.MedianRate(opts, proc.address)
 	if err != nil {
-		return err
+		return errors.Wrap(err, 1)
 	}
 
 	rows <- contractRow.ViewCall(
@@ -133,7 +134,7 @@ func (proc sortedOraclesProcessor) CollectData(ctx context.Context, rows chan *R
 	// SortedOracles.MedianTimestamp
 	medianTimestamp, err := proc.sortedOracles.MedianTimestamp(opts, proc.address)
 	if err != nil {
-		return err
+		return errors.Wrap(err, 1)
 	}
 
 	rows <- contractRow.ViewCall("MedianTimestamp", "medianTimestamp", medianTimestamp)
@@ -141,7 +142,7 @@ func (proc sortedOraclesProcessor) CollectData(ctx context.Context, rows chan *R
 	// SortedOracles.GetRates
 	rateAddresses, rateValues, medianRelations, err := proc.sortedOracles.GetRates(opts, proc.address)
 	if err != nil {
-		return err
+		return errors.Wrap(err, 1)
 	}
 
 	for i, rateAddress := range rateAddresses {
@@ -157,7 +158,7 @@ func (proc sortedOraclesProcessor) CollectData(ctx context.Context, rows chan *R
 	// SortedOracles.GetTimestamps
 	timestampAddresses, timestamp, medianRelations, err := proc.sortedOracles.GetTimestamps(opts, proc.address)
 	if err != nil {
-		return err
+		return errors.Wrap(err, 1)
 	}
 
 	for i, timestampAddress := range timestampAddresses {
@@ -173,7 +174,7 @@ func (proc sortedOraclesProcessor) CollectData(ctx context.Context, rows chan *R
 	celoBucketSize, stableBucketSize, err := proc.exchange.GetBuyAndSellBuckets(opts, true)
 
 	if err != nil {
-		return err
+		return errors.Wrap(err, 1)
 	}
 
 	rows <- proc.blockRow.Contract(string(proc.exchangeRegistryID)).ViewCall(
@@ -194,27 +195,27 @@ func (proc sortedOraclesProcessor) ObserveMetrics(ctx context.Context) error {
 	stableTokenStr := string(proc.stableToken)
 	isOldestReportExpired, _, err := proc.sortedOracles.IsOldestReportExpired(opts, proc.address)
 	if err != nil {
-		return err
+		return errors.Wrap(err, 1)
 	}
 	sortedOraclesIsOldestReportExpiredGauge, err := metrics.SortedOraclesIsOldestReportExpired.GetMetricWithLabelValues(stableTokenStr)
 	if err != nil {
-		return err
+		return errors.Wrap(err, 1)
 	}
 	sortedOraclesIsOldestReportExpiredGauge.Set(utils.BoolToFloat64(isOldestReportExpired))
 
 	numRates, err := proc.sortedOracles.NumRates(opts, proc.address)
 	if err != nil {
-		return err
+		return errors.Wrap(err, 1)
 	}
 	sortedOraclesNumRatesGauge, err := metrics.SortedOraclesNumRates.GetMetricWithLabelValues(stableTokenStr)
 	if err != nil {
-		return err
+		return errors.Wrap(err, 1)
 	}
 	sortedOraclesNumRatesGauge.Set(float64(numRates.Uint64()))
 
 	medianRateNumerator, medianRateDenominator, err := proc.sortedOracles.MedianRate(opts, proc.address)
 	if err != nil {
-		return err
+		return errors.Wrap(err, 1)
 	}
 	medianRate := big.NewFloat(0)
 
@@ -227,13 +228,13 @@ func (proc sortedOraclesProcessor) ObserveMetrics(ctx context.Context) error {
 
 	sortedOraclesMedianRateGauge, err := metrics.SortedOraclesMedianRate.GetMetricWithLabelValues(stableTokenStr)
 	if err != nil {
-		return err
+		return errors.Wrap(err, 1)
 	}
 	sortedOraclesMedianRateGauge.Set(medianRateMetric)
 
 	_, rateValues, _, err := proc.sortedOracles.GetRates(opts, proc.address)
 	if err != nil {
-		return err
+		return errors.Wrap(err, 1)
 	}
 
 	mean := utils.MeanFromFixed(rateValues)
@@ -247,17 +248,17 @@ func (proc sortedOraclesProcessor) ObserveMetrics(ctx context.Context) error {
 	}
 	sortedOraclesRateMaxDeviationGauge, err := metrics.SortedOraclesRateMaxDeviation.GetMetricWithLabelValues(stableTokenStr)
 	if err != nil {
-		return err
+		return errors.Wrap(err, 1)
 	}
 	sortedOraclesRateMaxDeviationGauge.Set(maxDiff)
 
 	medianTimestamp, err := proc.sortedOracles.MedianTimestamp(opts, proc.address)
 	if err != nil {
-		return err
+		return errors.Wrap(err, 1)
 	}
 	sortedOraclesMedianTimestampGauge, err := metrics.SortedOraclesMedianTimestamp.GetMetricWithLabelValues(stableTokenStr)
 	if err != nil {
-		return err
+		return errors.Wrap(err, 1)
 	}
 
 	if proc.block != nil {
@@ -268,7 +269,7 @@ func (proc sortedOraclesProcessor) ObserveMetrics(ctx context.Context) error {
 	celoBucketSize, stableBucketSize, err := proc.exchange.GetBuyAndSellBuckets(opts, true)
 
 	if err != nil {
-		return err
+		return errors.Wrap(err, 1)
 	}
 
 	celoStablePrice := utils.DivideBigInts(celoBucketSize, stableBucketSize)
@@ -282,7 +283,7 @@ func (proc sortedOraclesProcessor) ObserveMetrics(ctx context.Context) error {
 	stablePriceF, _ := stablePrice.Float64()
 	exchangeImpliedStableRateGauge, err := metrics.ExchangeImpliedStableRate.GetMetricWithLabelValues(stableTokenStr)
 	if err != nil {
-		return err
+		return errors.Wrap(err, 1)
 	}
 	exchangeImpliedStableRateGauge.Set(stablePriceF)
 	return nil

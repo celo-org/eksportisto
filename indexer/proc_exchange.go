@@ -11,6 +11,7 @@ import (
 	"github.com/celo-org/kliento/celotokens"
 	"github.com/celo-org/kliento/contracts"
 	"github.com/celo-org/kliento/registry"
+	"github.com/go-errors/errors"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -23,17 +24,17 @@ func (exchangeProcessorFactory) InitProcessors(
 	processors := make([]Processor, 0, 20)
 	exchangeContracts, err := handler.celoTokens.GetExchangeContracts(ctx, handler.blockNumber)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, 1)
 	}
 	reserve, err := handler.registry.GetReserveContract(ctx, handler.blockNumber)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, 1)
 	}
 
 	for stableToken, exchangeContract := range exchangeContracts {
 		exchangeRegistryID, err := celotokens.GetExchangeRegistryID(stableToken)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, 1)
 		}
 
 		if exchangeContract == nil {
@@ -43,23 +44,23 @@ func (exchangeProcessorFactory) InitProcessors(
 		stableTokenStr := string(stableToken)
 		exchangeBucketRatioGauge, err := metrics.ExchangeBucketRatio.GetMetricWithLabelValues(stableTokenStr)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, 1)
 		}
 		exchangeCeloBucketRatioHistogram, err := metrics.ExchangeCeloBucketRatio.GetMetricWithLabelValues(stableTokenStr)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, 1)
 		}
 		exchangeCeloBucketSizeGauge, err := metrics.ExchangeCeloBucketSize.GetMetricWithLabelValues(stableTokenStr)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, 1)
 		}
 		exchangeCeloExchangedRateGauge, err := metrics.ExchangeCeloExchangedRate.GetMetricWithLabelValues(stableTokenStr)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, 1)
 		}
 		exchangeStableBucketSizeGauge, err := metrics.ExchangeStableBucketSize.GetMetricWithLabelValues(stableTokenStr)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, 1)
 		}
 
 		processors = append(processors, &exchangeProcessor{
@@ -117,7 +118,7 @@ func (proc exchangeProcessor) CollectData(ctx context.Context, rows chan *Row) e
 	// Exchange.ReserveFraction
 	reserveFraction, err := proc.exchange.ReserveFraction(opts)
 	if err != nil {
-		return err
+		return errors.Wrap(err, 1)
 	}
 
 	rows <- contractRow.ViewCall(
@@ -128,7 +129,7 @@ func (proc exchangeProcessor) CollectData(ctx context.Context, rows chan *Row) e
 	// Exchange.goldBucket
 	goldBucketSize, err := proc.exchange.GoldBucket(opts)
 	if err != nil {
-		return err
+		return errors.Wrap(err, 1)
 	}
 
 	rows <- contractRow.ViewCall(
@@ -139,7 +140,7 @@ func (proc exchangeProcessor) CollectData(ctx context.Context, rows chan *Row) e
 	stableBucketSize, err := proc.exchange.StableBucket(opts)
 
 	if err != nil {
-		return err
+		return errors.Wrap(err, 1)
 	}
 
 	rows <- contractRow.ViewCall(
@@ -158,14 +159,14 @@ func (proc exchangeProcessor) ObserveMetrics(ctx context.Context) error {
 
 	goldBucketSize, err := proc.exchange.GoldBucket(opts)
 	if err != nil {
-		return err
+		return errors.Wrap(err, 1)
 	}
 
 	proc.exchangeCeloBucketSizeGauge.Set(utils.ScaleFixed(goldBucketSize))
 
 	cUsdBucketSize, err := proc.exchange.StableBucket(opts)
 	if err != nil {
-		return err
+		return errors.Wrap(err, 1)
 	}
 
 	proc.exchangeStableBucketSizeGauge.Set(utils.ScaleFixed(cUsdBucketSize))
@@ -173,7 +174,7 @@ func (proc exchangeProcessor) ObserveMetrics(ctx context.Context) error {
 	unfrozenReserveGoldBalance, err := proc.reserve.GetUnfrozenReserveGoldBalance(opts)
 
 	if err != nil {
-		return err
+		return errors.Wrap(err, 1)
 	}
 
 	// If the unfrozen balance is 0, ignore for now

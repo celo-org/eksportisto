@@ -11,6 +11,7 @@ import (
 	"github.com/celo-org/celo-blockchain/log"
 	"github.com/celo-org/kliento/celotokens"
 	"github.com/celo-org/kliento/registry"
+	"github.com/go-errors/errors"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -85,7 +86,7 @@ func (handler *blockHandler) run(ctx context.Context) (err error) {
 	group, ctx := errgroup.WithContext(ctx)
 	rowsChan := make(chan *Row, 1000)
 
-	err = wrapError(handler.loadBlock(ctx), handler, "loadBlock")
+	err = handler.loadBlock(ctx)
 	if err != nil {
 		return err
 	}
@@ -118,7 +119,7 @@ func (handler *blockHandler) loadBlock(ctx context.Context) error {
 		if strings.Contains(err.Error(), "cannot unmarshal") {
 			return nil
 		}
-		return err
+		return errors.Wrap(err, 1)
 	}
 
 	handler.transactions = handler.block.Transactions()
@@ -145,18 +146,12 @@ func (handler *blockHandler) spawnProcessors(ctx context.Context, rowsChan chan 
 		func(processor Processor) {
 			if handler.isTip {
 				group.Go(func() error {
-					return wrapError(
-						handler.checkError(processor.ObserveMetrics(ctx)),
-						processor, "ObserveMetrics",
-					)
+					return handler.checkError(processor.ObserveMetrics(ctx))
 				})
 			}
 			if processor.ShouldCollect() {
 				group.Go(func() error {
-					return wrapError(
-						handler.checkError(processor.CollectData(ctx, rowsChan)),
-						processor, "CollectData",
-					)
+					return handler.checkError(processor.CollectData(ctx, rowsChan))
 				})
 			}
 		}(processor)
@@ -208,10 +203,7 @@ func (handler *blockHandler) initializeProcessorsForFactory(
 ) error {
 	processors, err := factory.InitProcessors(ctx, handler)
 	if err != nil {
-		return wrapError(
-			handler.checkError(err),
-			factory, "InitProcessors",
-		)
+		return handler.checkError(err)
 	}
 
 	for _, processor := range processors {

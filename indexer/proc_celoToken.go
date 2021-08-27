@@ -10,6 +10,7 @@ import (
 	"github.com/celo-org/kliento/celotokens"
 	"github.com/celo-org/kliento/contracts"
 	"github.com/celo-org/kliento/registry"
+	"github.com/go-errors/errors"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -22,7 +23,7 @@ func (celoTokenProcessorFactory) InitProcessors(
 	processors := make([]Processor, 0, 20)
 	celoTokenContracts, err := handler.celoTokens.GetContracts(ctx, handler.blockNumber, false)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, 1)
 	}
 
 	for token, contract := range celoTokenContracts {
@@ -34,12 +35,12 @@ func (celoTokenProcessorFactory) InitProcessors(
 
 		tokenRegistryID, err := celotokens.GetRegistryID(token)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, 1)
 		}
 
 		totalSupplyGauge, err := metrics.CeloTokenSupply.GetMetricWithLabelValues(string(token))
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, 1)
 		}
 
 		processors = append(processors, &celoTokenProcessor{
@@ -83,7 +84,7 @@ func (proc celoTokenProcessor) CollectData(ctx context.Context, rows chan *Row) 
 
 	totalSupply, err := proc.tokenContract.TotalSupply(opts)
 	if err != nil {
-		return err
+		return errors.Wrap(err, 1)
 	}
 
 	rows <- contractRow.ViewCall("totalSupply", "totalSupply", totalSupply.String())
@@ -98,7 +99,7 @@ func (proc celoTokenProcessor) ObserveMetrics(ctx context.Context) error {
 
 	totalSupply, err := proc.tokenContract.TotalSupply(opts)
 	if err != nil {
-		return err
+		return errors.Wrap(err, 1)
 	}
 	proc.totalSupplyGauge.Set(utils.ScaleFixed(totalSupply))
 	return nil

@@ -14,6 +14,7 @@ require (
 	github.com/docker/go-units v0.4.0 // indirect
 	github.com/ethereum/go-ethereum v1.9.8 // indirect
 	github.com/felixge/httpsnoop v1.0.1
+	github.com/go-errors/errors v1.4.0
 	github.com/go-redis/redis v6.15.9+incompatible
 	github.com/go-redis/redis/v8 v8.11.3
 	github.com/google/addlicense v0.0.0-20200422172452-68a83edd47bc // indirect

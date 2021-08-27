@@ -12,6 +12,7 @@ import (
 	"github.com/celo-org/eksportisto/metrics"
 	"github.com/celo-org/kliento/client/debug"
 	"github.com/celo-org/kliento/registry"
+	"github.com/go-errors/errors"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -55,7 +56,7 @@ func (proc *chaindataProcessor) CollectData(ctx context.Context, rows chan *Row)
 			group.Go(func() error { return proc.collectTransaction(ctx, txIndex, tx, rows) })
 		}(txIndex, tx)
 	}
-	return group.Wait()
+	return errors.Wrap(group.Wait(), 1)
 }
 
 func (proc *chaindataProcessor) collectTransaction(
@@ -70,7 +71,7 @@ func (proc *chaindataProcessor) collectTransaction(
 
 	receipt, err := proc.celoClient.Eth.TransactionReceipt(ctx, txHash)
 	if err != nil {
-		return err
+		return errors.Wrap(err, 1)
 	}
 
 	rows <- txRow.Extend("type", "Transaction", "gasPrice", tx.GasPrice(), "gasUsed", receipt.GasUsed).WithId(txHash.Hex())
@@ -78,14 +79,14 @@ func (proc *chaindataProcessor) collectTransaction(
 	for eventIdx, eventLog := range receipt.Logs {
 		err := proc.extractEvent(ctx, txHash, eventIdx, eventLog, txRow, rows)
 		if err != nil {
-			return err
+			return errors.Wrap(err, 1)
 		}
 	}
 
 	if proc.debugEnabled {
 		err := proc.extractInternalTransactions(ctx, txHash, txRow, rows)
 		if err != nil {
-			return err
+			return errors.Wrap(err, 1)
 		}
 	}
 
@@ -100,7 +101,7 @@ func (proc *chaindataProcessor) extractInternalTransactions(
 ) error {
 	internalTransfers, err := proc.celoClient.Debug.TransactionTransfers(ctx, txHash)
 	if err != nil {
-		return err
+		return errors.Wrap(err, 1)
 	}
 	// TODO: Figure out why this was needed.
 	// if skipContractMetrics(err) {

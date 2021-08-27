@@ -8,6 +8,7 @@ import (
 	"github.com/celo-org/eksportisto/utils"
 	"github.com/celo-org/kliento/contracts"
 	"github.com/celo-org/kliento/registry"
+	"github.com/go-errors/errors"
 )
 
 type electionProcessorFactory struct{}
@@ -18,7 +19,7 @@ func (electionProcessorFactory) InitProcessors(
 ) ([]Processor, error) {
 	election, err := handler.registry.GetElectionContract(ctx, handler.blockNumber)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, 1)
 	}
 
 	return []Processor{
@@ -56,7 +57,7 @@ func (proc electionProcessor) CollectData(ctx context.Context, rows chan *Row) e
 	// Election.getActiveVotes
 	activeVotes, err := proc.election.GetActiveVotes(opts)
 	if err != nil {
-		return err
+		return errors.Wrap(err, 1)
 	}
 
 	rows <- contractRow.ViewCall(
@@ -67,7 +68,7 @@ func (proc electionProcessor) CollectData(ctx context.Context, rows chan *Row) e
 	// Election.getTotalVotes
 	totalVotes, err := proc.election.GetTotalVotes(opts)
 	if err != nil {
-		return err
+		return errors.Wrap(err, 1)
 	}
 
 	rows <- contractRow.ViewCall(
@@ -78,7 +79,7 @@ func (proc electionProcessor) CollectData(ctx context.Context, rows chan *Row) e
 	// Election.getElectableValidators
 	electableValidatorsMin, electableValidatorsMax, err := proc.election.GetElectableValidators(opts)
 	if err != nil {
-		return err
+		return errors.Wrap(err, 1)
 	}
 
 	rows <- contractRow.ViewCall(

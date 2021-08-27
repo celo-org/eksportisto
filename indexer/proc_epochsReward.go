@@ -10,6 +10,7 @@ import (
 	"github.com/celo-org/kliento/contracts"
 	"github.com/celo-org/kliento/contracts/helpers"
 	"github.com/celo-org/kliento/registry"
+	"github.com/go-errors/errors"
 )
 
 type epochRewardsProcessorFactory struct{}
@@ -20,7 +21,7 @@ func (epochRewardsProcessorFactory) InitProcessors(
 ) ([]Processor, error) {
 	epochRewards, err := handler.registry.GetEpochRewardsContract(ctx, handler.blockNumber)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, 1)
 	}
 
 	return []Processor{
@@ -58,7 +59,7 @@ func (proc epochRewardsProcessor) CollectData(ctx context.Context, rows chan *Ro
 	// EpochRewards.getTargetGoldTotalSupply
 	targetGoldTotalSupply, err := proc.epochRewards.GetTargetGoldTotalSupply(opts)
 	if err != nil {
-		return err
+		return errors.Wrap(err, 1)
 	}
 
 	rows <- contractRow.ViewCall(
@@ -69,7 +70,7 @@ func (proc epochRewardsProcessor) CollectData(ctx context.Context, rows chan *Ro
 	// EpochRewards.getTargetVoterRewards
 	targetVoterRewards, err := proc.epochRewards.GetTargetVoterRewards(opts)
 	if err != nil {
-		return err
+		return errors.Wrap(err, 1)
 	}
 
 	rows <- contractRow.ViewCall(
@@ -80,7 +81,7 @@ func (proc epochRewardsProcessor) CollectData(ctx context.Context, rows chan *Ro
 	// EpochRewards.getRewardsMultiplier
 	rewardsMultiplier, err := proc.epochRewards.GetRewardsMultiplier(opts)
 	if err != nil {
-		return err
+		return errors.Wrap(err, 1)
 	}
 
 	rows <- contractRow.ViewCall(
@@ -90,7 +91,7 @@ func (proc epochRewardsProcessor) CollectData(ctx context.Context, rows chan *Ro
 
 	rmMax, rmOverspendAdjustmentFactor, rmUnderspendAdjustmentFactor, err := proc.epochRewards.GetRewardsMultiplierParameters(opts)
 	if err != nil {
-		return err
+		return errors.Wrap(err, 1)
 	}
 
 	rows <- contractRow.ViewCall(
@@ -102,7 +103,7 @@ func (proc epochRewardsProcessor) CollectData(ctx context.Context, rows chan *Ro
 
 	tvyTarget, tvyMax, tvyAdjustmentFactor, err := proc.epochRewards.GetTargetVotingYieldParameters(opts)
 	if err != nil {
-		return err
+		return errors.Wrap(err, 1)
 	}
 
 	rows <- contractRow.ViewCall(
@@ -114,7 +115,7 @@ func (proc epochRewardsProcessor) CollectData(ctx context.Context, rows chan *Ro
 
 	targetVotingGoldFraction, err := proc.epochRewards.GetTargetVotingGoldFraction(opts)
 	if err != nil {
-		return err
+		return errors.Wrap(err, 1)
 	}
 
 	rows <- contractRow.ViewCall(
@@ -148,7 +149,7 @@ func (proc epochRewardsProcessor) ObserveMetrics(ctx context.Context) error {
 	// EpochRewards.getVotingGoldFraction
 	votingGoldFraction, err := proc.epochRewards.GetVotingGoldFraction(opts)
 	if err != nil {
-		return err
+		return errors.Wrap(err, 1)
 	}
 	metrics.VotingGoldFraction.Set(helpers.FromFixed(votingGoldFraction))
 	return nil

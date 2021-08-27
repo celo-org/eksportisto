@@ -10,6 +10,7 @@ import (
 	"github.com/celo-org/eksportisto/metrics"
 	"github.com/celo-org/eksportisto/rdb"
 	"github.com/celo-org/kliento/client"
+	"github.com/go-errors/errors"
 	"github.com/go-redis/redis/v8"
 	"github.com/spf13/viper"
 )
@@ -119,7 +120,11 @@ func (w *worker) start(ctx context.Context) error {
 				}
 
 				if err := handler.run(ctx); err != nil {
-					handler.logger.Error("Failed block", "err", err)
+					if err, ok := err.(*errors.Error); ok {
+						handler.logger.Error("Failed block", "err", err.Error(), "stack", err.Stack())
+					} else {
+						handler.logger.Error("Failed block", "err", err)
+					}
 				} else {
 					metrics.LastBlockProcessed.WithLabelValues(block.source).Set(float64(block.number))
 					metrics.ProcessBlockDuration.Observe(float64(time.Since(blockProcessStartedAt)) / float64(time.Second))
