@@ -121,7 +121,7 @@ func (w *worker) start(ctx context.Context) error {
 
 				if err := handler.run(ctx); err != nil {
 					if err, ok := err.(*errors.Error); ok {
-						handler.logger.Error("Failed block", "err", err.Error(), "stack", err.Stack())
+						handler.logger.Error("Failed block", "err", err.Error(), "stack", err.ErrorStack())
 					} else {
 						handler.logger.Error("Failed block", "err", err)
 					}
