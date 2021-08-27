@@ -33,10 +33,10 @@ var (
 		Help: "Last Block Processed by eksportisto",
 	}, []string{"queue"})
 
-	FailedBlocks = prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Name: "failed_blocks",
-		Help: "Number of failed blocks",
-	}, []string{"queue"})
+	BlockFinished = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "block_finished",
+		Help: "Number of finished blocks",
+	}, []string{"queue", "status"})
 
 	ProcessBlockDuration = prometheus.NewHistogram(prometheus.HistogramOpts{
 		Name:    "process_block_duration",
@@ -119,7 +119,7 @@ func init() {
 	registerer.MustRegister(ProcessBlockDuration)
 	registerer.MustRegister(BlockQueueSize)
 	registerer.MustRegister(RowsInserted)
-	registerer.MustRegister(FailedBlocks)
+	registerer.MustRegister(BlockFinished)
 	registerer.MustRegister(ProcessorDuration)
 
 	registerer.MustRegister(ExchangeCeloBucketSize)
