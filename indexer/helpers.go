@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"reflect"
 
 	"github.com/celo-org/celo-blockchain/common"
 	"github.com/celo-org/celo-blockchain/core/types"
@@ -92,4 +93,19 @@ func (handler *blockHandler) extractEvent(
 		)
 	}
 	return nil
+}
+
+func wrapError(err error, target interface{}, method string) error {
+	if err != nil {
+		return fmt.Errorf("error in %s.%s: %s", getType(target), method, err.Error())
+	}
+	return nil
+}
+
+func getType(target interface{}) string {
+	if t := reflect.TypeOf(target); t.Kind() == reflect.Ptr {
+		return t.Elem().Name()
+	} else {
+		return t.Name()
+	}
 }

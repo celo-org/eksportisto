@@ -85,7 +85,7 @@ func (handler *blockHandler) run(ctx context.Context) (err error) {
 	group, ctx := errgroup.WithContext(ctx)
 	rowsChan := make(chan *Row, 1000)
 
-	err = handler.loadBlock(ctx)
+	err = wrapError(handler.loadBlock(ctx), handler, "loadBlock")
 	if err != nil {
 		return err
 	}
@@ -145,12 +145,18 @@ func (handler *blockHandler) spawnProcessors(ctx context.Context, rowsChan chan 
 		func(processor Processor) {
 			if handler.isTip {
 				group.Go(func() error {
-					return handler.checkError(processor.ObserveMetrics(ctx))
+					return wrapError(
+						handler.checkError(processor.ObserveMetrics(ctx)),
+						processor, "ObserveMetrics",
+					)
 				})
 			}
 			if processor.ShouldCollect() {
 				group.Go(func() error {
-					return handler.checkError(processor.CollectData(ctx, rowsChan))
+					return wrapError(
+						handler.checkError(processor.CollectData(ctx, rowsChan)),
+						processor, "CollectData",
+					)
 				})
 			}
 		}(processor)
@@ -202,8 +208,12 @@ func (handler *blockHandler) initializeProcessorsForFactory(
 ) error {
 	processors, err := factory.InitProcessors(ctx, handler)
 	if err != nil {
-		return handler.checkError(err)
+		return wrapError(
+			handler.checkError(err),
+			factory, "InitProcessors",
+		)
 	}
+
 	for _, processor := range processors {
 		contractId, eventHandler := processor.EventHandler()
 		if eventHandler != nil {
