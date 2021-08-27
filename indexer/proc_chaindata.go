@@ -56,7 +56,7 @@ func (proc *chaindataProcessor) CollectData(ctx context.Context, rows chan *Row)
 			group.Go(func() error { return proc.collectTransaction(ctx, txIndex, tx, rows) })
 		}(txIndex, tx)
 	}
-	return errors.Wrap(group.Wait(), 1)
+	return group.Wait()
 }
 
 func (proc *chaindataProcessor) collectTransaction(
