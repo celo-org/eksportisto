@@ -112,6 +112,7 @@ func (w *worker) start(ctx context.Context) error {
 					} else {
 						handler.logger.Error("Failed block", "err", err)
 					}
+					metrics.FailedBlocks.WithLabelValues(w.input).Add(1)
 				} else {
 					metrics.LastBlockProcessed.WithLabelValues(w.input).Set(float64(block))
 					metrics.ProcessBlockDuration.Observe(float64(time.Since(blockProcessStartedAt)) / float64(time.Second))

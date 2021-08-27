@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"cloud.google.com/go/bigquery"
+	"github.com/celo-org/eksportisto/metrics"
 	"github.com/spf13/viper"
 )
 
@@ -55,5 +56,10 @@ func newBigQueryOutput(ctx context.Context) (Output, error) {
 }
 
 func (bqo *bigqueryOutput) Write(rows []*Row) error {
-	return bqo.inserter.Put(context.Background(), rows)
+	err := bqo.inserter.Put(context.Background(), rows)
+	if err != nil {
+		return err
+	}
+	metrics.RowsInserted.Add(float64(len(rows)))
+	return nil
 }

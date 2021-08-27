@@ -9,6 +9,7 @@ import (
 	"github.com/celo-org/celo-blockchain/common"
 	"github.com/celo-org/celo-blockchain/core/types"
 	"github.com/celo-org/celo-blockchain/log"
+	"github.com/celo-org/eksportisto/metrics"
 	"github.com/celo-org/kliento/celotokens"
 	"github.com/celo-org/kliento/registry"
 	"github.com/go-errors/errors"
@@ -144,12 +145,20 @@ func (handler *blockHandler) spawnProcessors(ctx context.Context, rowsChan chan 
 		func(processor Processor) {
 			if handler.isTip() {
 				group.Go(func() error {
-					return handler.checkError(processor.ObserveMetrics(ctx))
+					return metrics.RecordProcessorDuration(
+						func() error { return handler.checkError(processor.ObserveMetrics(ctx)) },
+						processor,
+						"ObserveMetrics",
+					)
 				})
 			}
 			if processor.ShouldCollect() {
 				group.Go(func() error {
-					return handler.checkError(processor.CollectData(ctx, rowsChan))
+					return metrics.RecordProcessorDuration(
+						func() error { return handler.checkError(processor.CollectData(ctx, rowsChan)) },
+						processor,
+						"CollectData",
+					)
 				})
 			}
 		}(processor)
@@ -199,20 +208,26 @@ func (handler *blockHandler) initializeProcessorsForFactory(
 	factory ProcessorFactory,
 	processorChan chan Processor,
 ) error {
-	processors, err := factory.InitProcessors(ctx, handler)
-	if err != nil {
-		return handler.checkError(err)
-	}
+	return metrics.RecordProcessorDuration(
+		func() error {
+			processors, err := factory.InitProcessors(ctx, handler)
+			if err != nil {
+				return handler.checkError(err)
+			}
 
-	for _, processor := range processors {
-		contractId, eventHandler := processor.EventHandler()
-		if eventHandler != nil {
-			handler.eventHandlers[contractId] = eventHandler
-		}
+			for _, processor := range processors {
+				contractId, eventHandler := processor.EventHandler()
+				if eventHandler != nil {
+					handler.eventHandlers[contractId] = eventHandler
+				}
 
-		processorChan <- processor
-	}
-	return nil
+				processorChan <- processor
+			}
+			return nil
+		},
+		factory,
+		"InitProcessors",
+	)
 }
 
 func (handler *blockHandler) checkError(err error) error {

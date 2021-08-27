@@ -1,6 +1,11 @@
 package metrics
 
-import "github.com/prometheus/client_golang/prometheus"
+import (
+	"reflect"
+	"time"
+
+	"github.com/prometheus/client_golang/prometheus"
+)
 
 var (
 	BlockGasUsed = prometheus.NewGauge(prometheus.GaugeOpts{
@@ -28,16 +33,32 @@ var (
 		Help: "Last Block Processed by eksportisto",
 	}, []string{"queue"})
 
+	FailedBlocks = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "failed_blocks",
+		Help: "Number of failed blocks",
+	}, []string{"queue"})
+
 	ProcessBlockDuration = prometheus.NewHistogram(prometheus.HistogramOpts{
 		Name:    "process_block_duration",
 		Help:    "Time it takes to process a block",
-		Buckets: prometheus.LinearBuckets(0, 0.2, 20),
+		Buckets: prometheus.ExponentialBuckets(0.01, 2, 11),
+	})
+
+	RowsInserted = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "bigquery_rows_inserted",
+		Help: "Number of rows written to BigQuery",
 	})
 
 	VotingGoldFraction = prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "epochrewards_votinggoldfraction",
 		Help: "Voting Gold Fraction",
 	})
+
+	ProcessorDuration = prometheus.NewHistogramVec(prometheus.HistogramOpts{
+		Name:    "processor_duration",
+		Help:    "Time it takes to execute a processor",
+		Buckets: prometheus.ExponentialBuckets(0.01, 2, 11),
+	}, []string{"processor", "method"})
 
 	ExchangeCeloBucketSize = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "exchange_celo_bucket_size",
@@ -97,6 +118,9 @@ func init() {
 	registerer.MustRegister(LastBlockProcessed)
 	registerer.MustRegister(ProcessBlockDuration)
 	registerer.MustRegister(BlockQueueSize)
+	registerer.MustRegister(RowsInserted)
+	registerer.MustRegister(FailedBlocks)
+	registerer.MustRegister(ProcessorDuration)
 
 	registerer.MustRegister(ExchangeCeloBucketSize)
 	registerer.MustRegister(ExchangeStableBucketSize)
@@ -113,4 +137,23 @@ func init() {
 
 	// Add Go module build info with the default registry
 	prometheus.MustRegister(prometheus.NewBuildInfoCollector())
+}
+
+func RecordProcessorDuration(step func() error, processor interface{}, method string) error {
+	start := time.Now()
+	err := step()
+	ProcessorDuration.WithLabelValues(
+		getStructName(processor),
+		method,
+	).Observe(float64(time.Since(start)) / float64(time.Second))
+	return err
+}
+
+func getStructName(t interface{}) string {
+	valueOf := reflect.ValueOf(t)
+	if valueOf.Type().Kind() == reflect.Ptr {
+		return reflect.Indirect(valueOf).Type().Name()
+	} else {
+		return valueOf.Type().Name()
+	}
 }
