@@ -118,7 +118,7 @@ func (proc exchangeProcessor) CollectData(ctx context.Context, rows chan *Row) e
 	// Exchange.ReserveFraction
 	reserveFraction, err := proc.exchange.ReserveFraction(opts)
 	if err != nil {
-		return errors.Wrap(err, 1)
+		return errors.Wrap(err, 0)
 	}
 
 	rows <- contractRow.ViewCall(
@@ -129,7 +129,7 @@ func (proc exchangeProcessor) CollectData(ctx context.Context, rows chan *Row) e
 	// Exchange.goldBucket
 	goldBucketSize, err := proc.exchange.GoldBucket(opts)
 	if err != nil {
-		return errors.Wrap(err, 1)
+		return errors.Wrap(err, 0)
 	}
 
 	rows <- contractRow.ViewCall(
@@ -140,7 +140,7 @@ func (proc exchangeProcessor) CollectData(ctx context.Context, rows chan *Row) e
 	stableBucketSize, err := proc.exchange.StableBucket(opts)
 
 	if err != nil {
-		return errors.Wrap(err, 1)
+		return errors.Wrap(err, 0)
 	}
 
 	rows <- contractRow.ViewCall(
@@ -159,14 +159,14 @@ func (proc exchangeProcessor) ObserveMetrics(ctx context.Context) error {
 
 	goldBucketSize, err := proc.exchange.GoldBucket(opts)
 	if err != nil {
-		return errors.Wrap(err, 1)
+		return errors.Wrap(err, 0)
 	}
 
 	proc.exchangeCeloBucketSizeGauge.Set(utils.ScaleFixed(goldBucketSize))
 
 	cUsdBucketSize, err := proc.exchange.StableBucket(opts)
 	if err != nil {
-		return errors.Wrap(err, 1)
+		return errors.Wrap(err, 0)
 	}
 
 	proc.exchangeStableBucketSizeGauge.Set(utils.ScaleFixed(cUsdBucketSize))
@@ -174,7 +174,7 @@ func (proc exchangeProcessor) ObserveMetrics(ctx context.Context) error {
 	unfrozenReserveGoldBalance, err := proc.reserve.GetUnfrozenReserveGoldBalance(opts)
 
 	if err != nil {
-		return errors.Wrap(err, 1)
+		return errors.Wrap(err, 0)
 	}
 
 	// If the unfrozen balance is 0, ignore for now

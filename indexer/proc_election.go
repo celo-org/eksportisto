@@ -57,7 +57,7 @@ func (proc electionProcessor) CollectData(ctx context.Context, rows chan *Row) e
 	// Election.getActiveVotes
 	activeVotes, err := proc.election.GetActiveVotes(opts)
 	if err != nil {
-		return errors.Wrap(err, 1)
+		return errors.Wrap(err, 0)
 	}
 
 	rows <- contractRow.ViewCall(
@@ -68,7 +68,7 @@ func (proc electionProcessor) CollectData(ctx context.Context, rows chan *Row) e
 	// Election.getTotalVotes
 	totalVotes, err := proc.election.GetTotalVotes(opts)
 	if err != nil {
-		return errors.Wrap(err, 1)
+		return errors.Wrap(err, 0)
 	}
 
 	rows <- contractRow.ViewCall(
@@ -79,7 +79,7 @@ func (proc electionProcessor) CollectData(ctx context.Context, rows chan *Row) e
 	// Election.getElectableValidators
 	electableValidatorsMin, electableValidatorsMax, err := proc.election.GetElectableValidators(opts)
 	if err != nil {
-		return errors.Wrap(err, 1)
+		return errors.Wrap(err, 0)
 	}
 
 	rows <- contractRow.ViewCall(

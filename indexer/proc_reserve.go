@@ -66,7 +66,7 @@ func (proc reserveProcessor) CollectData(ctx context.Context, rows chan *Row) er
 	// Reserve.getReserveGoldBalance
 	reserveGoldBalance, err := proc.reserve.GetReserveGoldBalance(opts)
 	if err != nil {
-		return errors.Wrap(err, 1)
+		return errors.Wrap(err, 0)
 	}
 
 	rows <- contractRow.ViewCall("getReserveGoldBalance", "reserveGoldBalance", reserveGoldBalance.String())
@@ -74,7 +74,7 @@ func (proc reserveProcessor) CollectData(ctx context.Context, rows chan *Row) er
 	// Reserve.getOtherReserveAddressesGoldBalance
 	otherReserveAddressesGoldBalance, err := proc.reserve.GetOtherReserveAddressesGoldBalance(opts)
 	if err != nil {
-		return errors.Wrap(err, 1)
+		return errors.Wrap(err, 0)
 	}
 
 	rows <- contractRow.ViewCall(
@@ -85,7 +85,7 @@ func (proc reserveProcessor) CollectData(ctx context.Context, rows chan *Row) er
 	// Reserve.getUnfrozenBalance
 	unfrozenBalance, err := proc.reserve.GetUnfrozenBalance(opts)
 	if err != nil {
-		return errors.Wrap(err, 1)
+		return errors.Wrap(err, 0)
 	}
 
 	rows <- contractRow.ViewCall("getUnfrozenBalance", "value", unfrozenBalance.String())
@@ -93,7 +93,7 @@ func (proc reserveProcessor) CollectData(ctx context.Context, rows chan *Row) er
 	// Reserve.getFrozenReserveGoldBalance
 	frozenReserveGoldBalance, err := proc.reserve.GetFrozenReserveGoldBalance(opts)
 	if err != nil {
-		return errors.Wrap(err, 1)
+		return errors.Wrap(err, 0)
 	}
 
 	rows <- contractRow.ViewCall("getFrozenReserveGoldBalance", "value", frozenReserveGoldBalance.String())
@@ -101,7 +101,7 @@ func (proc reserveProcessor) CollectData(ctx context.Context, rows chan *Row) er
 	// Reserve.getUnfrozenReserveGoldBalance
 	unfrozenReserveGoldBalance, err := proc.reserve.GetUnfrozenReserveGoldBalance(opts)
 	if err != nil {
-		return errors.Wrap(err, 1)
+		return errors.Wrap(err, 0)
 	}
 
 	rows <- contractRow.ViewCall("getUnfrozenReserveGoldBalance", "value", unfrozenReserveGoldBalance)

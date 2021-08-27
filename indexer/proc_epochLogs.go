@@ -44,7 +44,7 @@ func (proc *epochLogsProcessor) CollectData(ctx context.Context, rows chan *Row)
 		ToBlock:   proc.blockNumber,
 	})
 	if err != nil {
-		return errors.Wrap(err, 1)
+		return errors.Wrap(err, 0)
 	}
 
 	for eventIdx, epochLog := range filterLogs {
@@ -52,7 +52,7 @@ func (proc *epochLogsProcessor) CollectData(ctx context.Context, rows chan *Row)
 		if epochLog.BlockHash == epochLog.TxHash {
 			err := proc.extractEvent(ctx, epochLog.BlockHash, eventIdx, &epochLog, proc.blockRow, rows)
 			if err != nil {
-				return errors.Wrap(err, 1)
+				return errors.Wrap(err, 0)
 			}
 		}
 	}

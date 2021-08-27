@@ -55,7 +55,7 @@ func (proc lockedGoldProcessor) CollectData(ctx context.Context, rows chan *Row)
 	// LockedGold.getTotalLockedGold
 	totalNonvoting, err := proc.lockedGold.GetNonvotingLockedGold(opts)
 	if err != nil {
-		return errors.Wrap(err, 1)
+		return errors.Wrap(err, 0)
 	}
 
 	rows <- contractRow.ViewCall("getNonvotingLockedGold", "totalNonvoting", totalNonvoting.String())
@@ -63,7 +63,7 @@ func (proc lockedGoldProcessor) CollectData(ctx context.Context, rows chan *Row)
 	// LockedGold.getTotalLockedGold
 	totalLockedGold, err := proc.lockedGold.GetTotalLockedGold(opts)
 	if err != nil {
-		return errors.Wrap(err, 1)
+		return errors.Wrap(err, 0)
 	}
 
 	rows <- contractRow.ViewCall("getTotalLockedGold", "totalLockedGold", totalLockedGold)

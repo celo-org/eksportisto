@@ -71,7 +71,7 @@ func (proc *chaindataProcessor) collectTransaction(
 
 	receipt, err := proc.celoClient.Eth.TransactionReceipt(ctx, txHash)
 	if err != nil {
-		return errors.Wrap(err, 1)
+		return errors.Wrap(err, 0)
 	}
 
 	rows <- txRow.Extend("type", "Transaction", "gasPrice", tx.GasPrice(), "gasUsed", receipt.GasUsed).WithId(txHash.Hex())
@@ -79,14 +79,14 @@ func (proc *chaindataProcessor) collectTransaction(
 	for eventIdx, eventLog := range receipt.Logs {
 		err := proc.extractEvent(ctx, txHash, eventIdx, eventLog, txRow, rows)
 		if err != nil {
-			return errors.Wrap(err, 1)
+			return errors.Wrap(err, 0)
 		}
 	}
 
 	if proc.debugEnabled {
 		err := proc.extractInternalTransactions(ctx, txHash, txRow, rows)
 		if err != nil {
-			return errors.Wrap(err, 1)
+			return errors.Wrap(err, 0)
 		}
 	}
 
@@ -101,7 +101,7 @@ func (proc *chaindataProcessor) extractInternalTransactions(
 ) error {
 	internalTransfers, err := proc.celoClient.Debug.TransactionTransfers(ctx, txHash)
 	if err != nil {
-		return errors.Wrap(err, 1)
+		return errors.Wrap(err, 0)
 	}
 	// TODO: Figure out why this was needed.
 	// if skipContractMetrics(err) {

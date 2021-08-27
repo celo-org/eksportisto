@@ -119,7 +119,7 @@ func (handler *blockHandler) loadBlock(ctx context.Context) error {
 		if strings.Contains(err.Error(), "cannot unmarshal") {
 			return nil
 		}
-		return errors.Wrap(err, 1)
+		return errors.Wrap(err, 0)
 	}
 
 	handler.transactions = handler.block.Transactions()

@@ -84,7 +84,7 @@ func (proc celoTokenProcessor) CollectData(ctx context.Context, rows chan *Row) 
 
 	totalSupply, err := proc.tokenContract.TotalSupply(opts)
 	if err != nil {
-		return errors.Wrap(err, 1)
+		return errors.Wrap(err, 0)
 	}
 
 	rows <- contractRow.ViewCall("totalSupply", "totalSupply", totalSupply.String())
@@ -99,7 +99,7 @@ func (proc celoTokenProcessor) ObserveMetrics(ctx context.Context) error {
 
 	totalSupply, err := proc.tokenContract.TotalSupply(opts)
 	if err != nil {
-		return errors.Wrap(err, 1)
+		return errors.Wrap(err, 0)
 	}
 	proc.totalSupplyGauge.Set(utils.ScaleFixed(totalSupply))
 	return nil
