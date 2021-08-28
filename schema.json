@@ -460,6 +460,16 @@
         "mode": "NULLABLE"
     },
     {
+        "name": "penalty",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "interval",
+        "type": "FLOAT",
+        "mode": "NULLABLE"
+    },
+    {
         "name": "reserveGoldBalance",
         "type": "STRING",
         "mode": "NULLABLE"

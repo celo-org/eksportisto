@@ -7,6 +7,7 @@ import (
 
 	"cloud.google.com/go/bigquery"
 	"github.com/celo-org/eksportisto/metrics"
+	"github.com/davecgh/go-spew/spew"
 	"github.com/spf13/viper"
 )
 
@@ -56,6 +57,7 @@ func newBigQueryOutput(ctx context.Context) (Output, error) {
 }
 
 func (bqo *bigqueryOutput) Write(rows []*Row) error {
+	spew.Dump(rows)
 	err := bqo.inserter.Put(context.Background(), rows)
 	if err != nil {
 		return err
