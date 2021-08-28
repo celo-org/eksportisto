@@ -30,3 +30,5 @@ indexer:
   dest: bigquery
   sleepIntervalMilliseconds: 100
   celoNodeURI: "http://localhost:8545"
+  blockRetryAttempts: 3
+  blockRetryDelayMilliseconds: 100

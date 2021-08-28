@@ -13,17 +13,20 @@ import (
 	"github.com/go-errors/errors"
 	"github.com/go-redis/redis/v8"
 	"github.com/spf13/viper"
+	"gopkg.in/matryer/try.v1"
 )
 
 type worker struct {
-	celoClient       *client.CeloClient
-	db               *rdb.RedisDB
-	logger           log.Logger
-	baseBlockHandler *baseBlockHandler
-	output           Output
-	input            rdb.Queue
-	nodeURI          string
-	sleepInterval    time.Duration
+	celoClient         *client.CeloClient
+	db                 *rdb.RedisDB
+	logger             log.Logger
+	baseBlockHandler   *baseBlockHandler
+	blockRetryAttempts int
+	blockRetryDelay    time.Duration
+	output             Output
+	input              rdb.Queue
+	nodeURI            string
+	sleepInterval      time.Duration
 }
 
 // newWorker sets up the struct responsible for a worker process.
@@ -61,13 +64,15 @@ func newWorker(ctx context.Context) (*worker, error) {
 	logger.Info("Starting Worker", "nodeURI", nodeURI, "source", input, "destination", dest)
 
 	w := &worker{
-		logger:        logger,
-		sleepInterval: viper.GetDuration("indexer.sleepIntervalMilliseconds") * time.Millisecond,
-		celoClient:    celoClient,
-		db:            rdb.NewRedisDatabase(),
-		output:        output,
-		input:         input,
-		nodeURI:       nodeURI,
+		logger:             logger,
+		sleepInterval:      viper.GetDuration("indexer.sleepIntervalMilliseconds") * time.Millisecond,
+		celoClient:         celoClient,
+		db:                 rdb.NewRedisDatabase(),
+		output:             output,
+		input:              input,
+		nodeURI:            nodeURI,
+		blockRetryAttempts: viper.GetInt("indexer.blockRetryAttempts"),
+		blockRetryDelay:    viper.GetDuration("indexer.blockRetryDelayMilliseconds") * time.Millisecond,
 	}
 
 	w.baseBlockHandler, err = w.newBaseBlockHandler()
@@ -100,13 +105,28 @@ func (w *worker) start(ctx context.Context) error {
 			if indexed {
 				w.logger.Info("Skipping block: already indexed", "number", block)
 			} else {
-				blockProcessStartedAt := time.Now()
-				handler, err := w.newBlockHandler(block)
-				if err != nil {
-					return err
-				}
+				var blockProcessStartedAt time.Time
+				var handler *blockHandler
 
-				if err := handler.run(ctx); err != nil {
+				err = try.Do(func(attempt int) (retry bool, err error) {
+					retry = attempt < w.blockRetryAttempts
+					blockProcessStartedAt = time.Now()
+					err = func() error {
+						handler, err = w.newBlockHandler(block)
+						if err != nil {
+							return err
+						}
+						return handler.run(ctx)
+					}()
+
+					if err != nil && retry {
+						handler.logger.Warn("Retrying block", "err", err.Error(), "attempt", attempt)
+						time.Sleep(w.blockRetryDelay)
+					}
+					return
+				})
+
+				if err != nil {
 					if err, ok := err.(*errors.Error); ok {
 						handler.logger.Error("Failed block", "err", err.Error(), "stack", err.ErrorStack())
 					} else {
