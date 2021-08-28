@@ -455,6 +455,11 @@
         "mode": "NULLABLE"
     },
     {
+        "name": "reward",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
         "name": "reserveGoldBalance",
         "type": "STRING",
         "mode": "NULLABLE"

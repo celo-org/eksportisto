@@ -108,7 +108,7 @@ func (w *worker) start(ctx context.Context) error {
 				var blockProcessStartedAt time.Time
 				var handler *blockHandler
 
-				err = try.Do(func(attempt int) (retry bool, err error) {
+				err := try.Do(func(attempt int) (retry bool, err error) {
 					retry = attempt < w.blockRetryAttempts
 					blockProcessStartedAt = time.Now()
 					err = func() error {
@@ -127,10 +127,14 @@ func (w *worker) start(ctx context.Context) error {
 				})
 
 				if err != nil {
-					if err, ok := err.(*errors.Error); ok {
-						handler.logger.Error("Failed block", "err", err.Error(), "stack", err.ErrorStack())
+					if errWithStack, ok := err.(*errors.Error); ok {
+						handler.logger.Error(
+							"Failed block",
+							"err", errWithStack.Error(),
+							"stack", errWithStack.ErrorStack(),
+						)
 					} else {
-						handler.logger.Error("Failed block", "err", err)
+						handler.logger.Error("Failed block", "err", err.Error())
 					}
 					metrics.BlockFinished.WithLabelValues(w.input, "fail").Add(1)
 				} else {
