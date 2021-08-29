@@ -37,7 +37,7 @@ func newWorker(ctx context.Context) (*worker, error) {
 	logger := log.New()
 	logger.SetHandler(handler)
 
-	nodeURI := viper.GetString("indexer.celoNodeURI")
+	nodeURI := viper.GetString("celoNodeURI")
 	celoClient, err := client.Dial(nodeURI)
 	if err != nil {
 		return nil, err
