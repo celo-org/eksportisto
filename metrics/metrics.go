@@ -1,6 +1,7 @@
 package metrics
 
 import (
+	"fmt"
 	"reflect"
 	"time"
 
@@ -54,11 +55,11 @@ var (
 		Help: "Voting Gold Fraction",
 	})
 
-	ProcessorDuration = prometheus.NewHistogramVec(prometheus.HistogramOpts{
-		Name:    "processor_duration",
-		Help:    "Time it takes to execute a processor",
+	StepDuration = prometheus.NewHistogramVec(prometheus.HistogramOpts{
+		Name:    "step_duration",
+		Help:    "Time it takes to execute a step of the process",
 		Buckets: prometheus.ExponentialBuckets(0.01, 2, 11),
-	}, []string{"processor", "method"})
+	}, []string{"step"})
 
 	ExchangeCeloBucketSize = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "exchange_celo_bucket_size",
@@ -120,7 +121,7 @@ func init() {
 	registerer.MustRegister(BlockQueueSize)
 	registerer.MustRegister(RowsInserted)
 	registerer.MustRegister(BlockFinished)
-	registerer.MustRegister(ProcessorDuration)
+	registerer.MustRegister(StepDuration)
 
 	registerer.MustRegister(ExchangeCeloBucketSize)
 	registerer.MustRegister(ExchangeStableBucketSize)
@@ -139,14 +140,17 @@ func init() {
 	prometheus.MustRegister(prometheus.NewBuildInfoCollector())
 }
 
-func RecordProcessorDuration(step func() error, processor interface{}, method string) error {
+func RecordStepDuration(handler func() error, step string) error {
 	start := time.Now()
-	err := step()
-	ProcessorDuration.WithLabelValues(
-		getStructName(processor),
-		method,
-	).Observe(float64(time.Since(start)) / float64(time.Second))
+	err := handler()
+	StepDuration.WithLabelValues(step).Observe(float64(time.Since(start)) / float64(time.Second))
 	return err
+}
+
+func RecordProcessorDuration(handler func() error, processor interface{}, method string) error {
+	processorName := getStructName(processor)
+	step := fmt.Sprintf("%s.%s", processorName, method)
+	return RecordStepDuration(handler, step)
 }
 
 func getStructName(t interface{}) string {

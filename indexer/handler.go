@@ -85,7 +85,10 @@ func (handler *blockHandler) run(ctx context.Context) (err error) {
 	group, ctx := errgroup.WithContext(ctx)
 	rowsChan := make(chan *Row, 1000)
 
-	err = handler.loadBlock(ctx)
+	err = metrics.RecordStepDuration(
+		func() error { return handler.loadBlock(ctx) },
+		"loadBlock",
+	)
 	if err != nil {
 		return err
 	}
@@ -105,7 +108,9 @@ func (handler *blockHandler) run(ctx context.Context) (err error) {
 				break Loop
 			}
 		}
-		return handler.output.Write(rows)
+		return metrics.RecordStepDuration(func() error {
+			return handler.output.Write(rows)
+		}, "bigquery.write")
 	})
 
 	return group.Wait()
