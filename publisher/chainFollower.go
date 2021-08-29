@@ -23,7 +23,7 @@ type chainFollower struct {
 
 func newChainFollower() (*chainFollower, error) {
 	db := rdb.NewRedisDatabase()
-	celoClient, err := client.Dial(viper.GetString("publisher.celoNodeURI"))
+	celoClient, err := client.Dial(viper.GetString("celoNodeURI"))
 	if err != nil {
 		return nil, err
 	}
