@@ -13,7 +13,7 @@ import (
 	"github.com/celo-org/kliento/client/debug"
 	"github.com/celo-org/kliento/registry"
 	"github.com/go-errors/errors"
-	"golang.org/x/sync/errgroup"
+	"github.com/neilotoole/errgroup"
 )
 
 type chaindataProcessorFactory struct{}
@@ -50,11 +50,14 @@ func (proc *chaindataProcessor) ShouldCollect() bool {
 
 func (proc *chaindataProcessor) CollectData(ctx context.Context, rows chan *Row) error {
 	rows <- proc.blockRow.Extend("type", "Block")
-	group, ctx := errgroup.WithContext(ctx)
-	for txIndex, tx := range proc.transactions {
-		func(txIndex int, tx *types.Transaction) {
-			group.Go(func() error { return proc.collectTransaction(ctx, txIndex, tx, rows) })
-		}(txIndex, tx)
+	group, ctx := errgroup.WithContextN(ctx, 5, 100)
+	for _txIndex, _tx := range proc.transactions {
+		txIndex := _txIndex
+		tx := _tx
+
+		group.Go(func() error {
+			return proc.collectTransaction(ctx, txIndex, tx, rows)
+		})
 	}
 	return group.Wait()
 }

@@ -13,7 +13,7 @@ import (
 	"github.com/celo-org/kliento/celotokens"
 	"github.com/celo-org/kliento/registry"
 	"github.com/go-errors/errors"
-	"golang.org/x/sync/errgroup"
+	"github.com/neilotoole/errgroup"
 )
 
 // baseBlockHandler is a struct that holds references to
@@ -140,7 +140,7 @@ func (handler *blockHandler) loadBlock(ctx context.Context) error {
 // spawnProcessors initializes all processors by using the Factories, and execute
 // extract data methods collecting all rows in the provided channel.
 func (handler *blockHandler) spawnProcessors(ctx context.Context, rowsChan chan *Row) error {
-	group, ctx := errgroup.WithContext(ctx)
+	group, ctx := errgroup.WithContextN(ctx, 3, 30)
 	processors, err := handler.initializeProcessors(ctx)
 	if err != nil {
 		return err

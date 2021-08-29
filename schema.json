@@ -106,7 +106,7 @@
     },
     {
         "name": "soldGold",
-        "type": "STRING",
+        "type": "BOOLEAN",
         "mode": "NULLABLE"
     },
     {

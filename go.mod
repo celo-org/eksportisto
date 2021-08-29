@@ -22,6 +22,7 @@ require (
 	github.com/influxdata/influxdb v1.2.3-0.20180221223340-01288bdb0883
 	github.com/jsternberg/zap-logfmt v1.2.0 // indirect
 	github.com/mattn/go-sqlite3 v2.0.3+incompatible
+	github.com/neilotoole/errgroup v0.1.5
 	github.com/onsi/gomega v1.15.0
 	github.com/opencontainers/go-digest v1.0.0-rc1 // indirect
 	github.com/opencontainers/image-spec v1.0.1 // indirect
