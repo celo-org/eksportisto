@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"github.com/celo-org/eksportisto/indexer"
-	"github.com/celo-org/eksportisto/server"
+	"github.com/celo-org/eksportisto/metrics"
 	"github.com/celo-org/kliento/utils/service"
 	"github.com/prometheus/common/log"
 	"github.com/spf13/cobra"
@@ -22,7 +22,7 @@ different priority and processes and stores them in a data store.`,
 		group, ctx := errgroup.WithContext(ctx)
 
 		group.Go(func() error { return indexer.Start(ctx) })
-		group.Go(func() error { return server.Start(ctx) })
+		group.Go(func() error { return metrics.Start(ctx) })
 
 		err := group.Wait()
 		if err != nil && err != context.Canceled {

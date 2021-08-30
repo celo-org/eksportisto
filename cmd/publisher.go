@@ -4,8 +4,8 @@ import (
 	"context"
 	"os"
 
+	"github.com/celo-org/eksportisto/metrics"
 	"github.com/celo-org/eksportisto/publisher"
-	"github.com/celo-org/eksportisto/server"
 	"github.com/celo-org/kliento/utils/service"
 	"github.com/prometheus/common/log"
 	"golang.org/x/sync/errgroup"
@@ -25,7 +25,7 @@ also ensure that blocks are retried when errors occur.`,
 		group, ctx := errgroup.WithContext(ctx)
 
 		group.Go(func() error { return publisher.Start(ctx) })
-		group.Go(func() error { return server.Start(ctx) })
+		group.Go(func() error { return metrics.Start(ctx) })
 
 		err := group.Wait()
 		if err != nil && err != context.Canceled {

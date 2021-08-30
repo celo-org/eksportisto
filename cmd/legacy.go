@@ -9,15 +9,15 @@ import (
 	"time"
 
 	"github.com/celo-org/celo-blockchain/log"
-	"github.com/celo-org/eksportisto/monitor"
-	"github.com/celo-org/eksportisto/server"
+	"github.com/celo-org/eksportisto/legacy/monitor"
+	"github.com/celo-org/eksportisto/metrics"
 	"github.com/celo-org/kliento/utils/service"
 	"github.com/spf13/cobra"
 	"golang.org/x/sync/errgroup"
 )
 
 var (
-	httpConfig    server.HttpServerConfig
+	httpConfig    metrics.HttpServerConfig
 	monitorConfig monitor.Config
 	cpuprofile    string
 )
@@ -44,7 +44,7 @@ Used during development of 2.0 to compare the data extraction.`,
 		}
 
 		group.Go(func() error { return monitor.Start(ctx, &monitorConfig) })
-		group.Go(func() error { return server.StartWithConfig(ctx, &httpConfig) })
+		group.Go(func() error { return metrics.StartWithConfig(ctx, &httpConfig) })
 
 		err := group.Wait()
 		if err != nil && err != context.Canceled {

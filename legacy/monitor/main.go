@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/celo-org/eksportisto/db"
+	"github.com/celo-org/eksportisto/legacy/db"
 	"github.com/celo-org/eksportisto/metrics"
 	"github.com/celo-org/eksportisto/utils"
 	"github.com/celo-org/kliento/celotokens"
