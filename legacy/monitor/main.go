@@ -323,7 +323,7 @@ func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *ty
 			eventHandlers[exchangeRegistryID] = exchangeProcessor
 		}
 
-		txGroup, transactionCtx := errgroup.WithContextN(transactionCtx, 10, 100)
+		txGroup, innerCtx := errgroup.WithContextN(transactionCtx, 10, 1000)
 
 		for _txIndex, _tx := range txs {
 			tx := _tx
@@ -333,7 +333,7 @@ func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *ty
 			txGroup.Go(func() error {
 				txLogger := logger.New("txHash", txHash, "txIndex", txIndex)
 
-				receipt, err := cc.Eth.TransactionReceipt(transactionCtx, txHash)
+				receipt, err := cc.Eth.TransactionReceipt(innerCtx, txHash)
 				if err != nil {
 					return err
 				}
@@ -349,7 +349,7 @@ func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *ty
 				if !debugEnabled {
 					return nil
 				}
-				internalTransfers, err := cc.Debug.TransactionTransfers(transactionCtx, txHash)
+				internalTransfers, err := cc.Debug.TransactionTransfers(innerCtx, txHash)
 				if skipContractMetrics(err) {
 					return nil
 				} else if err != nil {
@@ -366,7 +366,6 @@ func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *ty
 				}
 				return nil
 			})
-
 		}
 
 		if err := txGroup.Wait(); err != nil {
