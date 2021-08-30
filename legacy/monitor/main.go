@@ -218,7 +218,7 @@ func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *ty
 			return false
 		}
 
-		block, err := cc.Eth.BlockByNumber(ctx, h.Number)
+		block, err := cc.Eth.BlockByNumber(context.Background(), h.Number)
 		var txs types.Transactions = nil
 		if err != nil {
 			unmarshalError := strings.Contains(err.Error(), "cannot unmarshal")
@@ -229,6 +229,8 @@ func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *ty
 		} else {
 			txs = block.Transactions()
 		}
+
+		logger.Info("Hello world")
 
 		g, processorCtx := errgroup.WithContext(context.Background())
 		opts := &bind.CallOpts{
@@ -284,6 +286,7 @@ func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *ty
 		lockedGoldProcessor := NewLockedGoldProcessor(processorCtx, logger, lockedGold)
 		reserveProcessor := NewReserveProcessor(processorCtx, logger, reserve)
 		sortedOraclesProcessor, err := NewSortedOraclesProcessor(processorCtx, logger, sortedOracles, exchangeContracts, stableTokenAddresses)
+		logger.Info("Hello world")
 		if err != nil {
 			return err
 		}
@@ -323,7 +326,7 @@ func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *ty
 			eventHandlers[exchangeRegistryID] = exchangeProcessor
 		}
 
-		txGroup, ctx := errgroup.WithContextN(ctx, 10, 100)
+		txGroup, transactionCtx := errgroup.WithContextN(transactionCtx, 10, 100)
 
 		for _txIndex, _tx := range txs {
 			tx := _tx
@@ -369,9 +372,11 @@ func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *ty
 
 		}
 
+		logger.Info("Hello world")
 		if err := txGroup.Wait(); err != nil {
 			return err
 		}
+		logger.Info("Hello world", "err", err)
 
 		if tipMode {
 			g.Go(func() error { return epochRewardsProcessor.ObserveMetric(opts) })
@@ -409,11 +414,12 @@ func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *ty
 				g.Go(func() error { return processor.ObserveState(opts) })
 			}
 
-			filterLogs, err := cc.Eth.FilterLogs(ctx, celo.FilterQuery{
+			filterLogs, err := cc.Eth.FilterLogs(context.Background(), celo.FilterQuery{
 				FromBlock: h.Number,
 				ToBlock:   h.Number,
 			})
 			if err != nil {
+				logger.Info("Hello world", "err", err)
 				return err
 			}
 
@@ -425,6 +431,7 @@ func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *ty
 			}
 		}
 
+		logger.Info("Hello world")
 		err = g.Wait()
 		if err != nil {
 			return err
