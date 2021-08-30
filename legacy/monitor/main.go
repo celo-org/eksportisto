@@ -230,8 +230,6 @@ func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *ty
 			txs = block.Transactions()
 		}
 
-		logger.Info("Hello world")
-
 		g, processorCtx := errgroup.WithContext(context.Background())
 		opts := &bind.CallOpts{
 			BlockNumber: h.Number,
@@ -286,7 +284,6 @@ func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *ty
 		lockedGoldProcessor := NewLockedGoldProcessor(processorCtx, logger, lockedGold)
 		reserveProcessor := NewReserveProcessor(processorCtx, logger, reserve)
 		sortedOraclesProcessor, err := NewSortedOraclesProcessor(processorCtx, logger, sortedOracles, exchangeContracts, stableTokenAddresses)
-		logger.Info("Hello world")
 		if err != nil {
 			return err
 		}
@@ -372,11 +369,9 @@ func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *ty
 
 		}
 
-		logger.Info("Hello world")
 		if err := txGroup.Wait(); err != nil {
 			return err
 		}
-		logger.Info("Hello world", "err", err)
 
 		if tipMode {
 			g.Go(func() error { return epochRewardsProcessor.ObserveMetric(opts) })
@@ -419,7 +414,6 @@ func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *ty
 				ToBlock:   h.Number,
 			})
 			if err != nil {
-				logger.Info("Hello world", "err", err)
 				return err
 			}
 
@@ -431,7 +425,6 @@ func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *ty
 			}
 		}
 
-		logger.Info("Hello world")
 		err = g.Wait()
 		if err != nil {
 			return err
