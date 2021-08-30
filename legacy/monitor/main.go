@@ -28,7 +28,7 @@ import (
 	"github.com/celo-org/celo-blockchain/log"
 	kliento_mon "github.com/celo-org/kliento/monitor"
 	"github.com/celo-org/kliento/registry"
-	"golang.org/x/sync/errgroup"
+	"github.com/neilotoole/errgroup"
 )
 
 type Config struct {
@@ -323,12 +323,14 @@ func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *ty
 			eventHandlers[exchangeRegistryID] = exchangeProcessor
 		}
 
+		txGroup, ctx := errgroup.WithContextN(ctx, 10, 100)
+
 		for _txIndex, _tx := range txs {
 			tx := _tx
 			txIndex := _txIndex
 			txHash := tx.Hash()
 
-			g.Go(func() error {
+			txGroup.Go(func() error {
 				txLogger := logger.New("txHash", txHash, "txIndex", txIndex)
 
 				receipt, err := cc.Eth.TransactionReceipt(transactionCtx, txHash)
@@ -365,6 +367,10 @@ func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *ty
 				return nil
 			})
 
+		}
+
+		if err := txGroup.Wait(); err != nil {
+			return err
 		}
 
 		if tipMode {
