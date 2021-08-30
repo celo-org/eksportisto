@@ -33,6 +33,7 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.eksportisto.yaml)")
 	rootCmd.PersistentFlags().Int("monitoring-port", 8080, "Port for the prometheus server")
 	rootCmd.PersistentFlags().String("celo-node-uri", "", "URI for the Celo Blockchain Node")
+	rootCmd.PersistentFlags().Bool("profiling", false, "Enable pprof on the http server")
 
 	rootCmd.AddCommand(publisherCmd)
 	rootCmd.AddCommand(indexerCmd)
@@ -46,6 +47,7 @@ func initConfig() {
 	viper.BindPFlag("monitoring.port", rootCmd.Flags().Lookup("monitoring-port"))
 	viper.BindPFlag("indexer.source", indexerCmd.Flags().Lookup("indexer-source"))
 	viper.BindPFlag("celoNodeURI", rootCmd.Flags().Lookup("celo-node-uri"))
+	viper.BindPFlag("profiling", rootCmd.Flags().Lookup("profiling"))
 
 	if cfgFile != "" {
 		// Use config file from the flag.

@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"time"
 
+	netpprof "net/http/pprof"
+
 	"github.com/celo-org/celo-blockchain/log"
 	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -44,6 +46,15 @@ func defineRoutes(cfg *HttpServerConfig) http.Handler {
 	r := mux.NewRouter()
 	r.HandleFunc("/health", healthCheckHandler)
 	r.Handle("/metrics", promhttp.Handler())
+
+	if viper.GetBool("profiling") {
+		log.Info("Binding profiling routes")
+		r.HandleFunc("/debug/pprof/", netpprof.Index)
+		r.HandleFunc("/debug/pprof/cmdline", netpprof.Cmdline)
+		r.HandleFunc("/debug/pprof/profile", netpprof.Profile)
+		r.HandleFunc("/debug/pprof/symbol", netpprof.Symbol)
+		r.HandleFunc("/debug/pprof/trace", netpprof.Trace)
+	}
 
 	mainHandler := requestLogHandler(r)
 	mainHandler = http.TimeoutHandler(mainHandler, cfg.RequestTimeout, "Request Timed out")
