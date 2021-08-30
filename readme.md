@@ -61,6 +61,7 @@ publisher
     enabled: true
     startBlock: 0
     batchSize: 100
+    tipBuffer: 5
     sleepIntervalMilliseconds: 100
   chainFollower:
     enabled: false
@@ -68,7 +69,7 @@ publisher
 
 The publisher has two modes of operation which can be enabled/disabled:
 
-- `backfill` - will queue historical blocks which aren't marked as "indexed" in Redis starting from the `startBlock` in `batchSize` chunks. It maintains a cursor of the max(blockNumber) where all blocks between startBlock and the cursor are marked as successfully indexed in Redis. It will continuously attempt to enqueue blocks that fail for whatever reason, causing the system to stall. This is a desired effect and should result in humans getting involved to see what's causing that block to fail. Blocks are queued on the `blocks:queue:backfill` queue.
+- `backfill` - will queue historical blocks which aren't marked as "indexed" in Redis starting from the `startBlock` in `batchSize` chunks. It maintains a cursor of the max(blockNumber) where all blocks between startBlock and the cursor are marked as successfully indexed in Redis. It will continuously attempt to enqueue blocks that fail for whatever reason, causing the system to stall. This is a desired effect and should result in humans getting involved to see what's causing that block to fail. Blocks are queued on the `blocks:queue:backfill` queue. When the cursor is at the tip of the chain, the backfill has a buffer of `tipBuffer` that it uses to not queue blocks close to the tip, to avoid both indexers processing the same block, even though that shouldn't be problematic if it happens. 
 
 - `chainFollower` - maintains a subscription to a celo node and publishes blocks as they show up to the `blocks:queue:tip` queue
 
