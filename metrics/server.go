@@ -2,7 +2,9 @@ package metrics
 
 import (
 	"context"
+	"fmt"
 	"net/http"
+	"runtime"
 	"time"
 
 	netpprof "net/http/pprof"
@@ -48,12 +50,16 @@ func defineRoutes(cfg *HttpServerConfig) http.Handler {
 	r.Handle("/metrics", promhttp.Handler())
 
 	if viper.GetBool("profiling") {
-		log.Info("Binding profiling routes")
+		log.Info("Setting up profiling")
+
+		runtime.SetBlockProfileRate(1000)
+
 		r.HandleFunc("/debug/pprof/", netpprof.Index)
-		r.HandleFunc("/debug/pprof/cmdline", netpprof.Cmdline)
-		r.HandleFunc("/debug/pprof/profile", netpprof.Profile)
-		r.HandleFunc("/debug/pprof/symbol", netpprof.Symbol)
-		r.HandleFunc("/debug/pprof/trace", netpprof.Trace)
+		for _, handler := range []string{
+			"allocs", "block", "cmdline", "goroutine", "heap",
+			"mutex", "profile", "threadcreate", "trace"} {
+			r.HandleFunc(fmt.Sprintf("/debug/pprof/%s", handler), netpprof.Index)
+		}
 	}
 
 	mainHandler := requestLogHandler(r)

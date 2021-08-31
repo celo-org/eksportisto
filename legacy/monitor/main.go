@@ -230,7 +230,7 @@ func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *ty
 			txs = block.Transactions()
 		}
 
-		g, processorCtx := errgroup.WithContext(context.Background())
+		g, processorCtx := errgroup.WithContextN(context.Background(), 5, 100)
 		opts := &bind.CallOpts{
 			BlockNumber: h.Number,
 			Context:     processorCtx,
@@ -323,7 +323,7 @@ func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *ty
 			eventHandlers[exchangeRegistryID] = exchangeProcessor
 		}
 
-		txGroup, innerCtx := errgroup.WithContextN(transactionCtx, 10, 1000)
+		txGroup, innerCtx := errgroup.WithContextN(transactionCtx, 5, 100)
 
 		for _txIndex, _tx := range txs {
 			tx := _tx
