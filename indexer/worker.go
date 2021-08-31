@@ -28,6 +28,8 @@ type worker struct {
 	nodeURI            string
 	sleepInterval      time.Duration
 	concurrency        int
+	collectMetrics     bool
+	collectData        bool
 }
 
 // newWorker sets up the struct responsible for a worker process.
@@ -62,7 +64,12 @@ func newWorker(ctx context.Context) (*worker, error) {
 		return nil, err
 	}
 
-	logger.Info("Starting Worker", "nodeURI", nodeURI, "source", input, "destination", dest)
+	mode, err := newMode(viper.GetString("indexer.mode"))
+	if err != nil {
+		return nil, err
+	}
+
+	logger.Info("Starting Worker", "nodeURI", nodeURI, "source", input, "destination", dest, "mode", mode)
 
 	w := &worker{
 		logger:             logger,
@@ -75,6 +82,8 @@ func newWorker(ctx context.Context) (*worker, error) {
 		blockRetryAttempts: viper.GetInt("indexer.blockRetryAttempts"),
 		blockRetryDelay:    viper.GetDuration("indexer.blockRetryDelayMilliseconds") * time.Millisecond,
 		concurrency:        viper.GetInt("indexer.concurrency"),
+		collectMetrics:     mode.shouldCollectMetrics(),
+		collectData:        mode.shouldCollectData(),
 	}
 
 	w.baseBlockHandler, err = w.newBaseBlockHandler()

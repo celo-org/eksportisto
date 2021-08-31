@@ -16,6 +16,34 @@ import (
 var EpochSize = uint64(17280)   // 17280 = 12 * 60 * 24
 var BlocksPerHour = uint64(720) // 720 = 12 * 60
 
+type Mode string
+
+const (
+	DataMode    Mode = "data"
+	MetricsMode Mode = "metrics"
+	BothMode    Mode = "both"
+)
+
+func newMode(mode string) (Mode, error) {
+	if mode == string(DataMode) {
+		return DataMode, nil
+	} else if mode == string(MetricsMode) {
+		return MetricsMode, nil
+	} else if mode == string(BothMode) {
+		return BothMode, nil
+	} else {
+		return "", fmt.Errorf("invalid mode %s", mode)
+	}
+}
+
+func (mode Mode) shouldCollectData() bool {
+	return mode == DataMode || mode == BothMode
+}
+
+func (mode Mode) shouldCollectMetrics() bool {
+	return mode == MetricsMode || mode == BothMode
+}
+
 func loadSensitiveAccounts() map[common.Address]string {
 	filePath := viper.GetString("indexer.sensitiveAccountsPath")
 	if filePath == "" {
