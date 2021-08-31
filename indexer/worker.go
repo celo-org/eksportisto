@@ -27,6 +27,7 @@ type worker struct {
 	input              rdb.Queue
 	nodeURI            string
 	sleepInterval      time.Duration
+	concurrency        int
 }
 
 // newWorker sets up the struct responsible for a worker process.
@@ -73,6 +74,7 @@ func newWorker(ctx context.Context) (*worker, error) {
 		nodeURI:            nodeURI,
 		blockRetryAttempts: viper.GetInt("indexer.blockRetryAttempts"),
 		blockRetryDelay:    viper.GetDuration("indexer.blockRetryDelayMilliseconds") * time.Millisecond,
+		concurrency:        viper.GetInt("indexer.concurrency"),
 	}
 
 	w.baseBlockHandler, err = w.newBaseBlockHandler()

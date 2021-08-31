@@ -140,7 +140,7 @@ func (handler *blockHandler) loadBlock(ctx context.Context) error {
 // spawnProcessors initializes all processors by using the Factories, and execute
 // extract data methods collecting all rows in the provided channel.
 func (handler *blockHandler) spawnProcessors(ctx context.Context, rowsChan chan *Row) error {
-	group, ctx := errgroup.WithContextN(ctx, 3, 30)
+	group, ctx := errgroup.WithContextN(ctx, handler.concurrency, 2*handler.concurrency)
 	processors, err := handler.initializeProcessors(ctx)
 	if err != nil {
 		return err

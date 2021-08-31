@@ -36,6 +36,7 @@ type Config struct {
 	DataDir                   string
 	SensitiveAccountsFilePath string
 	FromBlock                 string
+	Concurrency               int
 }
 
 var EpochSize = uint64(17280)   // 17280 = 12 * 60 * 24
@@ -230,7 +231,7 @@ func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *ty
 			txs = block.Transactions()
 		}
 
-		g, processorCtx := errgroup.WithContextN(context.Background(), 5, 100)
+		g, processorCtx := errgroup.WithContextN(context.Background(), cfg.Concurrency, 2*cfg.Concurrency)
 		opts := &bind.CallOpts{
 			BlockNumber: h.Number,
 			Context:     processorCtx,
@@ -323,7 +324,7 @@ func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *ty
 			eventHandlers[exchangeRegistryID] = exchangeProcessor
 		}
 
-		txGroup, innerCtx := errgroup.WithContextN(transactionCtx, 5, 100)
+		txGroup, innerCtx := errgroup.WithContextN(transactionCtx, cfg.Concurrency, 2*cfg.Concurrency)
 
 		for _txIndex, _tx := range txs {
 			tx := _tx

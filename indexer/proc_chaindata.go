@@ -50,7 +50,7 @@ func (proc *chaindataProcessor) ShouldCollect() bool {
 
 func (proc *chaindataProcessor) CollectData(ctx context.Context, rows chan *Row) error {
 	rows <- proc.blockRow.Extend("type", "Block")
-	group, ctx := errgroup.WithContextN(ctx, 5, 100)
+	group, ctx := errgroup.WithContextN(ctx, proc.concurrency, 2*proc.concurrency)
 	for _txIndex, _tx := range proc.transactions {
 		txIndex := _txIndex
 		tx := _tx

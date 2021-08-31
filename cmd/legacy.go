@@ -63,6 +63,7 @@ func init() {
 	legacyCmd.Flags().StringVar(&monitorConfig.DataDir, "datadir", filepath.Join(homeDir(), ".eksportisto"), "Sqlite data directory, will be created if it doesn't exist")
 	legacyCmd.Flags().StringVar(&monitorConfig.SensitiveAccountsFilePath, "sensitiveAccounts", "", "Sensitive accounts JSON file")
 	legacyCmd.Flags().StringVar(&monitorConfig.FromBlock, "from-block", "", "Begin indexing the chain from this block. Can pass a number or \"latest\"")
+	legacyCmd.Flags().IntVar(&monitorConfig.Concurrency, "concurrency", 10, "Process concurrency, how many go routines to fire in parallel")
 	legacyCmd.Flags().StringVar(&cpuprofile, "cpuprofile", "", "write cpu profile to file")
 
 }
