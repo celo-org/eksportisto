@@ -153,7 +153,11 @@ func (w *worker) start(ctx context.Context) error {
 					metrics.ProcessBlockDuration.Observe(float64(time.Since(blockProcessStartedAt)) / float64(time.Second))
 					metrics.BlockFinished.WithLabelValues(w.input, "success").Add(1)
 
-					w.db.HSet(ctx, rdb.BlocksMap, fmt.Sprintf("%d", block), true)
+					if w.collectData {
+						// Only mark block as done if data is getting collected
+						// Don't mark it if we're just in metrics mode
+						w.db.HSet(ctx, rdb.BlocksMap, fmt.Sprintf("%d", block), true)
+					}
 					handler.logger.Info("Block done")
 				}
 			}
