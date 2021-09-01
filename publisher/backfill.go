@@ -72,8 +72,12 @@ func (svc *backfillService) updateCursor(ctx context.Context) error {
 		}
 	}
 
-	svc.logger.Info("Cursor updated", "cursor", svc.cursor)
-	return svc.db.Set(ctx, rdb.BackfillCursor, svc.cursor, 0).Err()
+	err = svc.db.Set(ctx, rdb.BackfillCursor, svc.cursor, 0).Err()
+	if err == nil {
+		svc.logger.Info("Cursor updated", "cursor", svc.cursor)
+		metrics.BackfillCursor.Set(float64(svc.cursor))
+	}
+	return err
 }
 
 func (svc *backfillService) queueBatch(ctx context.Context) error {
@@ -111,7 +115,10 @@ func (svc *backfillService) queueBatch(ctx context.Context) error {
 		}
 	}
 
-	svc.logger.Info("Queued backfill blocks", "cursor", svc.cursor)
+	if queued > 0 {
+		svc.logger.Info("Queued backfill blocks", "cursor", svc.cursor, "blocks", queued)
+	}
+
 	return nil
 }
 

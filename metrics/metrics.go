@@ -39,6 +39,11 @@ var (
 		Help: "Number of finished blocks",
 	}, []string{"queue", "status"})
 
+	BackfillCursor = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "backfill_cursor",
+		Help: "Position of the backfill cursor",
+	})
+
 	ProcessBlockDuration = prometheus.NewHistogram(prometheus.HistogramOpts{
 		Name:    "process_block_duration",
 		Help:    "Time it takes to process a block",
