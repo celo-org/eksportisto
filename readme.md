@@ -120,7 +120,7 @@ Using a redis client push a block number to the backfill queue:
 Start the `indexer` with `source: tip`:
 
 ```bash
-> go run main.go indexer --config ./config.yaml --monitoring-port 8080 --indexer-source=backfill
+> go run main.go indexer --config ./config.yaml --monitoring-port 8080 --indexer-source=tip
 ```
 
 And then start the publisher:
