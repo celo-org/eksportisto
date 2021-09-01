@@ -18,10 +18,11 @@ const (
 )
 
 type manualPublisher struct {
-	mode       ManualPublisherMode
-	blocks     []int
-	celoClient *client.CeloClient
-	db         *rdb.RedisDB
+	mode         ManualPublisherMode
+	blocks       []string
+	celoClient   *client.CeloClient
+	forceReindex bool
+	db           *rdb.RedisDB
 }
 
 func newManualPublisherMode(mode string) (ManualPublisherMode, error) {
@@ -51,12 +52,18 @@ func newManualPublisher(_ context.Context) (publisher, error) {
 		return nil, err
 	}
 
-	var blocks []int
+	var blocks []string
 	if mode == BlocksList {
-		blocks = viper.GetIntSlice("publisher.manual.blocks")
+		blocks = viper.GetStringSlice("publisher.manual.blocks")
 	}
 
-	return &manualPublisher{mode, blocks, celoClient, db}, nil
+	return &manualPublisher{
+		mode,
+		blocks,
+		celoClient,
+		viper.GetBool("publisher.manual.forceReindex"),
+		db,
+	}, nil
 }
 
 func (svc *manualPublisher) start(ctx context.Context) error {
@@ -65,16 +72,26 @@ func (svc *manualPublisher) start(ctx context.Context) error {
 		return err
 	}
 
-	for _, block := range blocks {
-		err := svc.db.RPush(ctx, rdb.BackfillQueue, block).Err()
+	blockParams := make([]interface{}, len(blocks))
+	for i, block := range blocks {
+		blockParams[i] = block
+	}
+
+	if svc.forceReindex {
+		err := svc.db.HDel(ctx, rdb.BlocksMap, blocks...).Err()
 		if err != nil {
 			return err
 		}
 	}
+
+	err = svc.db.RPush(ctx, rdb.BackfillQueue, blockParams...).Err()
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
-func (svc *manualPublisher) getBlocks(ctx context.Context) ([]int, error) {
+func (svc *manualPublisher) getBlocks(ctx context.Context) ([]string, error) {
 	if svc.mode == BlocksList {
 		return svc.blocks, nil
 	} else {
@@ -84,9 +101,9 @@ func (svc *manualPublisher) getBlocks(ctx context.Context) ([]int, error) {
 		}
 		blockHeight := latestBlock.Number().Uint64()
 		epochs := int(blockHeight / indexer.EpochSize)
-		blocks := make([]int, 0, epochs)
+		blocks := make([]string, epochs)
 		for i := 1; i <= epochs; i++ {
-			blocks = append(blocks, i*int(indexer.EpochSize))
+			blocks[i-1] = fmt.Sprintf("%d", i*int(indexer.EpochSize))
 		}
 		return blocks, nil
 	}
