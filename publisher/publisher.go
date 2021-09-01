@@ -3,27 +3,36 @@ package publisher
 import (
 	"context"
 
-	"github.com/spf13/viper"
 	"golang.org/x/sync/errgroup"
 )
+
+type publisher interface {
+	start(context.Context) error
+}
+
+type publisherFactory = func(context.Context) (publisher, error)
+
+var factories []publisherFactory
+
+func init() {
+	factories = []publisherFactory{
+		newBackfillPublisher,
+		newChainTipPublisher,
+		newManualPublisher,
+	}
+}
 
 func Start(ctx context.Context) error {
 	group, ctx := errgroup.WithContext(ctx)
 
-	if viper.GetBool("publisher.backfill.enabled") {
-		backfill, err := newBackfill(ctx)
+	for _, factory := range factories {
+		publisher, err := factory(ctx)
 		if err != nil {
 			return err
 		}
-		group.Go(func() error { return backfill.start(ctx) })
-	}
-
-	if viper.GetBool("publisher.chainFollower.enabled") {
-		chainFollower, err := newChainFollower()
-		if err != nil {
-			return err
+		if publisher != nil {
+			group.Go(func() error { return publisher.start(ctx) })
 		}
-		group.Go(func() error { return chainFollower.start(ctx) })
 	}
 
 	return group.Wait()

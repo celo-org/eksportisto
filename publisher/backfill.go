@@ -13,7 +13,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-type backfillService struct {
+type backfillPublisher struct {
 	db            *rdb.RedisDB
 	celoClient    *client.CeloClient
 	sleepInterval time.Duration
@@ -23,7 +23,11 @@ type backfillService struct {
 	tipBuffer     uint64
 }
 
-func newBackfill(ctx context.Context) (*backfillService, error) {
+func newBackfillPublisher(ctx context.Context) (publisher, error) {
+	if !viper.GetBool("publisher.backfill.enabled") {
+		return nil, nil
+	}
+
 	db := rdb.NewRedisDatabase()
 
 	celoClient, err := client.Dial(viper.GetString("celoNodeURI"))
@@ -42,7 +46,7 @@ func newBackfill(ctx context.Context) (*backfillService, error) {
 	logger := log.New()
 	logger.SetHandler(handler)
 
-	return &backfillService{
+	return &backfillPublisher{
 		db:            db,
 		celoClient:    celoClient,
 		logger:        logger,
@@ -53,12 +57,12 @@ func newBackfill(ctx context.Context) (*backfillService, error) {
 	}, nil
 }
 
-func (svc *backfillService) isQueueEmpty(ctx context.Context) (bool, error) {
+func (svc *backfillPublisher) isQueueEmpty(ctx context.Context) (bool, error) {
 	length, err := svc.db.LLen(ctx, rdb.BackfillQueue).Result()
 	return length == 0, err
 }
 
-func (svc *backfillService) updateCursor(ctx context.Context) error {
+func (svc *backfillPublisher) updateCursor(ctx context.Context) error {
 	batch, err := svc.db.GetBlocksBatch(ctx, svc.cursor, svc.batchSize*2)
 	if err != nil {
 		return err
@@ -80,7 +84,7 @@ func (svc *backfillService) updateCursor(ctx context.Context) error {
 	return err
 }
 
-func (svc *backfillService) queueBatch(ctx context.Context) error {
+func (svc *backfillPublisher) queueBatch(ctx context.Context) error {
 	latestBlockHeader, err := svc.celoClient.Eth.HeaderByNumber(ctx, nil)
 	if err != nil {
 		return nil
@@ -122,7 +126,7 @@ func (svc *backfillService) queueBatch(ctx context.Context) error {
 	return nil
 }
 
-func (svc *backfillService) start(ctx context.Context) error {
+func (svc *backfillPublisher) start(ctx context.Context) error {
 	svc.logger.Info("Starting backfill process")
 	for {
 		isEmpty, err := svc.isQueueEmpty(ctx)

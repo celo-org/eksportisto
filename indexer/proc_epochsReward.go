@@ -123,6 +123,16 @@ func (proc epochRewardsProcessor) CollectData(ctx context.Context, rows chan *Ro
 		"targetVotingGoldFraction", helpers.FromFixed(targetVotingGoldFraction),
 	)
 
+	votingGoldFraction, err := proc.epochRewards.GetVotingGoldFraction(opts)
+	if err != nil {
+		return err
+	}
+
+	rows <- contractRow.ViewCall(
+		"geVotingGoldFraction",
+		"votingGoldFraction", helpers.FromFixed(votingGoldFraction),
+	)
+
 	// EpochRewards.calculateTargetEpochRewards
 	validatorTargetEpochRewards, voterTargetEpochRewards, communityTargetEpochRewards, carbonOffsettingTargetEpochRewards, err := proc.epochRewards.CalculateTargetEpochRewards(opts)
 	if err != nil {

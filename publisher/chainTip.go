@@ -15,13 +15,17 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-type chainFollower struct {
+type chainTipPublisher struct {
 	celoClient *client.CeloClient
 	db         *rdb.RedisDB
 	logger     log.Logger
 }
 
-func newChainFollower() (*chainFollower, error) {
+func newChainTipPublisher(_ context.Context) (publisher, error) {
+	if !viper.GetBool("publisher.chainTip.enabled") {
+		return nil, nil
+	}
+
 	db := rdb.NewRedisDatabase()
 	celoClient, err := client.Dial(viper.GetString("celoNodeURI"))
 	if err != nil {
@@ -32,11 +36,11 @@ func newChainFollower() (*chainFollower, error) {
 	logger := log.New()
 	logger.SetHandler(handler)
 
-	return &chainFollower{celoClient, db, logger}, nil
+	return &chainTipPublisher{celoClient, db, logger}, nil
 }
 
-func (svc *chainFollower) start(ctx context.Context) error {
-	svc.logger.Info("Starting chainFollower process")
+func (svc *chainTipPublisher) start(ctx context.Context) error {
+	svc.logger.Info("Starting chainTipPublisher process")
 	group, ctx := errgroup.WithContext(ctx)
 
 	latestHeader, err := svc.celoClient.Eth.HeaderByNumber(ctx, nil)
