@@ -30,6 +30,6 @@ indexer:
     projectID: celo-testnet-production
     dataset: rc1_eksportisto_14
     table: test
-  sleepIntervalMilliseconds: 100
+  dequeueTimeoutMilliseconds: 100
   blockRetryAttempts: 3
   blockRetryDelayMilliseconds: 100

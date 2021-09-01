@@ -34,7 +34,7 @@ var (
 		Help: "Last Block Processed by eksportisto",
 	}, []string{"queue"})
 
-	BlockFinished = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+	BlockFinished = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Name: "block_finished",
 		Help: "Number of finished blocks",
 	}, []string{"queue", "status"})
@@ -45,7 +45,7 @@ var (
 		Buckets: prometheus.ExponentialBuckets(0.01, 2, 11),
 	})
 
-	RowsInserted = prometheus.NewGauge(prometheus.GaugeOpts{
+	RowsInserted = prometheus.NewCounter(prometheus.CounterOpts{
 		Name: "bigquery_rows_inserted",
 		Help: "Number of rows written to BigQuery",
 	})

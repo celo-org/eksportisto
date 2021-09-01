@@ -24,8 +24,6 @@ type EventHandler interface {
 }
 
 var Factories = []ProcessorFactory{
-	// Ordering can be important here, as some processors
-	// rely on previous ones to load data.
 	chaindataProcessorFactory{},
 	exchangeProcessorFactory{},
 	electionProcessorFactory{},

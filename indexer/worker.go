@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/celo-org/celo-blockchain/log"
@@ -26,7 +27,7 @@ type worker struct {
 	output             Output
 	input              rdb.Queue
 	nodeURI            string
-	sleepInterval      time.Duration
+	dequeueTimeout     time.Duration
 	concurrency        int
 	collectMetrics     bool
 	collectData        bool
@@ -73,7 +74,7 @@ func newWorker(ctx context.Context) (*worker, error) {
 
 	w := &worker{
 		logger:             logger,
-		sleepInterval:      viper.GetDuration("indexer.sleepIntervalMilliseconds") * time.Millisecond,
+		dequeueTimeout:     viper.GetDuration("indexer.dequeueTimeoutMilliseconds") * time.Millisecond,
 		celoClient:         celoClient,
 		db:                 rdb.NewRedisDatabase(),
 		output:             output,
@@ -102,77 +103,96 @@ func (w *worker) isTip() bool {
 // trying to dequeue a block, checking if it's already
 // processed and firing a handler for it.
 func (w *worker) start(ctx context.Context) error {
-	blocks := make(chan uint64, 2)
-
 	for {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
-		case block := <-blocks:
+		default:
+			block, err := w.popBlock(ctx)
+			if err != nil && err != redis.Nil {
+				return err
+			} else if err == redis.Nil {
+				continue
+			}
+
+			w.logger.Info("Dequeued block", "block", block, "queue", w.input)
 			indexed, err := w.db.HGet(ctx, rdb.BlocksMap, fmt.Sprintf("%d", block)).Bool()
 			if err != nil && err != redis.Nil {
 				return err
 			}
+
 			if indexed {
 				w.logger.Info("Skipping block: already indexed", "number", block)
-			} else {
-				var blockProcessStartedAt time.Time
-				var handler *blockHandler
+				continue
+			}
 
-				err := try.Do(func(attempt int) (retry bool, err error) {
-					retry = attempt < w.blockRetryAttempts
-					blockProcessStartedAt = time.Now()
-					err = func() error {
-						handler, err = w.newBlockHandler(block)
-						if err != nil {
-							return err
-						}
-						return handler.run(ctx)
-					}()
+			handler, duration, err := w.indexBlockWithRetry(ctx, block)
 
-					if err != nil && retry {
-						handler.logger.Warn("Retrying block", "err", err.Error(), "attempt", attempt)
-						time.Sleep(w.blockRetryDelay)
-					}
-					return
-				})
-
-				if err != nil {
-					if errWithStack, ok := err.(*errors.Error); ok {
-						handler.logger.Error(
-							"Failed block",
-							"err", errWithStack.Error(),
-							"stack", errWithStack.ErrorStack(),
-						)
-					} else {
-						handler.logger.Error("Failed block", "err", err.Error())
-					}
-					metrics.BlockFinished.WithLabelValues(w.input, "fail").Add(1)
+			if err != nil {
+				if errWithStack, ok := err.(*errors.Error); ok {
+					handler.logger.Error(
+						"Failed block",
+						"err", errWithStack.Error(),
+						"stack", errWithStack.ErrorStack(),
+					)
 				} else {
-					metrics.LastBlockProcessed.WithLabelValues(w.input).Set(float64(block))
-					metrics.ProcessBlockDuration.Observe(float64(time.Since(blockProcessStartedAt)) / float64(time.Second))
-					metrics.BlockFinished.WithLabelValues(w.input, "success").Add(1)
-
-					if w.collectData {
-						// Only mark block as done if data is getting collected
-						// Don't mark it if we're just in metrics mode
-						w.db.HSet(ctx, rdb.BlocksMap, fmt.Sprintf("%d", block), true)
-					}
-					handler.logger.Info("Block done")
+					handler.logger.Error("Failed block", "err", err.Error())
 				}
-			}
-		default:
-			block, err := w.db.LPop(ctx, w.input).Uint64()
-			if err != nil && err != redis.Nil {
-				return err
-			}
-
-			if err == nil {
-				blocks <- block
-				w.logger.Info("Dequeued block", "block", block, "queue", w.input)
+				metrics.BlockFinished.WithLabelValues(w.input, "fail").Add(1)
 			} else {
-				time.Sleep(w.sleepInterval)
+				metrics.ProcessBlockDuration.Observe(float64(duration) / float64(time.Second))
+				metrics.LastBlockProcessed.WithLabelValues(w.input).Set(float64(block))
+				metrics.BlockFinished.WithLabelValues(w.input, "success").Add(1)
+
+				if w.collectData {
+					// Only mark block as done if data is getting collected
+					// Don't mark it if we're just in metrics mode
+					w.db.HSet(ctx, rdb.BlocksMap, fmt.Sprintf("%d", block), true)
+				}
+				handler.logger.Info("Block done")
 			}
 		}
+	}
+}
+
+// indexBlockWithRetry attempts to process the block for
+// a configurable amount of times and then returns the
+// handler, duration and err
+func (w *worker) indexBlockWithRetry(ctx context.Context, block uint64) (*blockHandler, time.Duration, error) {
+	var handler *blockHandler
+	var blockProcessStartedAt time.Time
+
+	err := try.Do(func(attempt int) (retry bool, err error) {
+		retry = attempt < w.blockRetryAttempts
+		err = func() error {
+			blockProcessStartedAt = time.Now()
+			handler, err = w.newBlockHandler(block)
+			if err != nil {
+				return err
+			}
+			return handler.run(ctx)
+		}()
+
+		if err != nil && retry {
+			handler.logger.Warn("Retrying block", "err", err.Error(), "attempt", attempt)
+			time.Sleep(w.blockRetryDelay)
+		}
+		return
+	})
+
+	return handler, time.Since(blockProcessStartedAt), err
+}
+
+// popBlock uses a blocking pop operation on redis to dequeue
+// the next block to be processed
+func (w *worker) popBlock(ctx context.Context) (uint64, error) {
+	result, err := w.db.BLPop(ctx, w.dequeueTimeout, w.input).Result()
+	if err != nil && err != redis.Nil {
+		return 0, err
+	}
+	if len(result) == 0 {
+		return 0, redis.Nil
+	} else {
+		return strconv.ParseUint(result[1], 10, 64)
 	}
 }
