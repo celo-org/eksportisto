@@ -6,7 +6,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/celo-org/celo-blockchain/common"
 	"github.com/celo-org/celo-blockchain/core/types"
 	"github.com/celo-org/celo-blockchain/log"
 	"github.com/celo-org/eksportisto/metrics"
@@ -16,46 +15,13 @@ import (
 	"github.com/neilotoole/errgroup"
 )
 
-// baseBlockHandler is a struct that holds references to
-// dependencies that need to be setup only once for a worker
-// and are shared between all block handlers
-type baseBlockHandler struct {
-	*worker
-	registry          registry.Registry
-	celoTokens        *celotokens.CeloTokens
-	debugEnabled      bool
-	sensitiveAccounts map[common.Address]string
-}
-
-// newBaseHandler creates a new baseBlockHandler which
-// runs the one-time setup needed for some dependencies of the block handler.
-// This gets instantiated once per worker lifetime.
-func (w *worker) newBaseBlockHandler() (*baseBlockHandler, error) {
-	r, err := registry.New(w.celoClient)
-	if err != nil {
-		return nil, err
-	}
-
-	supported, err := w.celoClient.Rpc.SupportedModules()
-	if err != nil {
-		return nil, err
-	}
-	_, debugEnabled := supported["debug"]
-
-	return &baseBlockHandler{
-		worker:            w,
-		registry:          r,
-		celoTokens:        celotokens.New(r),
-		debugEnabled:      debugEnabled,
-		sensitiveAccounts: loadSensitiveAccounts(),
-	}, nil
-}
-
 // blockHandler is the struct responsible for processing one block
 // it gets instantiate for each block that the worker handles, and
 // it extends the baseBlockHandler by pointer reference.
 type blockHandler struct {
-	*baseBlockHandler
+	*worker
+	registry      registry.Registry
+	celoTokens    *celotokens.CeloTokens
 	blockNumber   *big.Int
 	blockRow      *Row
 	logger        log.Logger
@@ -67,12 +33,19 @@ type blockHandler struct {
 // newBlockHandler is called to instantiate a handler for a current
 // block height. The struct lives as long as a block is being processed.
 func (w *worker) newBlockHandler(block uint64) (*blockHandler, error) {
+	r, err := registry.New(w.celoClient)
+	if err != nil {
+		return nil, err
+	}
+
 	handler := &blockHandler{
-		baseBlockHandler: w.baseBlockHandler,
-		blockNumber:      big.NewInt(int64(block)),
-		logger:           w.logger.New("block", block),
-		blockRow:         NewRow("blockNumber", block),
-		eventHandlers:    make(map[registry.ContractID]EventHandler),
+		worker:        w,
+		registry:      r,
+		celoTokens:    celotokens.New(r),
+		blockNumber:   big.NewInt(int64(block)),
+		logger:        w.logger.New("block", block),
+		blockRow:      NewRow("blockNumber", block),
+		eventHandlers: make(map[registry.ContractID]EventHandler),
 	}
 
 	return handler, nil

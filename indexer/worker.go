@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/celo-org/celo-blockchain/common"
 	"github.com/celo-org/celo-blockchain/log"
 	"github.com/celo-org/eksportisto/metrics"
 	"github.com/celo-org/eksportisto/rdb"
@@ -21,7 +22,6 @@ type worker struct {
 	celoClient         *client.CeloClient
 	db                 *rdb.RedisDB
 	logger             log.Logger
-	baseBlockHandler   *baseBlockHandler
 	blockRetryAttempts int
 	blockRetryDelay    time.Duration
 	output             Output
@@ -31,6 +31,8 @@ type worker struct {
 	concurrency        int
 	collectMetrics     bool
 	collectData        bool
+	sensitiveAccounts  map[common.Address]string
+	debugEnabled       bool
 }
 
 // newWorker sets up the struct responsible for a worker process.
@@ -72,7 +74,13 @@ func newWorker(ctx context.Context) (*worker, error) {
 
 	logger.Info("Starting Worker", "nodeURI", nodeURI, "source", input, "destination", dest, "mode", mode)
 
-	w := &worker{
+	supported, err := celoClient.Rpc.SupportedModules()
+	if err != nil {
+		return nil, err
+	}
+	_, debugEnabled := supported["debug"]
+
+	return &worker{
 		logger:             logger,
 		dequeueTimeout:     viper.GetDuration("indexer.dequeueTimeoutMilliseconds") * time.Millisecond,
 		celoClient:         celoClient,
@@ -85,14 +93,9 @@ func newWorker(ctx context.Context) (*worker, error) {
 		concurrency:        viper.GetInt("indexer.concurrency"),
 		collectMetrics:     mode.shouldCollectMetrics(),
 		collectData:        mode.shouldCollectData(),
-	}
-
-	w.baseBlockHandler, err = w.newBaseBlockHandler()
-	if err != nil {
-		return nil, err
-	}
-
-	return w, nil
+		sensitiveAccounts:  loadSensitiveAccounts(),
+		debugEnabled:       debugEnabled,
+	}, nil
 }
 
 func (w *worker) isTip() bool {
