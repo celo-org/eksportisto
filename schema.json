@@ -1,0 +1,757 @@
+[
+    {
+        "name": "type",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "from",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "blockNumber",
+        "type": "INTEGER",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "timestamp",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "blockTimestamp",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "msg",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "blockGasUsed",
+        "type": "INT",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "value",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "currencySymbol",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "txHash",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "to",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "txIndex",
+        "type": "INT",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "gasPrice",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "gasUsed",
+        "type": "INT",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "contract",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "event",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "logTxIndex",
+        "type": "INT",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "logBlockIndex",
+        "type": "INT",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "exchanger",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "sellAmount",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "buyAmount",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "soldGold",
+        "type": "BOOLEAN",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "account",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "attestationsRequested",
+        "type": "INT",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "identifier",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "attestationRequestFeeToken",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "rawEvent",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "loggedBy",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "topic0",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "topic1",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "topic2",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "topic3",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "data",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "walletAddress",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "issuer",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "dataEncryptionKey",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "name",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "spender",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "owner",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "minAttestations",
+        "type": "INT",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "paymentId",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "token",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "goldBucket",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "stableBucket",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "comment",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "method",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "reserveRatio",
+        "type": "FLOAT",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "lastReportAddress",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "totalSupply",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "isOldestReportExpired",
+        "type": "BOOLEAN",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "medianRelation",
+        "type": "FLOAT",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "rateAddress",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "rateValue",
+        "type": "FLOAT",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "index",
+        "type": "INT",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "reportedTimestamp",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "timestampAddress",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "numRates",
+        "type": "INT",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "medianRateNumerator",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "medianRateDenominator",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "medianTimestamp",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "by",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "rate",
+        "type": "FLOAT",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "proposalId",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "upvotes",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "celoBucketSize",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "stableBucketSize",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "group",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "validator",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "units",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "signer",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "blsPublicKey",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "ecdsaPublicKey",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "fraction",
+        "type": "FLOAT",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "targetTotalSupply",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "targetGoldTotalSupply",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "bucket",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "totalVotes",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "activeVotes",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "totalNonvoting",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "scoreMultiplier",
+        "type": "FLOAT",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "epochScoreFraction",
+        "type": "FLOAT",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "totalLockedGold",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "rewardsMultiplier",
+        "type": "FLOAT",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "max",
+        "type": "FLOAT",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "target",
+        "type": "FLOAT",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "adjustmentFactor",
+        "type": "FLOAT",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "overspendAdjustmentFactor",
+        "type": "FLOAT",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "underspendAdjustmentFactor",
+        "type": "FLOAT",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "targetVotingGoldFraction",
+        "type": "FLOAT",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "votingGoldFraction",
+        "type": "FLOAT",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "targetVoterRewards",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "gasPriceMinimum",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "reward",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "penalty",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "interval",
+        "type": "FLOAT",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "reserveGoldBalance",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "carbonOffsettingTargetEpochRewards",
+        "type": "FLOAT",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "communityTargetEpochRewards",
+        "type": "FLOAT",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "validatorTargetEpochRewards",
+        "type": "FLOAT",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "voterTargetEpochRewards",
+        "type": "FLOAT",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "otherReserveAddressesGoldBalance",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "electableValidatorsMin",
+        "type": "FLOAT",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "electableValidatorsMax",
+        "type": "FLOAT",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "validatorPayment",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "groupPayment",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "oracle",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "available",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "weight",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "commissionFactor",
+        "type": "FLOAT",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "start",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "end",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "pipe",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "metadataURL",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "participationBaselineFraction",
+        "type": "FLOAT",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "implementation",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "amount",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "err",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "activationBlock",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "stableToken",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "address",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "epochScore",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "score",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "revokedUpvotes",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "reserveFraction",
+        "type": "FLOAT",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "registryAddress",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "updateFrequency",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "minimumReports",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "previousOwner",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "newOwner",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "identifierHash",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "addr",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "stable",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "spread",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "participationBaseline",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "oracleAddress",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "threshold",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "destination",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "functionId",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "commission",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "hash",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "whitelister",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "activationEpoch",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "window",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "sender",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "bitmap",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "startBlock",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "endBlock",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "slasherIdentifier",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "limit",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "symbols",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "weights",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    }
+]
