@@ -16,7 +16,7 @@ var (
 	rootCmd = &cobra.Command{
 		Use:   "eksportisto",
 		Short: "Services to index the celo blockchain",
-		Long: `Eksportisto is a set of services design to index data from the 
+		Long: `Eksportisto is a set of services designed to index data from the 
 celo blockchain in a reliable and distributed manner, and output that data
 to multiple storage types per usecase.`,
 	}
