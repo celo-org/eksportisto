@@ -21,7 +21,7 @@
     },
     {
         "name": "blockTimestamp",
-        "type": "STRING",
+        "type": "TIMESTAMP",
         "mode": "NULLABLE"
     },
     {
