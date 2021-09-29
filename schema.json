@@ -753,5 +753,15 @@
         "name": "weights",
         "type": "STRING",
         "mode": "NULLABLE"
+    },
+    {
+        "name": "transactionCount",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "deposit",
+        "type": "STRING",
+        "mode": "NULLABLE"
     }
 ]
