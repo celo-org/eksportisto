@@ -20,18 +20,8 @@
         "mode": "NULLABLE"
     },
     {
-        "name": "timestamp",
-        "type": "STRING",
-        "mode": "NULLABLE"
-    },
-    {
         "name": "blockTimestamp",
         "type": "TIMESTAMP",
-        "mode": "NULLABLE"
-    },
-    {
-        "name": "msg",
-        "type": "STRING",
         "mode": "NULLABLE"
     },
     {
@@ -581,11 +571,6 @@
     },
     {
         "name": "amount",
-        "type": "STRING",
-        "mode": "NULLABLE"
-    },
-    {
-        "name": "err",
         "type": "STRING",
         "mode": "NULLABLE"
     },
