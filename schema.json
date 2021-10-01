@@ -763,5 +763,20 @@
         "name": "deposit",
         "type": "STRING",
         "mode": "NULLABLE"
+    },
+    {
+        "name": "proposer",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "reporter",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "slashed",
+        "type": "STRING",
+        "mode": "NULLABLE"
     }
 ]
