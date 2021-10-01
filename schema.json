@@ -1,5 +1,10 @@
 [
     {
+        "name": "indexerTimestamp",
+        "type": "TIMESTAMP",
+        "mode": "NULLABLE"
+    },
+    {
         "name": "type",
         "type": "STRING",
         "mode": "NULLABLE"
