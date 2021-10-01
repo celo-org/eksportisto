@@ -129,7 +129,7 @@ func (proc epochRewardsProcessor) CollectData(ctx context.Context, rows chan *Ro
 	}
 
 	rows <- contractRow.ViewCall(
-		"geVotingGoldFraction",
+		"getVotingGoldFraction",
 		"votingGoldFraction", helpers.FromFixed(votingGoldFraction),
 	)
 
