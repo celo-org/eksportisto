@@ -80,9 +80,18 @@ func (handler *blockHandler) extractEvent(
 		fmt.Sprintf("%s.event.%d", txHash.String(), eventIdx),
 	)
 
+	// extract raw event log
+	rawEvent, err := json.Marshal(eventLog)
+	if err != nil {
+		rows <- eventRow.Extend("rawEventErr", err)
+	} else {
+		rows <- eventRow.Extend("rawEvent", string(rawEvent))
+	}
+
 	parsed, err := handler.registry.TryParseLog(ctx, *eventLog, handler.blockNumber)
 	if err != nil {
 		logger.Error("log parsing failed", "err", err)
+
 	} else if parsed != nil {
 		// If the contract with the event has an event handler, call it with the parsed event
 		if handler.isTip() {
@@ -99,6 +108,7 @@ func (handler *blockHandler) extractEvent(
 				"contract", parsed.Contract,
 				"event", parsed.Event,
 				"loggedBy", eventLog.Address.Hex(),
+				"rawEventErr", err,
 			).Extend(logSlice...)
 		}
 	} else {

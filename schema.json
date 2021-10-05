@@ -25,6 +25,16 @@
         "mode": "NULLABLE"
     },
     {
+        "name": "rawEvent",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "rawEventErr",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
         "name": "blockGasUsed",
         "type": "INTEGER",
         "mode": "NULLABLE"
@@ -257,6 +267,11 @@
     {
         "name": "index",
         "type": "INTEGER",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "timestamp",
+        "type": "STRING",
         "mode": "NULLABLE"
     },
     {
