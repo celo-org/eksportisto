@@ -125,11 +125,6 @@
         "mode": "NULLABLE"
     },
     {
-        "name": "rawEvent",
-        "type": "STRING",
-        "mode": "NULLABLE"
-    },
-    {
         "name": "loggedBy",
         "type": "STRING",
         "mode": "NULLABLE"
