@@ -84,14 +84,13 @@ func (handler *blockHandler) extractEvent(
 	rawEvent, err := json.Marshal(eventLog)
 	if err != nil {
 		rows <- eventRow.Extend("rawEventErr", err)
-	} else {
+	} else if rawEvent != nil {
 		rows <- eventRow.Extend("rawEvent", string(rawEvent))
 	}
 
 	parsed, err := handler.registry.TryParseLog(ctx, *eventLog, handler.blockNumber)
 	if err != nil {
 		logger.Error("log parsing failed", "err", err)
-
 	} else if parsed != nil {
 		// If the contract with the event has an event handler, call it with the parsed event
 		if handler.isTip() {
