@@ -465,7 +465,7 @@
         "mode": "NULLABLE"
     },
     {
-        "name": "INTEGERerval",
+        "name": "intererval",
         "type": "FLOAT",
         "mode": "NULLABLE"
     },
