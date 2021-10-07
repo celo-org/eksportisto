@@ -30,11 +30,6 @@
         "mode": "NULLABLE"
     },
     {
-        "name": "rawEventErr",
-        "type": "STRING",
-        "mode": "NULLABLE"
-    },
-    {
         "name": "blockGasUsed",
         "type": "INTEGER",
         "mode": "NULLABLE"
