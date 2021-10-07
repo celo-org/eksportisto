@@ -2,6 +2,7 @@ package indexer
 
 import (
 	"context"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -83,9 +84,9 @@ func (handler *blockHandler) extractEvent(
 	// extract raw event log
 	rawEvent, err := json.Marshal(eventLog)
 	if err != nil {
-		rows <- eventRow.Extend("rawEventErr", err)
+		eventRow = eventRow.Extend("rawEventErr", err)
 	} else if rawEvent != nil {
-		rows <- eventRow.Extend("rawEvent", string(rawEvent))
+		eventRow = eventRow.Extend("rawEvent", string(rawEvent))
 	}
 
 	parsed, err := handler.registry.TryParseLog(ctx, *eventLog, handler.blockNumber)
@@ -107,7 +108,6 @@ func (handler *blockHandler) extractEvent(
 				"contract", parsed.Contract,
 				"event", parsed.Event,
 				"loggedBy", eventLog.Address.Hex(),
-				"rawEventErr", err,
 			).Extend(logSlice...)
 		}
 	} else {
@@ -125,7 +125,7 @@ func (handler *blockHandler) extractEvent(
 			"topic1", getTopic(1),
 			"topic2", getTopic(2),
 			"topic3", getTopic(3),
-			"data", eventLog.Data,
+			"data", hex.EncodeToString(eventLog.Data),
 		)
 	}
 	return nil
