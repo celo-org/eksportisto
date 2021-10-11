@@ -1,5 +1,10 @@
 [
     {
+        "name": "indexerTimestamp",
+        "type": "TIMESTAMP",
+        "mode": "NULLABLE"
+    },
+    {
         "name": "type",
         "type": "STRING",
         "mode": "NULLABLE"
@@ -15,23 +20,18 @@
         "mode": "NULLABLE"
     },
     {
-        "name": "timestamp",
-        "type": "STRING",
-        "mode": "NULLABLE"
-    },
-    {
         "name": "blockTimestamp",
-        "type": "STRING",
+        "type": "TIMESTAMP",
         "mode": "NULLABLE"
     },
     {
-        "name": "msg",
+        "name": "rawEvent",
         "type": "STRING",
         "mode": "NULLABLE"
     },
     {
         "name": "blockGasUsed",
-        "type": "INT",
+        "type": "INTEGER",
         "mode": "NULLABLE"
     },
     {
@@ -56,7 +56,7 @@
     },
     {
         "name": "txIndex",
-        "type": "INT",
+        "type": "INTEGER",
         "mode": "NULLABLE"
     },
     {
@@ -66,7 +66,7 @@
     },
     {
         "name": "gasUsed",
-        "type": "INT",
+        "type": "INTEGER",
         "mode": "NULLABLE"
     },
     {
@@ -81,12 +81,12 @@
     },
     {
         "name": "logTxIndex",
-        "type": "INT",
+        "type": "INTEGER",
         "mode": "NULLABLE"
     },
     {
         "name": "logBlockIndex",
-        "type": "INT",
+        "type": "INTEGER",
         "mode": "NULLABLE"
     },
     {
@@ -116,7 +116,7 @@
     },
     {
         "name": "attestationsRequested",
-        "type": "INT",
+        "type": "INTEGER",
         "mode": "NULLABLE"
     },
     {
@@ -126,11 +126,6 @@
     },
     {
         "name": "attestationRequestFeeToken",
-        "type": "STRING",
-        "mode": "NULLABLE"
-    },
-    {
-        "name": "rawEvent",
         "type": "STRING",
         "mode": "NULLABLE"
     },
@@ -196,7 +191,7 @@
     },
     {
         "name": "minAttestations",
-        "type": "INT",
+        "type": "INTEGER",
         "mode": "NULLABLE"
     },
     {
@@ -266,7 +261,12 @@
     },
     {
         "name": "index",
-        "type": "INT",
+        "type": "INTEGER",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "timestamp",
+        "type": "STRING",
         "mode": "NULLABLE"
     },
     {
@@ -281,7 +281,7 @@
     },
     {
         "name": "numRates",
-        "type": "INT",
+        "type": "INTEGER",
         "mode": "NULLABLE"
     },
     {
@@ -580,11 +580,6 @@
         "mode": "NULLABLE"
     },
     {
-        "name": "err",
-        "type": "STRING",
-        "mode": "NULLABLE"
-    },
-    {
         "name": "activationBlock",
         "type": "STRING",
         "mode": "NULLABLE"
@@ -751,6 +746,31 @@
     },
     {
         "name": "weights",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "transactionCount",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "deposit",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "proposer",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "reporter",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "slashed",
         "type": "STRING",
         "mode": "NULLABLE"
     }

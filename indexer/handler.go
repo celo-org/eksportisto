@@ -103,6 +103,7 @@ func (handler *blockHandler) loadBlock(ctx context.Context) error {
 	handler.transactions = handler.block.Transactions()
 
 	handler.blockRow = NewRow(
+		"indexerTimestamp", time.Now().UTC().Format(time.RFC3339),
 		"blockTimestamp", time.Unix(int64(handler.block.Time()), 0).Format(time.RFC3339),
 		"blockNumber", handler.block.NumberU64(),
 		"blockGasUsed", handler.block.GasUsed(),

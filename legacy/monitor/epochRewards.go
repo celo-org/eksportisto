@@ -95,7 +95,7 @@ func (p epochRewardsProcessor) ObserveState(opts *bind.CallOpts) error {
 
 	logStateViewCall(
 		logger,
-		"method", "geVotingGoldFraction",
+		"method", "getVotingGoldFraction",
 		"votingGoldFraction", helpers.FromFixed(votingGoldFraction),
 	)
 

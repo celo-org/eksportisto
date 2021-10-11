@@ -2,9 +2,11 @@ package indexer
 
 import (
 	"context"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"strings"
 
 	"github.com/celo-org/celo-blockchain/common"
 	"github.com/celo-org/celo-blockchain/core/types"
@@ -76,9 +78,35 @@ func (handler *blockHandler) extractEvent(
 	rows chan *Row,
 ) error {
 	logger := handler.logger.New("txHash", txHash.String(), "logTxIndex", eventIdx, "logBlockIndex", eventLog.Index)
-	eventRow := txRow.Extend("logTxIndex", eventIdx, "logBlockIndex", eventLog.Index).WithId(
-		fmt.Sprintf("%s.event.%d", txHash.String(), eventIdx),
-	)
+	eventRowId := fmt.Sprintf("%s.event.%d", txHash.String(), eventIdx)
+	eventRow := txRow.Extend("logTxIndex", eventIdx, "logBlockIndex", eventLog.Index).WithId(eventRowId)
+
+	rawEvent, err := json.Marshal(eventLog)
+	if err != nil {
+		logger.Error("event log marshalling failed", "err", err)
+	} else if rawEvent != nil {
+		getTopic := func(index int) interface{} {
+			if len(eventLog.Topics) > index {
+				return eventLog.Topics[index]
+			} else {
+				return nil
+			}
+		}
+		addHexPrefix := func(eventLogData string) interface{} {
+			var sb strings.Builder
+			sb.WriteString("0x")
+			sb.WriteString(eventLogData)
+			return sb.String()
+		}
+		eventRow = eventRow.Extend("type", "Event",
+			"loggedBy", eventLog.Address.Hex(),
+			"rawEvent", string(rawEvent),
+			"topic0", getTopic(0),
+			"topic1", getTopic(1),
+			"topic2", getTopic(2),
+			"topic3", getTopic(3),
+			"data", addHexPrefix(hex.EncodeToString(eventLog.Data))).WithId(eventRowId)
+	}
 
 	parsed, err := handler.registry.TryParseLog(ctx, *eventLog, handler.blockNumber)
 	if err != nil {
@@ -95,29 +123,10 @@ func (handler *blockHandler) extractEvent(
 			logger.Error("event slice encoding failed", "contract", parsed.Contract, "event", parsed.Event, "err", err)
 		} else {
 			rows <- eventRow.Extend(
-				"type", "Event",
 				"contract", parsed.Contract,
 				"event", parsed.Event,
-				"loggedBy", eventLog.Address.Hex(),
-			).Extend(logSlice...)
+			).Extend(logSlice...).WithId(eventRowId)
 		}
-	} else {
-		getTopic := func(index int) interface{} {
-			if len(eventLog.Topics) > index {
-				return eventLog.Topics[index]
-			} else {
-				return nil
-			}
-		}
-		rows <- eventRow.Extend(
-			"loggedBy", eventLog.Address.Hex(),
-			"type", "Event",
-			"topic0", getTopic(0),
-			"topic1", getTopic(1),
-			"topic2", getTopic(2),
-			"topic3", getTopic(3),
-			"data", eventLog.Data,
-		)
 	}
 	return nil
 }
