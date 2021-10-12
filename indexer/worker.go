@@ -18,7 +18,7 @@ import (
 	"gopkg.in/matryer/try.v1"
 )
 
-type worker struct {
+type Worker struct {
 	celoClient         *client.CeloClient
 	db                 *rdb.RedisDB
 	logger             log.Logger
@@ -35,10 +35,10 @@ type worker struct {
 	debugEnabled       bool
 }
 
-// newWorker sets up the struct responsible for a worker process.
+// NewWorker sets up the struct responsible for a worker process.
 // The workers process blocks in parallel and have their own
 // connections to nodes (ideally different) and redis.
-func newWorker(ctx context.Context) (*worker, error) {
+func NewWorker(ctx context.Context) (*Worker, error) {
 	handler := log.LvlFilterHandler(log.LvlInfo, log.StreamHandler(os.Stdout, log.JSONFormat()))
 	logger := log.New()
 	logger.SetHandler(handler)
@@ -80,7 +80,7 @@ func newWorker(ctx context.Context) (*worker, error) {
 	}
 	_, debugEnabled := supported["debug"]
 
-	return &worker{
+	return &Worker{
 		logger:             logger,
 		dequeueTimeout:     viper.GetDuration("indexer.dequeueTimeoutMilliseconds") * time.Millisecond,
 		celoClient:         celoClient,
@@ -98,14 +98,14 @@ func newWorker(ctx context.Context) (*worker, error) {
 	}, nil
 }
 
-func (w *worker) isTip() bool {
+func (w *Worker) isTip() bool {
 	return w.input == rdb.TipQueue
 }
 
 // start starts a worker's main loop which consists of
 // trying to dequeue a block, checking if it's already
 // processed and firing a handler for it.
-func (w *worker) start(ctx context.Context) error {
+func (w *Worker) start(ctx context.Context) error {
 	for {
 		select {
 		case <-ctx.Done():
@@ -161,7 +161,7 @@ func (w *worker) start(ctx context.Context) error {
 // indexBlockWithRetry attempts to process the block for
 // a configurable amount of times and then returns the
 // handler, duration and err
-func (w *worker) indexBlockWithRetry(ctx context.Context, block uint64) (*blockHandler, time.Duration, error) {
+func (w *Worker) indexBlockWithRetry(ctx context.Context, block uint64) (*blockHandler, time.Duration, error) {
 	var handler *blockHandler
 	var blockProcessStartedAt time.Time
 
@@ -169,11 +169,11 @@ func (w *worker) indexBlockWithRetry(ctx context.Context, block uint64) (*blockH
 		retry = attempt < w.blockRetryAttempts
 		err = func() error {
 			blockProcessStartedAt = time.Now()
-			handler, err = w.newBlockHandler(block)
+			handler, err = w.NewBlockHandler(block)
 			if err != nil {
 				return err
 			}
-			return handler.run(ctx)
+			return handler.Run(ctx)
 		}()
 
 		if err != nil && retry {
@@ -188,7 +188,7 @@ func (w *worker) indexBlockWithRetry(ctx context.Context, block uint64) (*blockH
 
 // popBlock uses a blocking pop operation on redis to dequeue
 // the next block to be processed
-func (w *worker) popBlock(ctx context.Context) (uint64, error) {
+func (w *Worker) popBlock(ctx context.Context) (uint64, error) {
 	result, err := w.db.BLPop(ctx, w.dequeueTimeout, w.input).Result()
 	if err != nil && err != redis.Nil {
 		return 0, err

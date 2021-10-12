@@ -7,7 +7,7 @@ import (
 // Start is the entry point of the indexer service.
 // It sets up and starts a worker
 func Start(ctx context.Context) error {
-	worker, err := newWorker(ctx)
+	worker, err := NewWorker(ctx)
 	if err != nil {
 		return err
 	}
