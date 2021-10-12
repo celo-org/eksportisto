@@ -19,7 +19,7 @@ import (
 // it gets instantiate for each block that the worker handles, and
 // it extends the baseBlockHandler by pointer reference.
 type blockHandler struct {
-	*worker
+	*Worker
 	registry      registry.Registry
 	celoTokens    *celotokens.CeloTokens
 	blockNumber   *big.Int
@@ -30,16 +30,16 @@ type blockHandler struct {
 	eventHandlers map[registry.ContractID]EventHandler
 }
 
-// newBlockHandler is called to instantiate a handler for a current
+// NewBlockHandler is called to instantiate a handler for a current
 // block height. The struct lives as long as a block is being processed.
-func (w *worker) newBlockHandler(block uint64) (*blockHandler, error) {
+func (w *Worker) NewBlockHandler(block uint64) (*blockHandler, error) {
 	r, err := registry.New(w.celoClient)
 	if err != nil {
 		return nil, err
 	}
 
 	handler := &blockHandler{
-		worker:        w,
+		Worker:        w,
 		registry:      r,
 		celoTokens:    celotokens.New(r),
 		blockNumber:   big.NewInt(int64(block)),
@@ -51,9 +51,9 @@ func (w *worker) newBlockHandler(block uint64) (*blockHandler, error) {
 	return handler, nil
 }
 
-// run starts the processing of a block by firing all processors
+// Run starts the processing of a block by firing all processors
 // and a routine to collect rows from a channel
-func (handler *blockHandler) run(ctx context.Context) (err error) {
+func (handler *blockHandler) Run(ctx context.Context) (err error) {
 	err = handler.registry.EnableCaching(ctx, handler.blockNumber)
 	if err != nil {
 		return err
