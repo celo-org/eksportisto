@@ -5,14 +5,12 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"strings"
 
 	"github.com/celo-org/celo-blockchain/common"
 	"github.com/celo-org/celo-blockchain/core/types"
 	"github.com/celo-org/kliento/contracts/helpers"
 	"github.com/celo-org/kliento/registry"
-	"github.com/spf13/viper"
 )
 
 var EpochSize = uint64(17280)   // 17280 = 12 * 60 * 24
@@ -44,26 +42,6 @@ func (mode Mode) shouldCollectData() bool {
 
 func (mode Mode) shouldCollectMetrics() bool {
 	return mode == MetricsMode || mode == BothMode
-}
-
-func loadSensitiveAccounts() map[common.Address]string {
-	filePath := viper.GetString("indexer.sensitiveAccountsPath")
-	if filePath == "" {
-		return make(map[common.Address]string)
-	}
-
-	bz, err := ioutil.ReadFile(filePath)
-	if err != nil {
-		panic(err)
-	}
-
-	var addresses map[common.Address]string
-	err = json.Unmarshal(bz, &addresses)
-	if err != nil {
-		panic(err)
-	}
-
-	return addresses
 }
 
 // extractEvent parses an event log and decodes when possible,

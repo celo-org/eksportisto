@@ -7,7 +7,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/celo-org/celo-blockchain/common"
 	"github.com/celo-org/celo-blockchain/log"
 	"github.com/celo-org/eksportisto/metrics"
 	"github.com/celo-org/eksportisto/rdb"
@@ -31,7 +30,6 @@ type Worker struct {
 	concurrency        int
 	collectMetrics     bool
 	collectData        bool
-	sensitiveAccounts  map[common.Address]string
 	debugEnabled       bool
 }
 
@@ -93,7 +91,6 @@ func NewWorker(ctx context.Context) (*Worker, error) {
 		concurrency:        viper.GetInt("indexer.concurrency"),
 		collectMetrics:     mode.shouldCollectMetrics(),
 		collectData:        mode.shouldCollectData(),
-		sensitiveAccounts:  loadSensitiveAccounts(),
 		debugEnabled:       debugEnabled,
 	}, nil
 }

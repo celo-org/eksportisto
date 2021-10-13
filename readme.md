@@ -41,7 +41,6 @@ monitoring:
   requestTimeoutSeconds: 25
 
 celoNodeURI: ws://localhost:8546
-sensitiveAccountsFilePath: ~/sensitiveAccounts.json
 profiling: true
 
 redis:
