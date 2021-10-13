@@ -1,0 +1,35 @@
+monitoring:
+  port: 8080
+  address: localhost
+  requestTimeoutSeconds: 25
+
+celoNodeURI: ws://localhost:8546
+sensitiveAccountsFilePath: ~/sensitiveAccounts.json
+profiling: true
+
+redis:
+  address: localhost:6379
+  password: ""
+  db: 5
+
+publisher:
+  backfill: 
+    enabled: true
+    startBlock: 0
+    batchSize: 100
+    tipBuffer: 10
+    sleepIntervalMilliseconds: 100
+  chainFollower:
+    enabled: false
+
+indexer:
+  mode: both
+  source: backfill
+  destination: bigquery
+  bigquery:
+    projectID: celo-testnet-production
+    dataset: rc1_eksportisto_14
+    table: test
+  dequeueTimeoutMilliseconds: 100
+  blockRetryAttempts: 3
+  blockRetryDelayMilliseconds: 100

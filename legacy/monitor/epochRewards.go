@@ -51,10 +51,54 @@ func (p epochRewardsProcessor) ObserveState(opts *bind.CallOpts) error {
 
 	logStateViewCall(logger, "method", "getRewardsMultiplier", "rewardsMultiplier", helpers.FromFixed(rewardsMultiplier))
 
-	// Todo: This is a fraction and therefore not actually a uint
-	// logStateViewCall(logger, "method", "getVotingGoldFraction", "votingGoldFraction", votingGoldFraction.Uint64())
+	rmMax, rmOverspendAdjustmentFactor, rmUnderspendAdjustmentFactor, err := p.epochRewards.GetRewardsMultiplierParameters(opts)
+	if err != nil {
+		return err
+	}
 
-	// TODO: this is actually all fractions and thus not very useful to log
+	logStateViewCall(
+		logger,
+		"method", "getRewardsMultiplierParameteres",
+		"max", helpers.FromFixed(rmMax),
+		"overspendAdjustmentFactor", helpers.FromFixed(rmOverspendAdjustmentFactor),
+		"underspendAdjustmentFactor", helpers.FromFixed(rmUnderspendAdjustmentFactor),
+	)
+
+	tvyTarget, tvyMax, tvyAdjustmentFactor, err := p.epochRewards.GetTargetVotingYieldParameters(opts)
+	if err != nil {
+		return err
+	}
+
+	logStateViewCall(
+		logger,
+		"method", "getTargetVotingYieldParameteres",
+		"target", helpers.FromFixed(tvyTarget),
+		"max", helpers.FromFixed(tvyMax),
+		"adjustmentFactor", helpers.FromFixed(tvyAdjustmentFactor),
+	)
+
+	targetVotingGoldFraction, err := p.epochRewards.GetTargetVotingGoldFraction(opts)
+	if err != nil {
+		return err
+	}
+
+	logStateViewCall(
+		logger,
+		"method", "getTargetVotingGoldFraction",
+		"targetVotingGoldFraction", helpers.FromFixed(targetVotingGoldFraction),
+	)
+
+	votingGoldFraction, err := p.epochRewards.GetVotingGoldFraction(opts)
+	if err != nil {
+		return err
+	}
+
+	logStateViewCall(
+		logger,
+		"method", "getVotingGoldFraction",
+		"votingGoldFraction", helpers.FromFixed(votingGoldFraction),
+	)
+
 	// EpochRewards.calculateTargetEpochRewards
 	validatorTargetEpochRewards, voterTargetEpochRewards, communityTargetEpochRewards, carbonOffsettingTargetEpochRewards, err := p.epochRewards.CalculateTargetEpochRewards(opts)
 	if err != nil {
@@ -62,7 +106,14 @@ func (p epochRewardsProcessor) ObserveState(opts *bind.CallOpts) error {
 		return nil
 	}
 
-	logStateViewCall(logger, "method", "calculateTargetEpochRewards", "validatorTargetEpochRewards", validatorTargetEpochRewards.Uint64(), "voterTargetEpochRewards", voterTargetEpochRewards.Uint64(), "communityTargetEpochRewards", communityTargetEpochRewards.Uint64(), "carbonOffsettingTargetEpochRewards", carbonOffsettingTargetEpochRewards.Uint64())
+	logStateViewCall(
+		logger,
+		"method", "calculateTargetEpochRewards",
+		"validatorTargetEpochRewards", validatorTargetEpochRewards,
+		"voterTargetEpochRewards", voterTargetEpochRewards,
+		"communityTargetEpochRewards", communityTargetEpochRewards,
+		"carbonOffsettingTargetEpochRewards", carbonOffsettingTargetEpochRewards,
+	)
 
 	return nil
 }
