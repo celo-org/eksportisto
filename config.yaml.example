@@ -19,8 +19,8 @@ publisher:
     batchSize: 100
     tipBuffer: 10
     sleepIntervalMilliseconds: 100
-  chainFollower:
-    enabled: false
+  chainTip:
+    enabled: true
 
 indexer:
   mode: both
