@@ -19,7 +19,7 @@ publisher:
     batchSize: 100
     tipBuffer: 10
     sleepIntervalMilliseconds: 100
-  chainFollower:
+  chainTip:
     enabled: false
 
 indexer:
