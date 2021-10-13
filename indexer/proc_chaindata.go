@@ -1,16 +1,13 @@
 package indexer
 
 import (
-	"bytes"
 	"context"
 	"fmt"
-	"net/http"
 
 	"github.com/celo-org/celo-blockchain/common"
 	"github.com/celo-org/celo-blockchain/core/types"
 	"github.com/celo-org/celo-blockchain/log"
 	"github.com/celo-org/eksportisto/metrics"
-	"github.com/celo-org/kliento/client/debug"
 	"github.com/celo-org/kliento/registry"
 	"github.com/go-errors/errors"
 	"github.com/neilotoole/errgroup"
@@ -120,41 +117,11 @@ func (proc *chaindataProcessor) extractInternalTransactions(
 			"to", internalTransfer.To,
 			"value", internalTransfer.Value,
 		).WithId(fmt.Sprintf("%s.internalTransfer.%d", txHash.String(), index))
-
-		if proc.isTip() && proc.sensitiveAccounts[internalTransfer.From] != "" {
-			err = proc.notifyFundsMoved(internalTransfer, proc.sensitiveAccounts[internalTransfer.From])
-			if err != nil {
-				proc.logger.Error(err.Error())
-			}
-		}
 	}
 	return nil
 }
 
 func (proc *chaindataProcessor) ObserveMetrics(ctx context.Context) error {
 	metrics.BlockGasUsed.Set(float64(proc.block.GasUsed()))
-	return nil
-}
-
-func (proc *chaindataProcessor) notifyFundsMoved(transfer debug.Transfer, url string) error {
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer([]byte(fmt.Sprintf(`{"from":"%s","to":"%s","amount":"%s"}`,
-		transfer.From.Hex(), transfer.To.Hex(), transfer.Value.String()),
-	)))
-	if err != nil {
-		return err
-	}
-
-	req.Header.Set("Content-Type", "application/json")
-
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode >= 400 {
-		return fmt.Errorf("unable to notify, received status code %d", resp.StatusCode)
-	}
 	return nil
 }
