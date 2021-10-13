@@ -26,6 +26,8 @@ Eksportisto consists of two services that intermediate through Redis queues (lis
 - `publisher`: is responsible for queueing blocks that need to be processed
 - `worker`: is responsible for processing blocks from a queue
 
+Alternatively, one can run Eksportisto in a monitoring only mode, where it listens for new blocks from a node, processes the block and publishes prometheus metrics. In this mode, Redis is not used and no data is saved to BigQuery.
+
 #### Configuration
 
 The services use [spf13/viper](https://github.com/spf13/viper) and [spf13/cobra](https://github.com/spf13/cobra) to handle commands and configuration. So in order to configure the service you need to copy `config.yaml.example` to `config.yaml` and setup the relevant configuration there.
@@ -127,6 +129,14 @@ And then start the publisher:
 
 ```bash
 > go run main.go publisher --config ./config.yaml --monitoring-port 8081 
+```
+
+##### Monitoring mode
+
+Start eksportisto `monitor`:
+
+```bash
+> go run main.go monitor --config ./config.yaml
 ```
 
 ### Deployment steps
