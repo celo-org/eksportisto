@@ -773,5 +773,30 @@
         "name": "slashed",
         "type": "STRING",
         "mode": "NULLABLE"
+    },
+    {
+        "name": "inflationFactor",
+        "type": "FLOAT",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "inflationRate",
+        "type": "FLOAT",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "updatePeriod",
+        "type": "INTEGER",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "factorLastUpdated",
+        "type": "INTEGER",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "stableTokenTotalSupply",
+        "type": "STRING",
+        "mode": "NULLABLE"
     }
 ]
