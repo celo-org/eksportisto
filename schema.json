@@ -795,7 +795,12 @@
         "mode": "NULLABLE"
     },
     {
-        "name": "stableTokenTotalSupply",
+        "name": "otherReserveAddress",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "partner",
         "type": "STRING",
         "mode": "NULLABLE"
     }
