@@ -28,13 +28,12 @@ var Factories = []ProcessorFactory{
 	exchangeProcessorFactory{},
 	electionProcessorFactory{},
 	epochRewardsProcessorFactory{},
-	celoTokenProcessorFactory{},
 	lockedGoldProcessorFactory{},
 	reserveProcessorFactory{},
 	sortedOraclesProcessorFactory{},
 	epochLogsProcessorFactory{},
+	goldTokenProcessorFactory{},
 	stableTokenProcessorFactory{},
-	stableTokenEURProcessorFactory{},
 }
 
 // Error that doesn't bubble up, but only results in the processor being skipped
