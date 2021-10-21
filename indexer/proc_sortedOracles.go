@@ -84,8 +84,8 @@ func (proc *sortedOraclesProcessor) EventHandler() (registry.ContractID, EventHa
 }
 
 func (proc *sortedOraclesProcessor) ShouldCollect() bool {
-	// This processor will run once per hour
-	return utils.ShouldSample(proc.blockNumber.Uint64(), BlocksPerHour)
+	// This processor will run every block
+	return true
 }
 
 func (proc sortedOraclesProcessor) CollectData(ctx context.Context, rows chan *Row) error {
