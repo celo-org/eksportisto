@@ -28,7 +28,6 @@ func (stableTokenProcessorFactory) InitProcessors(
 		return nil, errors.Wrap(err, 1)
 	}
 
-
 	for stableToken, celoTokenContract := range celoTokenContracts {
 		// If a token's contract has not been registered with the Registry
 		// yet, the contract will be nil. Ignore this.
@@ -53,11 +52,11 @@ func (stableTokenProcessorFactory) InitProcessors(
 		}
 
 		processors = append(processors, &stableTokenProcessor{
-			blockHandler:     handler,
-			logger:           handler.logger.New("processor", "stableToken", "contract", string(stableTokenRegistryID)),
-			stableTokenContract:    stableContractVariable,
-			stableTokenRegistryID:  stableTokenRegistryID,
-			totalSupplyGauge: totalSupplyGauge,
+			blockHandler:          handler,
+			logger:                handler.logger.New("processor", "stableToken", "contract", string(stableTokenRegistryID)),
+			stableTokenContract:   stableContractVariable,
+			stableTokenRegistryID: stableTokenRegistryID,
+			totalSupplyGauge:      totalSupplyGauge,
 		})
 	}
 	return processors, nil
@@ -65,10 +64,10 @@ func (stableTokenProcessorFactory) InitProcessors(
 
 type stableTokenProcessor struct {
 	*blockHandler
-	logger           log.Logger
-	stableTokenContract    *contracts.StableToken
-	stableTokenRegistryID  registry.ContractID
-	totalSupplyGauge prometheus.Gauge
+	logger                log.Logger
+	stableTokenContract   *contracts.StableToken
+	stableTokenRegistryID registry.ContractID
+	totalSupplyGauge      prometheus.Gauge
 }
 
 func (proc *stableTokenProcessor) EventHandler() (registry.ContractID, EventHandler) {
@@ -102,8 +101,8 @@ func (proc stableTokenProcessor) CollectData(ctx context.Context, rows chan *Row
 	}
 	rows <- contractRow.ViewCall(
 		"getInflationParameters",
-		"inflationFactor",helpers.FromFixed(inflationFactor),
-		"inflationRate",helpers.FromFixed(inflationRate),
+		"inflationFactor", helpers.FromFixed(inflationFactor),
+		"inflationRate", helpers.FromFixed(inflationRate),
 		"updatePeriod", updatePeriod,
 		"factorLastUpdated", factorLastUpdated,
 	)
