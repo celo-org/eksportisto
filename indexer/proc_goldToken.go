@@ -5,8 +5,8 @@ import (
 
 	"github.com/celo-org/celo-blockchain/accounts/abi/bind"
 	"github.com/celo-org/celo-blockchain/log"
-	"github.com/celo-org/eksportisto/utils"
 	"github.com/celo-org/eksportisto/metrics"
+	"github.com/celo-org/eksportisto/utils"
 	"github.com/celo-org/kliento/contracts"
 	"github.com/celo-org/kliento/registry"
 	"github.com/go-errors/errors"
@@ -27,14 +27,14 @@ func (goldTokenProcessorFactory) InitProcessors(
 		&goldTokenProcessor{
 			blockHandler: handler,
 			logger:       handler.logger.New("processor", "goldToken", "contract", "GoldToken"),
-			goldToken: goldToken,
+			goldToken:    goldToken,
 		},
 	}, nil
 }
 
 type goldTokenProcessor struct {
 	*blockHandler
-	logger       log.Logger
+	logger    log.Logger
 	goldToken *contracts.GoldToken
 }
 
@@ -62,7 +62,7 @@ func (proc goldTokenProcessor) CollectData(ctx context.Context, rows chan *Row) 
 	}
 	rows <- contractRow.ViewCall(
 		"totalSupply",
-		"totalSupply",totalSupply.String(),
+		"totalSupply", totalSupply.String(),
 	)
 	return nil
 }
