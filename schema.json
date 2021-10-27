@@ -808,5 +808,10 @@
     "name": "referendumStageDuration",
     "type": "INTEGER",
     "mode": "NULLABLE"
+  },
+  {
+    "name": "baselineQuorumFactor",
+    "type": "STRING",
+    "mode": "NULLABLE"
   }
 ]
