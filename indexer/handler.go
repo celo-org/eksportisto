@@ -86,7 +86,7 @@ func (handler *blockHandler) Run(ctx context.Context) (err error) {
 		}
 
 		return metrics.RecordStepDuration(func() error {
-			return handler.output.Write(rows)
+			return handler.output.Write(ctx, rows)
 		}, "bigquery.write")
 	})
 
