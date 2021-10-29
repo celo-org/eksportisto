@@ -813,5 +813,10 @@
     "name": "baselineQuorumFactor",
     "type": "STRING",
     "mode": "NULLABLE"
+  },
+  {
+    "name": "epoch",
+    "type": "STRING",
+    "mode": "NULLABLE"
   }
 ]
