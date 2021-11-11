@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 
+	"github.com/celo-org/eksportisto/indexer"
 	"github.com/celo-org/eksportisto/metrics"
 	"github.com/celo-org/eksportisto/publisher"
 	"github.com/celo-org/kliento/utils/service"
@@ -37,4 +38,5 @@ also ensure that blocks are retried when errors occur.`,
 
 func init() {
 	viper.SetDefault("publisher.backfill", false)
+	viper.SetDefault("publisher.chainTip.queue", indexer.Tip)
 }
