@@ -60,7 +60,7 @@ func NewWorker(ctx context.Context) (*Worker, error) {
 		return nil, fmt.Errorf("indexer.destination invalid, expecting: stdout, bigquery")
 	}
 
-	input, err := parseInput(viper.GetString("indexer.source"))
+	input, err := ParseInput(viper.GetString("indexer.source"))
 	if err != nil {
 		return nil, err
 	}

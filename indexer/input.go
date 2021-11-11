@@ -11,7 +11,7 @@ const (
 	Backfill = "backfill"
 )
 
-func parseInput(input string) (rdb.Queue, error) {
+func ParseInput(input string) (rdb.Queue, error) {
 	if input == Tip {
 		return rdb.TipQueue, nil
 	} else if input == Backfill {
