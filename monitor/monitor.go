@@ -64,7 +64,7 @@ func Start(ctx context.Context) error {
 			}
 			err = blockHandler.Run(ctx)
 			if err != nil {
-				return err
+				logger.Error("Failed to process block.", "number", header.Number.Uint64(), "err", err)
 			}
 		}
 	})
