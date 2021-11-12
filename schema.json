@@ -823,5 +823,25 @@
     "name": "exchangeSpender",
     "type": "STRING",
     "mode": "NULLABLE"
+  },
+  {
+    "name": "inflationRate",
+    "type": "STRING",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "inflationFactor",
+    "type": "STRING",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "factorLastUpdated",
+    "type": "STRING",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "updatePeriod",
+    "type": "STRING",
+    "mode": "NULLABLE"
   }
 ]
