@@ -57,18 +57,13 @@ func newBackfillPublisher(ctx context.Context) (publisher, error) {
 	}, nil
 }
 
-func (svc *backfillPublisher) isQueueEmpty(ctx context.Context) (bool, error) {
-	length, err := svc.db.LLen(ctx, rdb.BackfillQueue).Result()
-	return length == 0, err
-}
-
-func (svc *backfillPublisher) updateCursor(ctx context.Context) error {
-	batch, err := svc.db.GetBlocksBatch(ctx, svc.cursor, svc.batchSize*2)
+func (svc *backfillPublisher) updateCursor(ctx context.Context, batchSize uint64) error {
+	batch, err := svc.db.GetBlocksBatch(ctx, svc.cursor, batchSize*2)
 	if err != nil {
 		return err
 	}
 
-	for i := svc.cursor; i < svc.cursor+svc.batchSize; i++ {
+	for i := svc.cursor; i < svc.cursor+batchSize; i++ {
 		if batch[i] {
 			svc.cursor = i + 1
 		} else {
@@ -84,7 +79,7 @@ func (svc *backfillPublisher) updateCursor(ctx context.Context) error {
 	return err
 }
 
-func (svc *backfillPublisher) queueBatch(ctx context.Context) error {
+func (svc *backfillPublisher) queueBatch(ctx context.Context, batchSize uint64) error {
 	latestBlockHeader, err := svc.celoClient.Eth.HeaderByNumber(ctx, nil)
 	if err != nil {
 		return nil
@@ -98,14 +93,14 @@ func (svc *backfillPublisher) queueBatch(ctx context.Context) error {
 		return nil
 	}
 
-	batch, err := svc.db.GetBlocksBatch(ctx, svc.cursor, svc.batchSize*2)
+	batch, err := svc.db.GetBlocksBatch(ctx, svc.cursor, batchSize*2)
 	if err != nil {
 		return err
 	}
 
 	queued := uint64(0)
 
-	for block := svc.cursor; block < svc.cursor+2*svc.batchSize && block < maxBlock; block++ {
+	for block := svc.cursor; block < svc.cursor+2*batchSize && block < maxBlock; block++ {
 		if !batch[block] {
 			queued += 1
 			err := svc.db.RPush(ctx, rdb.BackfillQueue, block).Err()
@@ -114,7 +109,7 @@ func (svc *backfillPublisher) queueBatch(ctx context.Context) error {
 			}
 		}
 
-		if queued >= svc.batchSize {
+		if queued >= batchSize {
 			return nil
 		}
 	}
@@ -129,20 +124,21 @@ func (svc *backfillPublisher) queueBatch(ctx context.Context) error {
 func (svc *backfillPublisher) start(ctx context.Context) error {
 	svc.logger.Info("Starting backfill process")
 	for {
-		isEmpty, err := svc.isQueueEmpty(ctx)
+		queueSize, err := svc.db.LLen(ctx, rdb.BackfillQueue).Uint64()
 		if err != nil {
 			return err
 		}
-		if isEmpty {
-			if err := svc.updateCursor(ctx); err != nil {
+
+		if queueSize < svc.batchSize {
+			if err := svc.updateCursor(ctx, svc.batchSize); err != nil {
 				return err
 			}
-			if err := svc.queueBatch(ctx); err != nil {
+			if err := svc.queueBatch(ctx, svc.batchSize); err != nil {
 				return err
 			}
 		}
 
-		queueSize, err := svc.db.LLen(ctx, rdb.BackfillQueue).Uint64()
+		queueSize, err = svc.db.LLen(ctx, rdb.BackfillQueue).Uint64()
 		if err != nil {
 			return err
 		}
