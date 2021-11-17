@@ -126,6 +126,7 @@ func init() {
 	registerer.MustRegister(BlockQueueSize)
 	registerer.MustRegister(RowsInserted)
 	registerer.MustRegister(BlockFinished)
+	registerer.MustRegister(BackfillCursor)
 	registerer.MustRegister(StepDuration)
 
 	registerer.MustRegister(ExchangeCeloBucketSize)
