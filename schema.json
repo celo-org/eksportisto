@@ -740,16 +740,6 @@
     "mode": "NULLABLE"
   },
   {
-    "name": "symbols",
-    "type": "STRING",
-    "mode": "NULLABLE"
-  },
-  {
-    "name": "weights",
-    "type": "STRING",
-    "mode": "NULLABLE"
-  },
-  {
     "name": "transactionCount",
     "type": "STRING",
     "mode": "NULLABLE"
@@ -772,26 +762,6 @@
   {
     "name": "slashed",
     "type": "STRING",
-    "mode": "NULLABLE"
-  },
-  {
-    "name": "inflationFactor",
-    "type": "FLOAT",
-    "mode": "NULLABLE"
-  },
-  {
-    "name": "inflationRate",
-    "type": "FLOAT",
-    "mode": "NULLABLE"
-  },
-  {
-    "name": "updatePeriod",
-    "type": "INTEGER",
-    "mode": "NULLABLE"
-  },
-  {
-    "name": "factorLastUpdated",
-    "type": "INTEGER",
     "mode": "NULLABLE"
   },
   {
@@ -843,5 +813,20 @@
     "name": "updatePeriod",
     "type": "STRING",
     "mode": "NULLABLE"
+  },
+  {
+    "name": "min",
+    "type": "STRING",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "symbols",
+    "type": "STRING",
+    "mode": "REPEATED"
+  },
+  {
+    "name": "weights",
+    "type": "STRING",
+    "mode": "REPEATED"
   }
 ]
