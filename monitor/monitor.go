@@ -7,6 +7,7 @@ import (
 	"github.com/celo-org/celo-blockchain/core/types"
 	"github.com/celo-org/celo-blockchain/log"
 	"github.com/celo-org/eksportisto/indexer"
+	"github.com/celo-org/eksportisto/metrics"
 	kliento_client "github.com/celo-org/kliento/client"
 	kliento_mon "github.com/celo-org/kliento/monitor"
 	"github.com/spf13/viper"
@@ -56,15 +57,19 @@ func Start(ctx context.Context) error {
 			case header = <-headers:
 			}
 
-			logger.Info("Header received.", "number", header.Number.Uint64())
+			blockNumber := header.Number.Uint64()
 
-			blockHandler, err := worker.NewBlockHandler(header.Number.Uint64())
+			logger.Info("Header received.", "number", blockNumber)
+
+			blockHandler, err := worker.NewBlockHandler(blockNumber)
 			if err != nil {
 				return err
 			}
 			err = blockHandler.Run(ctx)
 			if err != nil {
-				logger.Error("Failed to process block.", "number", header.Number.Uint64(), "err", err)
+				logger.Error("Failed to process block.", "number", blockNumber, "err", err)
+			} else {
+				metrics.LastBlockProcessed.WithLabelValues("monitor").Set(float64(blockNumber))
 			}
 		}
 	})
