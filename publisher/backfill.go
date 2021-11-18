@@ -148,7 +148,7 @@ func (svc *backfillPublisher) start(ctx context.Context) error {
 		}
 		metrics.BlockQueueSize.WithLabelValues(rdb.BackfillQueue).Set(float64(queueSize))
 
-		blocksIndexedQueueSize, err := svc.db.LLen(ctx, rdb.BlocksMap).Uint64()
+		blocksIndexedQueueSize, err := svc.db.HLen(ctx, rdb.BlocksMap).Uint64()
 		if err != nil {
 			return err
 		}
