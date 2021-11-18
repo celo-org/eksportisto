@@ -89,33 +89,35 @@ func (svc *backfillPublisher) queueBatch(ctx context.Context, batchSize uint64) 
 	// being processed at the tip.
 	maxBlock := latestBlockHeader.Number.Uint64() - svc.tipBuffer
 
-	if svc.cursor > maxBlock {
-		return nil
-	}
-
-	batch, err := svc.db.GetBlocksBatch(ctx, svc.cursor, batchSize*2)
-	if err != nil {
-		return err
-	}
-
 	queued := uint64(0)
+	searchWindow := batchSize * 2
 
-	for block := svc.cursor; block < svc.cursor+2*batchSize && block < maxBlock; block++ {
-		if !batch[block] {
-			queued += 1
-			err := svc.db.RPush(ctx, rdb.BackfillQueue, block).Err()
-			if err != nil {
-				return err
-			}
+	for searchStart := svc.cursor; searchStart < maxBlock && queued < batchSize; searchStart += searchWindow {
+		searchEnd := searchStart + searchWindow
+		if searchEnd > maxBlock {
+			searchEnd = maxBlock
 		}
 
-		if queued >= batchSize {
-			return nil
+		batch, err := svc.db.GetBlocksBatch(ctx, searchStart, searchWindow)
+		if err != nil {
+			return err
+		}
+
+		for block := searchStart; block < searchEnd && queued < batchSize; block++ {
+			if !batch[block] {
+				queued += 1
+				err := svc.db.RPush(ctx, rdb.BackfillQueue, block).Err()
+				if err != nil {
+					return err
+				}
+			}
 		}
 	}
 
 	if queued > 0 {
 		svc.logger.Info("Queued backfill blocks", "cursor", svc.cursor, "blocks", queued)
+	} else {
+		svc.logger.Info("No backfill blocks found", "cursor", svc.cursor, "maxBlock", maxBlock)
 	}
 
 	return nil
