@@ -57,18 +57,13 @@ func newBackfillPublisher(ctx context.Context) (publisher, error) {
 	}, nil
 }
 
-func (svc *backfillPublisher) isQueueEmpty(ctx context.Context) (bool, error) {
-	length, err := svc.db.LLen(ctx, rdb.BackfillQueue).Result()
-	return length == 0, err
-}
-
-func (svc *backfillPublisher) updateCursor(ctx context.Context) error {
-	batch, err := svc.db.GetBlocksBatch(ctx, svc.cursor, svc.batchSize*2)
+func (svc *backfillPublisher) updateCursor(ctx context.Context, batchSize uint64) error {
+	batch, err := svc.db.GetBlocksBatch(ctx, svc.cursor, batchSize*2)
 	if err != nil {
 		return err
 	}
 
-	for i := svc.cursor; i < svc.cursor+svc.batchSize; i++ {
+	for i := svc.cursor; i < svc.cursor+batchSize; i++ {
 		if batch[i] {
 			svc.cursor = i + 1
 		} else {
@@ -84,7 +79,7 @@ func (svc *backfillPublisher) updateCursor(ctx context.Context) error {
 	return err
 }
 
-func (svc *backfillPublisher) queueBatch(ctx context.Context) error {
+func (svc *backfillPublisher) queueBatch(ctx context.Context, batchSize uint64) error {
 	latestBlockHeader, err := svc.celoClient.Eth.HeaderByNumber(ctx, nil)
 	if err != nil {
 		return nil
@@ -94,33 +89,35 @@ func (svc *backfillPublisher) queueBatch(ctx context.Context) error {
 	// being processed at the tip.
 	maxBlock := latestBlockHeader.Number.Uint64() - svc.tipBuffer
 
-	if svc.cursor > maxBlock {
-		return nil
-	}
-
-	batch, err := svc.db.GetBlocksBatch(ctx, svc.cursor, svc.batchSize*2)
-	if err != nil {
-		return err
-	}
-
 	queued := uint64(0)
+	searchWindow := batchSize * 2
 
-	for block := svc.cursor; block < svc.cursor+2*svc.batchSize && block < maxBlock; block++ {
-		if !batch[block] {
-			queued += 1
-			err := svc.db.RPush(ctx, rdb.BackfillQueue, block).Err()
-			if err != nil {
-				return err
-			}
+	for searchStart := svc.cursor; searchStart < maxBlock && queued < batchSize; searchStart += searchWindow {
+		searchEnd := searchStart + searchWindow
+		if searchEnd > maxBlock {
+			searchEnd = maxBlock
 		}
 
-		if queued >= svc.batchSize {
-			return nil
+		batch, err := svc.db.GetBlocksBatch(ctx, searchStart, searchWindow)
+		if err != nil {
+			return err
+		}
+
+		for block := searchStart; block < searchEnd && queued < batchSize; block++ {
+			if !batch[block] {
+				queued += 1
+				err := svc.db.RPush(ctx, rdb.BackfillQueue, block).Err()
+				if err != nil {
+					return err
+				}
+			}
 		}
 	}
 
 	if queued > 0 {
 		svc.logger.Info("Queued backfill blocks", "cursor", svc.cursor, "blocks", queued)
+	} else {
+		svc.logger.Info("No backfill blocks found", "cursor", svc.cursor, "maxBlock", maxBlock)
 	}
 
 	return nil
@@ -129,20 +126,21 @@ func (svc *backfillPublisher) queueBatch(ctx context.Context) error {
 func (svc *backfillPublisher) start(ctx context.Context) error {
 	svc.logger.Info("Starting backfill process")
 	for {
-		isEmpty, err := svc.isQueueEmpty(ctx)
+		queueSize, err := svc.db.LLen(ctx, rdb.BackfillQueue).Uint64()
 		if err != nil {
 			return err
 		}
-		if isEmpty {
-			if err := svc.updateCursor(ctx); err != nil {
+
+		if queueSize < svc.batchSize {
+			if err := svc.updateCursor(ctx, svc.batchSize); err != nil {
 				return err
 			}
-			if err := svc.queueBatch(ctx); err != nil {
+			if err := svc.queueBatch(ctx, svc.batchSize); err != nil {
 				return err
 			}
 		}
 
-		queueSize, err := svc.db.LLen(ctx, rdb.BackfillQueue).Uint64()
+		queueSize, err = svc.db.LLen(ctx, rdb.BackfillQueue).Uint64()
 		if err != nil {
 			return err
 		}
