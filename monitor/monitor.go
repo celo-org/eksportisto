@@ -39,6 +39,8 @@ func Start(ctx context.Context) error {
 
 	startBlock := latestHeader.Number
 	headers := make(chan *types.Header)
+        // A single slot for blocks waiting to be processed.
+	blockNumbers := make(chan uint64, 1)
 
 	logger.Info("Latest block number.", "startBlock", startBlock)
 
@@ -47,7 +49,9 @@ func Start(ctx context.Context) error {
 		return err
 	}
 
+        // Kliento's header listener -- enqueues headers to the 'headers' channel.
 	group.Go(func() error { return kliento_mon.HeaderListener(ctx, headers, client, logger, startBlock) })
+        // Dequeue headers from the 'headers' channel and enqueue block numbers to the 'blockNumbers' channel.
 	group.Go(func() error {
 		for {
 			var header *types.Header
@@ -57,9 +61,26 @@ func Start(ctx context.Context) error {
 			case header = <-headers:
 			}
 
-			blockNumber := header.Number.Uint64()
+			logger.Info("Header received.", "number", header.Number.Uint64())
 
-			logger.Info("Header received.", "number", blockNumber)
+			select {
+			case blockNumbers <- header.Number.Uint64():
+			default:
+                          // Drop blocks that arrive while the previous one is being processed.
+			}
+		}
+	})
+        // Dequeue block numbers from the 'blockNumbers' channel and process these blocks.
+	group.Go(func() error {
+		for {
+			var blockNumber uint64
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			case blockNumber = <-blockNumbers:
+			}
+
+			logger.Info("Processing block", "number", blockNumber)
 
 			blockHandler, err := worker.NewBlockHandler(blockNumber)
 			if err != nil {
