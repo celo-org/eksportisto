@@ -3,6 +3,7 @@ package monitor
 import (
 	"context"
 	"os"
+	"time"
 
 	"github.com/celo-org/celo-blockchain/core/types"
 	"github.com/celo-org/celo-blockchain/log"
@@ -86,7 +87,11 @@ func Start(ctx context.Context) error {
 			if err != nil {
 				return err
 			}
+			blockProcessingStartTime := time.Now()
 			err = blockHandler.Run(ctx)
+			blockProcessingDuration := time.Since(blockProcessingStartTime)
+			metrics.ProcessBlockDuration.Observe(float64(blockProcessingDuration) / float64(time.Second))
+
 			if err != nil {
 				logger.Error("Failed to process block.", "number", blockNumber, "err", err)
 			} else {
