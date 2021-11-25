@@ -41,6 +41,7 @@ func newBackfillPublisher(ctx context.Context) (publisher, error) {
 	} else if err != nil {
 		return nil, err
 	}
+	metrics.BackfillCursor.Set(float64(cursor))
 
 	handler := log.LvlFilterHandler(log.LvlInfo, log.StreamHandler(os.Stdout, log.JSONFormat()))
 	logger := log.New()
