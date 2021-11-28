@@ -95,6 +95,7 @@ func Start(ctx context.Context) error {
 			if err != nil {
 				logger.Error("Failed to process block.", "number", blockNumber, "err", err)
 			} else {
+				logger.Info("Finished processing block.", "number", blockNumber, "processing_time", blockProcessingDuration)
 				metrics.LastBlockProcessed.WithLabelValues("monitor").Set(float64(blockNumber))
 			}
 		}

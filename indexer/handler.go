@@ -135,7 +135,7 @@ func (handler *blockHandler) spawnProcessors(ctx context.Context, rowsChan chan 
 					)
 				})
 			}
-			if processor.ShouldCollect() {
+			if handler.collectData && processor.ShouldCollect() {
 				group.Go(func() error {
 					return metrics.RecordProcessorDuration(
 						func() error { return handler.checkError(processor.CollectData(ctx, rowsChan)) },
