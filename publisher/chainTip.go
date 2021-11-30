@@ -68,17 +68,17 @@ func (svc *chainTipPublisher) start(ctx context.Context) error {
 			case header = <-headers:
 			}
 
-			err := svc.db.RPush(ctx, svc.queue, header.Number.Uint64()).Err()
+			err := svc.db.EnqueueBlock(ctx, header.Number.Uint64())
 			if err != nil {
 				return err
 			}
 			svc.logger.Info("Queued block at tip", "number", header.Number.Uint64())
 
-			queueSize, err := svc.db.LLen(ctx, rdb.TipQueue).Uint64()
+			queueSize, err := svc.db.QueueLength(ctx)
 			if err != nil {
 				return err
 			}
-			metrics.BlockQueueSize.WithLabelValues(rdb.TipQueue).Set(float64(queueSize))
+			metrics.BlockQueueSize.WithLabelValues(rdb.PriorityQueue).Set(float64(queueSize))
 		}
 	})
 

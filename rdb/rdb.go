@@ -3,6 +3,8 @@ package rdb
 import (
 	"context"
 	"fmt"
+	"strconv"
+	"time"
 
 	"github.com/go-redis/redis/v8"
 	"github.com/spf13/viper"
@@ -11,6 +13,7 @@ import (
 type Queue = string
 
 const (
+	PriorityQueue               Queue  = "blocks:queue"
 	BackfillQueue               Queue  = "blocks:queue:backfill"
 	TipQueue                    Queue  = "blocks:queue:tip"
 	BackfillCursor              string = "blocks:cursor"
@@ -49,6 +52,22 @@ func (db *RedisDB) GetBlocksBatch(ctx context.Context, cursor, size uint64) (map
 	}
 
 	return blocks, nil
+}
+
+func (db *RedisDB) EnqueueBlock(ctx context.Context, blockNumber uint64) error {
+	return db.ZAdd(ctx, PriorityQueue, &redis.Z{Score: float64(blockNumber), Member: blockNumber}).Err()
+}
+
+func (db *RedisDB) PopBlock(ctx context.Context, dequeueTimeout time.Duration) (uint64, error) {
+	result, err := db.BZPopMax(ctx, dequeueTimeout, PriorityQueue).Result()
+	if err != nil && err != redis.Nil {
+		return 0, err
+	}
+	return strconv.ParseUint(result.Z.Member.(string), 10, 64)
+}
+
+func (db *RedisDB) QueueLength(ctx context.Context) (uint64, error) {
+	return db.ZCard(ctx, PriorityQueue).Uint64()
 }
 
 func NewRedisDatabase() *RedisDB {

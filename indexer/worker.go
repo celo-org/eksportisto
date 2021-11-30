@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"strconv"
 	"time"
 
 	"github.com/celo-org/celo-blockchain/log"
@@ -108,7 +107,7 @@ func (w *Worker) start(ctx context.Context) error {
 		case <-ctx.Done():
 			return ctx.Err()
 		default:
-			block, err := w.popBlock(ctx)
+			block, err := w.db.PopBlock(ctx, w.dequeueTimeout)
 			if err != nil && err != redis.Nil {
 				return err
 			} else if err == redis.Nil {
@@ -181,18 +180,4 @@ func (w *Worker) indexBlockWithRetry(ctx context.Context, block uint64) (*blockH
 	})
 
 	return handler, time.Since(blockProcessStartedAt), err
-}
-
-// popBlock uses a blocking pop operation on redis to dequeue
-// the next block to be processed
-func (w *Worker) popBlock(ctx context.Context) (uint64, error) {
-	result, err := w.db.BLPop(ctx, w.dequeueTimeout, w.input).Result()
-	if err != nil && err != redis.Nil {
-		return 0, err
-	}
-	if len(result) == 0 {
-		return 0, redis.Nil
-	} else {
-		return strconv.ParseUint(result[1], 10, 64)
-	}
 }
