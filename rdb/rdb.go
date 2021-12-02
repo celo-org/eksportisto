@@ -10,12 +10,8 @@ import (
 	"github.com/spf13/viper"
 )
 
-type Queue = string
-
 const (
-	PriorityQueue               Queue  = "blocks:queue"
-	BackfillQueue               Queue  = "blocks:queue:backfill"
-	TipQueue                    Queue  = "blocks:queue:tip"
+	PriorityQueue               string = "blocks:queue"
 	BackfillCursor              string = "blocks:cursor"
 	BlocksMap                   string = "blocks:indexed"
 	GetIndexedBlocksBatchScript string = `

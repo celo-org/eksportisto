@@ -126,7 +126,7 @@ func (handler *blockHandler) spawnProcessors(ctx context.Context, rowsChan chan 
 
 	for _, processor := range processors {
 		func(processor Processor) {
-			if handler.isTip() && handler.collectMetrics {
+			if handler.collectMetrics {
 				group.Go(func() error {
 					return metrics.RecordProcessorDuration(
 						func() error { return handler.checkError(processor.ObserveMetrics(ctx)) },

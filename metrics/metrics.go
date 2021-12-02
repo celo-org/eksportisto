@@ -29,15 +29,15 @@ var (
 		Help: "Gas paid in a tx",
 	})
 
-	LastBlockProcessed = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+	LastBlockProcessed = prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "last_block_processed",
 		Help: "Last Block Processed by eksportisto",
-	}, []string{"queue"})
+	})
 
 	BlockFinished = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Name: "block_finished",
 		Help: "Number of finished blocks",
-	}, []string{"queue", "status"})
+	}, []string{"status"})
 
 	BackfillCursor = prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "backfill_cursor",

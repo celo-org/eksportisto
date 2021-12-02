@@ -91,10 +91,8 @@ func (handler *blockHandler) extractEvent(
 		logger.Error("log parsing failed", "err", err)
 	} else if parsed != nil {
 		// If the contract with the event has an event handler, call it with the parsed event
-		if handler.isTip() {
-			if handler, ok := handler.eventHandlers[registry.ContractID(parsed.Contract)]; ok {
-				handler.HandleEvent(parsed)
-			}
+		if handler, ok := handler.eventHandlers[registry.ContractID(parsed.Contract)]; ok {
+			handler.HandleEvent(parsed)
 		}
 		logSlice, err := helpers.EventToSlice(parsed.Log)
 		if err != nil {
