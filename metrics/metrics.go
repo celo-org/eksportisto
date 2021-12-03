@@ -66,6 +66,11 @@ var (
 		Buckets: prometheus.ExponentialBuckets(0.01, 2, 11),
 	}, []string{"step"})
 
+	LastProcessingAttempt = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "last_processing_attempt",
+		Help: "Last time eksportisto attempted to do an operation (publish, index, monitor) -- used for liveness probe .",
+	})
+
 	ExchangeCeloBucketSize = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "exchange_celo_bucket_size",
 		Help: "CELO Bucket Size",
@@ -128,6 +133,7 @@ func init() {
 	registerer.MustRegister(BlockFinished)
 	registerer.MustRegister(BackfillCursor)
 	registerer.MustRegister(StepDuration)
+	registerer.MustRegister(LastProcessingAttempt)
 
 	registerer.MustRegister(ExchangeCeloBucketSize)
 	registerer.MustRegister(ExchangeStableBucketSize)

@@ -97,6 +97,7 @@ func (w *Worker) start(ctx context.Context) error {
 			return ctx.Err()
 		default:
 			block, err := w.db.PopBlock(ctx, w.dequeueTimeout)
+                        metrics.LastProcessingAttempt.Set(float64(time.Now().UTC().Unix()))
 			if err != nil && err != redis.Nil {
 				return err
 			} else if err == redis.Nil {
