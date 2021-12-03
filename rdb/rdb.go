@@ -56,7 +56,7 @@ func (db *RedisDB) EnqueueBlock(ctx context.Context, blockNumber uint64) error {
 
 func (db *RedisDB) PopBlock(ctx context.Context, dequeueTimeout time.Duration) (uint64, error) {
 	result, err := db.BZPopMax(ctx, dequeueTimeout, PriorityQueue).Result()
-	if err != nil && err != redis.Nil {
+	if err != nil {
 		return 0, err
 	}
 	return strconv.ParseUint(result.Z.Member.(string), 10, 64)
