@@ -6,7 +6,6 @@ import (
 
 	"github.com/celo-org/celo-blockchain/core/types"
 	"github.com/celo-org/celo-blockchain/log"
-	"github.com/celo-org/eksportisto/indexer"
 	"github.com/celo-org/eksportisto/metrics"
 	"github.com/celo-org/eksportisto/rdb"
 	"github.com/celo-org/kliento/client"
@@ -19,7 +18,6 @@ import (
 type chainTipPublisher struct {
 	celoClient *client.CeloClient
 	db         *rdb.RedisDB
-	queue      rdb.Queue
 	logger     log.Logger
 }
 
@@ -34,16 +32,11 @@ func newChainTipPublisher(_ context.Context) (publisher, error) {
 		return nil, err
 	}
 
-	queue, err := indexer.ParseInput(viper.GetString("publisher.chainTip.queue"))
-	if err != nil {
-		return nil, err
-	}
-
 	handler := log.LvlFilterHandler(log.LvlInfo, log.StreamHandler(os.Stdout, log.JSONFormat()))
 	logger := log.New()
 	logger.SetHandler(handler)
 
-	return &chainTipPublisher{celoClient, db, queue, logger}, nil
+	return &chainTipPublisher{celoClient, db, logger}, nil
 }
 
 func (svc *chainTipPublisher) start(ctx context.Context) error {
@@ -68,17 +61,17 @@ func (svc *chainTipPublisher) start(ctx context.Context) error {
 			case header = <-headers:
 			}
 
-			err := svc.db.RPush(ctx, svc.queue, header.Number.Uint64()).Err()
+			err := svc.db.EnqueueBlock(ctx, header.Number.Uint64())
 			if err != nil {
 				return err
 			}
 			svc.logger.Info("Queued block at tip", "number", header.Number.Uint64())
 
-			queueSize, err := svc.db.LLen(ctx, rdb.TipQueue).Uint64()
+			queueSize, err := svc.db.QueueLength(ctx)
 			if err != nil {
 				return err
 			}
-			metrics.BlockQueueSize.WithLabelValues(rdb.TipQueue).Set(float64(queueSize))
+			metrics.BlockQueueSize.WithLabelValues(rdb.PriorityQueue).Set(float64(queueSize))
 		}
 	})
 

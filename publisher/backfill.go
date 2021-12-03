@@ -107,7 +107,7 @@ func (svc *backfillPublisher) queueBatch(ctx context.Context, batchSize uint64) 
 		for block := searchStart; block < searchEnd && queued < batchSize; block++ {
 			if !batch[block] {
 				queued += 1
-				err := svc.db.RPush(ctx, rdb.BackfillQueue, block).Err()
+				err := svc.db.EnqueueBlock(ctx, block)
 				if err != nil {
 					return err
 				}
@@ -127,7 +127,7 @@ func (svc *backfillPublisher) queueBatch(ctx context.Context, batchSize uint64) 
 func (svc *backfillPublisher) start(ctx context.Context) error {
 	svc.logger.Info("Starting backfill process")
 	for {
-		queueSize, err := svc.db.LLen(ctx, rdb.BackfillQueue).Uint64()
+		queueSize, err := svc.db.QueueLength(ctx)
 		if err != nil {
 			return err
 		}
@@ -141,11 +141,11 @@ func (svc *backfillPublisher) start(ctx context.Context) error {
 			}
 		}
 
-		queueSize, err = svc.db.LLen(ctx, rdb.BackfillQueue).Uint64()
+		queueSize, err = svc.db.QueueLength(ctx)
 		if err != nil {
 			return err
 		}
-		metrics.BlockQueueSize.WithLabelValues(rdb.BackfillQueue).Set(float64(queueSize))
+		metrics.BlockQueueSize.WithLabelValues(rdb.PriorityQueue).Set(float64(queueSize))
 
 		blocksIndexedQueueSize, err := svc.db.HLen(ctx, rdb.BlocksMap).Uint64()
 		if err != nil {

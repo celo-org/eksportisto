@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"strconv"
 	"time"
 
 	"github.com/celo-org/celo-blockchain/log"
@@ -24,7 +23,6 @@ type Worker struct {
 	blockRetryAttempts int
 	blockRetryDelay    time.Duration
 	output             Output
-	input              rdb.Queue
 	nodeURI            string
 	dequeueTimeout     time.Duration
 	concurrency        int
@@ -60,17 +58,12 @@ func NewWorker(ctx context.Context) (*Worker, error) {
 		return nil, fmt.Errorf("indexer.destination invalid, expecting: stdout, bigquery")
 	}
 
-	input, err := ParseInput(viper.GetString("indexer.source"))
-	if err != nil {
-		return nil, err
-	}
-
 	mode, err := newMode(viper.GetString("indexer.mode"))
 	if err != nil {
 		return nil, err
 	}
 
-	logger.Info("Starting Worker", "nodeURI", nodeURI, "source", input, "destination", dest, "mode", mode)
+	logger.Info("Starting Worker", "nodeURI", nodeURI, "destination", dest, "mode", mode)
 
 	supported, err := celoClient.Rpc.SupportedModules()
 	if err != nil {
@@ -84,7 +77,6 @@ func NewWorker(ctx context.Context) (*Worker, error) {
 		celoClient:         celoClient,
 		db:                 rdb.NewRedisDatabase(),
 		output:             output,
-		input:              input,
 		nodeURI:            nodeURI,
 		blockRetryAttempts: viper.GetInt("indexer.blockRetryAttempts"),
 		blockRetryDelay:    viper.GetDuration("indexer.blockRetryDelayMilliseconds") * time.Millisecond,
@@ -93,10 +85,6 @@ func NewWorker(ctx context.Context) (*Worker, error) {
 		collectData:        mode.shouldCollectData(),
 		debugEnabled:       debugEnabled,
 	}, nil
-}
-
-func (w *Worker) isTip() bool {
-	return w.input == rdb.TipQueue
 }
 
 // start starts a worker's main loop which consists of
@@ -108,14 +96,14 @@ func (w *Worker) start(ctx context.Context) error {
 		case <-ctx.Done():
 			return ctx.Err()
 		default:
-			block, err := w.popBlock(ctx)
+			block, err := w.db.PopBlock(ctx, w.dequeueTimeout)
 			if err != nil && err != redis.Nil {
 				return err
 			} else if err == redis.Nil {
 				continue
 			}
 
-			w.logger.Info("Dequeued block", "block", block, "queue", w.input)
+			w.logger.Info("Dequeued block", "block", block)
 			indexed, err := w.db.HGet(ctx, rdb.BlocksMap, fmt.Sprintf("%d", block)).Bool()
 			if err != nil && err != redis.Nil {
 				return err
@@ -138,11 +126,11 @@ func (w *Worker) start(ctx context.Context) error {
 				} else {
 					handler.logger.Error("Failed block", "err", err.Error())
 				}
-				metrics.BlockFinished.WithLabelValues(w.input, "fail").Add(1)
+				metrics.BlockFinished.WithLabelValues("fail").Add(1)
 			} else {
 				metrics.ProcessBlockDuration.Observe(float64(duration) / float64(time.Second))
-				metrics.LastBlockProcessed.WithLabelValues(w.input).Set(float64(block))
-				metrics.BlockFinished.WithLabelValues(w.input, "success").Add(1)
+				metrics.LastBlockProcessed.Set(float64(block))
+				metrics.BlockFinished.WithLabelValues("success").Add(1)
 
 				if w.collectData {
 					// Only mark block as done if data is getting collected
@@ -181,18 +169,4 @@ func (w *Worker) indexBlockWithRetry(ctx context.Context, block uint64) (*blockH
 	})
 
 	return handler, time.Since(blockProcessStartedAt), err
-}
-
-// popBlock uses a blocking pop operation on redis to dequeue
-// the next block to be processed
-func (w *Worker) popBlock(ctx context.Context) (uint64, error) {
-	result, err := w.db.BLPop(ctx, w.dequeueTimeout, w.input).Result()
-	if err != nil && err != redis.Nil {
-		return 0, err
-	}
-	if len(result) == 0 {
-		return 0, redis.Nil
-	} else {
-		return strconv.ParseUint(result[1], 10, 64)
-	}
 }

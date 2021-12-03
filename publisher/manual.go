@@ -3,6 +3,7 @@ package publisher
 import (
 	"context"
 	"fmt"
+	"strconv"
 
 	"github.com/celo-org/eksportisto/indexer"
 	"github.com/celo-org/eksportisto/rdb"
@@ -72,11 +73,6 @@ func (svc *manualPublisher) start(ctx context.Context) error {
 		return err
 	}
 
-	blockParams := make([]interface{}, len(blocks))
-	for i, block := range blocks {
-		blockParams[i] = block
-	}
-
 	if svc.forceReindex {
 		err := svc.db.HDel(ctx, rdb.BlocksMap, blocks...).Err()
 		if err != nil {
@@ -84,9 +80,15 @@ func (svc *manualPublisher) start(ctx context.Context) error {
 		}
 	}
 
-	err = svc.db.RPush(ctx, rdb.BackfillQueue, blockParams...).Err()
-	if err != nil {
-		return err
+	for _, block := range blocks {
+		uintBlock, err := strconv.ParseUint(block, 10, 64)
+                if err != nil {
+                  return err
+                }
+		err = svc.db.EnqueueBlock(ctx, uintBlock)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }

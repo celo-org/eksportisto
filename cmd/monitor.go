@@ -35,6 +35,5 @@ var monitorCmd = &cobra.Command{
 
 func init() {
 	viper.SetDefault("indexer.destination", "stdout")
-	viper.SetDefault("indexer.source", "tip")
 	viper.SetDefault("indexer.mode", "metrics")
 }

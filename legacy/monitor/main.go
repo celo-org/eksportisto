@@ -166,7 +166,7 @@ func blockProcessor(ctx context.Context, startBlock *big.Int, headers <-chan *ty
 				return err
 			}
 
-			metrics.LastBlockProcessed.WithLabelValues("legacy").Set(float64(h.Number.Int64()))
+			metrics.LastBlockProcessed.Set(float64(h.Number.Int64()))
 			metrics.ProcessBlockDuration.Observe(float64(time.Since(blockProcessStartedAt)) / float64(time.Second))
 			return nil
 		}
