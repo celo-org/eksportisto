@@ -45,6 +45,7 @@ func initConfig() {
 	viper.SetDefault("monitoring.port", 8080)
 	viper.SetDefault("monitoring.address", "127.0.0.1")
 	viper.SetDefault("monitoring.requestTimeoutSeconds", 24)
+	viper.SetDefault("indexer.indexingTimeout", "30s")
 	viper.BindPFlag("monitoring.port", rootCmd.Flags().Lookup("monitoring-port"))
 	viper.BindPFlag("indexer.mode", indexerCmd.Flags().Lookup("indexer-mode"))
 	viper.BindPFlag("celoNodeURI", rootCmd.Flags().Lookup("celo-node-uri"))

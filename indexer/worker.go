@@ -25,6 +25,7 @@ type Worker struct {
 	output             Output
 	nodeURI            string
 	dequeueTimeout     time.Duration
+	indexingTimeout    time.Duration
 	concurrency        int
 	collectMetrics     bool
 	collectData        bool
@@ -74,6 +75,7 @@ func NewWorker(ctx context.Context) (*Worker, error) {
 	return &Worker{
 		logger:             logger,
 		dequeueTimeout:     viper.GetDuration("indexer.dequeueTimeoutMilliseconds") * time.Millisecond,
+		indexingTimeout:    viper.GetDuration("indexer.indexingTimeout"),
 		celoClient:         celoClient,
 		db:                 rdb.NewRedisDatabase(),
 		output:             output,
@@ -114,7 +116,10 @@ func (w *Worker) start(ctx context.Context) error {
 				continue
 			}
 
-			handler, duration, err := w.indexBlockWithRetry(ctx, block)
+			indexingContext, cancel := context.WithTimeout(ctx, w.indexingTimeout)
+			defer cancel()
+			w.logger.Info("Starting to index", "block", block)
+			handler, duration, err := w.indexBlockWithRetry(indexingContext, block)
 
 			if err != nil {
 				if errWithStack, ok := err.(*errors.Error); ok {
