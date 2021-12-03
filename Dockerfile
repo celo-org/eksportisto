@@ -21,4 +21,6 @@ ENV HOME /root
 COPY --from=builder /app/eksportisto /app/eksportisto
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 
+COPY livenessProbe.sh /app/
+
 ENTRYPOINT [ "/app/eksportisto" ]
