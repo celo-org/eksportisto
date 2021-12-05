@@ -168,7 +168,12 @@ func (w *Worker) indexBlockWithRetry(ctx context.Context, block uint64) (*blockH
 
 		if err != nil && retry {
 			handler.logger.Warn("Retrying block", "err", err.Error(), "attempt", attempt)
-			time.Sleep(w.blockRetryDelay)
+			select {
+			case <-ctx.Done():
+				retry = false
+				err = ctx.Err()
+			case <-time.After(w.blockRetryDelay):
+			}
 		}
 		return
 	})
