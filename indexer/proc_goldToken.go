@@ -60,10 +60,14 @@ func (proc goldTokenProcessor) CollectData(ctx context.Context, rows chan *Row) 
 	if err != nil {
 		return errors.Wrap(err, 0)
 	}
-	rows <- contractRow.ViewCall(
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case rows <- contractRow.ViewCall(
 		"totalSupply",
 		"totalSupply", totalSupply.String(),
-	)
+	):
+	}
 	return nil
 }
 

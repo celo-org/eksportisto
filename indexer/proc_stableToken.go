@@ -92,20 +92,28 @@ func (proc stableTokenProcessor) CollectData(ctx context.Context, rows chan *Row
 	if err != nil {
 		return errors.Wrap(err, 0)
 	}
-	rows <- contractRow.ViewCall("totalSupply", "totalSupply", totalSupply.String())
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case rows <- contractRow.ViewCall("totalSupply", "totalSupply", totalSupply.String()):
+	}
 
 	// StableToken.GetInflationParameters()
 	inflationFactor, inflationRate, updatePeriod, factorLastUpdated, err := proc.stableTokenContract.GetInflationParameters(opts)
 	if err != nil {
 		return errors.Wrap(err, 0)
 	}
-	rows <- contractRow.ViewCall(
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case rows <- contractRow.ViewCall(
 		"getInflationParameters",
 		"inflationFactor", helpers.FromFixed(inflationFactor),
 		"inflationRate", helpers.FromFixed(inflationRate),
 		"updatePeriod", updatePeriod,
 		"factorLastUpdated", factorLastUpdated,
-	)
+	):
+	}
 	return nil
 }
 

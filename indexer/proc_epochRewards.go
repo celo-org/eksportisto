@@ -62,10 +62,14 @@ func (proc epochRewardsProcessor) CollectData(ctx context.Context, rows chan *Ro
 		return errors.Wrap(err, 0)
 	}
 
-	rows <- contractRow.ViewCall(
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case rows <- contractRow.ViewCall(
 		"getTargetTotalSupply",
 		"targetTotalSupply", targetGoldTotalSupply.String(),
-	)
+	):
+	}
 
 	// EpochRewards.getTargetVoterRewards
 	targetVoterRewards, err := proc.epochRewards.GetTargetVoterRewards(opts)
@@ -73,10 +77,14 @@ func (proc epochRewardsProcessor) CollectData(ctx context.Context, rows chan *Ro
 		return errors.Wrap(err, 0)
 	}
 
-	rows <- contractRow.ViewCall(
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case rows <- contractRow.ViewCall(
 		"getTargetVoterRewards",
 		"targetVoterRewards", targetVoterRewards.String(),
-	)
+	):
+	}
 
 	// EpochRewards.getRewardsMultiplier
 	rewardsMultiplier, err := proc.epochRewards.GetRewardsMultiplier(opts)
@@ -84,54 +92,74 @@ func (proc epochRewardsProcessor) CollectData(ctx context.Context, rows chan *Ro
 		return errors.Wrap(err, 0)
 	}
 
-	rows <- contractRow.ViewCall(
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case rows <- contractRow.ViewCall(
 		"getRewardsMultiplier",
 		"rewardsMultiplier", helpers.FromFixed(rewardsMultiplier),
-	)
+	):
+	}
 
 	rmMax, rmOverspendAdjustmentFactor, rmUnderspendAdjustmentFactor, err := proc.epochRewards.GetRewardsMultiplierParameters(opts)
 	if err != nil {
 		return errors.Wrap(err, 0)
 	}
 
-	rows <- contractRow.ViewCall(
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case rows <- contractRow.ViewCall(
 		"getRewardsMultiplierParameteres",
 		"max", helpers.FromFixed(rmMax),
 		"overspendAdjustmentFactor", helpers.FromFixed(rmOverspendAdjustmentFactor),
 		"underspendAdjustmentFactor", helpers.FromFixed(rmUnderspendAdjustmentFactor),
-	)
+	):
+	}
 
 	tvyTarget, tvyMax, tvyAdjustmentFactor, err := proc.epochRewards.GetTargetVotingYieldParameters(opts)
 	if err != nil {
 		return errors.Wrap(err, 0)
 	}
 
-	rows <- contractRow.ViewCall(
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case rows <- contractRow.ViewCall(
 		"getTargetVotingYieldParameteres",
 		"target", helpers.FromFixed(tvyTarget),
 		"max", helpers.FromFixed(tvyMax),
 		"adjustmentFactor", helpers.FromFixed(tvyAdjustmentFactor),
-	)
+	):
+	}
 
 	targetVotingGoldFraction, err := proc.epochRewards.GetTargetVotingGoldFraction(opts)
 	if err != nil {
 		return errors.Wrap(err, 0)
 	}
 
-	rows <- contractRow.ViewCall(
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case rows <- contractRow.ViewCall(
 		"getTargetVotingGoldFraction",
 		"targetVotingGoldFraction", helpers.FromFixed(targetVotingGoldFraction),
-	)
+	):
+	}
 
 	votingGoldFraction, err := proc.epochRewards.GetVotingGoldFraction(opts)
 	if err != nil {
 		return err
 	}
 
-	rows <- contractRow.ViewCall(
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case rows <- contractRow.ViewCall(
 		"getVotingGoldFraction",
 		"votingGoldFraction", helpers.FromFixed(votingGoldFraction),
-	)
+	):
+	}
 
 	// EpochRewards.calculateTargetEpochRewards
 	validatorTargetEpochRewards, voterTargetEpochRewards, communityTargetEpochRewards, carbonOffsettingTargetEpochRewards, err := proc.epochRewards.CalculateTargetEpochRewards(opts)
@@ -140,13 +168,17 @@ func (proc epochRewardsProcessor) CollectData(ctx context.Context, rows chan *Ro
 		return nil
 	}
 
-	rows <- contractRow.ViewCall(
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case rows <- contractRow.ViewCall(
 		"calculateTargetEpochRewards",
 		"validatorTargetEpochRewards", validatorTargetEpochRewards,
 		"voterTargetEpochRewards", voterTargetEpochRewards,
 		"communityTargetEpochRewards", communityTargetEpochRewards,
 		"carbonOffsettingTargetEpochRewards", carbonOffsettingTargetEpochRewards,
-	)
+	):
+	}
 
 	return nil
 }

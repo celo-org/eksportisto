@@ -46,7 +46,11 @@ func (proc *chaindataProcessor) ShouldCollect() bool {
 }
 
 func (proc *chaindataProcessor) CollectData(ctx context.Context, rows chan *Row) error {
-	rows <- proc.blockRow.Extend("type", "Block")
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case rows <- proc.blockRow.Extend("type", "Block"):
+	}
 	group, ctx := errgroup.WithContextN(ctx, proc.concurrency, 2*proc.concurrency)
 	for _txIndex, _tx := range proc.transactions {
 		txIndex := _txIndex
@@ -74,7 +78,11 @@ func (proc *chaindataProcessor) collectTransaction(
 		return errors.Wrap(err, 0)
 	}
 
-	rows <- txRow.Extend("type", "Transaction", "gasPrice", tx.GasPrice(), "gasUsed", receipt.GasUsed).WithId(txHash.Hex())
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case rows <- txRow.Extend("type", "Transaction", "gasPrice", tx.GasPrice(), "gasUsed", receipt.GasUsed).WithId(txHash.Hex()):
+	}
 
 	for eventIdx, eventLog := range receipt.Logs {
 		err := proc.extractEvent(ctx, txHash, eventIdx, eventLog, txRow, rows)
@@ -110,13 +118,17 @@ func (proc *chaindataProcessor) extractInternalTransactions(
 	// 	return err
 	// }
 	for index, internalTransfer := range internalTransfers {
-		rows <- txRow.Extend(
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case rows <- txRow.Extend(
 			"type", "Transfer",
 			"currencySymbol", "CELO",
 			"from", internalTransfer.From,
 			"to", internalTransfer.To,
 			"value", internalTransfer.Value,
-		).WithId(fmt.Sprintf("%s.internalTransfer.%d", txHash.String(), index))
+		).WithId(fmt.Sprintf("%s.internalTransfer.%d", txHash.String(), index)):
+		}
 	}
 	return nil
 }

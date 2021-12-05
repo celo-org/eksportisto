@@ -121,10 +121,14 @@ func (proc exchangeProcessor) CollectData(ctx context.Context, rows chan *Row) e
 		return errors.Wrap(err, 0)
 	}
 
-	rows <- contractRow.ViewCall(
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case rows <- contractRow.ViewCall(
 		"reserveFraction",
 		"fraction", reserveFraction.Uint64(),
-	)
+	):
+	}
 
 	// Exchange.goldBucket
 	goldBucketSize, err := proc.exchange.GoldBucket(opts)
@@ -132,10 +136,14 @@ func (proc exchangeProcessor) CollectData(ctx context.Context, rows chan *Row) e
 		return errors.Wrap(err, 0)
 	}
 
-	rows <- contractRow.ViewCall(
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case rows <- contractRow.ViewCall(
 		"goldBucket",
 		"fraction", goldBucketSize.String(),
-	)
+	):
+	}
 
 	stableBucketSize, err := proc.exchange.StableBucket(opts)
 
@@ -143,10 +151,14 @@ func (proc exchangeProcessor) CollectData(ctx context.Context, rows chan *Row) e
 		return errors.Wrap(err, 0)
 	}
 
-	rows <- contractRow.ViewCall(
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case rows <- contractRow.ViewCall(
 		"stableBucket",
 		"fraction", stableBucketSize.String(),
-	)
+	):
+	}
 
 	return nil
 }

@@ -75,13 +75,13 @@ func (handler *blockHandler) Run(ctx context.Context) (err error) {
 	Loop:
 		for {
 			select {
+			case <-ctx.Done():
+				return ctx.Err()
 			case row, hasMore := <-rowsChan:
 				if !hasMore {
 					break Loop
 				}
 				rows = append(rows, row)
-			case <-ctx.Done():
-				break Loop
 			}
 		}
 
@@ -204,7 +204,11 @@ func (handler *blockHandler) initializeProcessorsForFactory(
 					handler.eventHandlers[contractId] = eventHandler
 				}
 
-				processorChan <- processor
+				select {
+				case <-ctx.Done():
+					return ctx.Err()
+				case processorChan <- processor:
+				}
 			}
 			return nil
 		},

@@ -98,10 +98,14 @@ func (handler *blockHandler) extractEvent(
 		if err != nil {
 			logger.Error("event slice encoding failed", "contract", parsed.Contract, "event", parsed.Event, "err", err)
 		} else {
-			rows <- eventRow.Extend(
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			case rows <- eventRow.Extend(
 				"contract", parsed.Contract,
 				"event", parsed.Event,
-			).Extend(logSlice...).WithId(eventRowId)
+			).Extend(logSlice...).WithId(eventRowId):
+			}
 		}
 	}
 	return nil

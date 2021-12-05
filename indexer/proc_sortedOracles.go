@@ -106,10 +106,14 @@ func (proc sortedOraclesProcessor) CollectData(ctx context.Context, rows chan *R
 		return errors.Wrap(err, 0)
 	}
 
-	rows <- contractRow.ViewCall(
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case rows <- contractRow.ViewCall(
 		"IsOldestReportExpired",
 		"isOldestReportExpired", isOldestReportExpired,
-		"lastReportAddress", lastReportAddress)
+		"lastReportAddress", lastReportAddress):
+	}
 
 	// SortedOracles.NumRates
 	numRates, err := proc.sortedOracles.NumRates(opts, proc.address)
@@ -117,7 +121,11 @@ func (proc sortedOraclesProcessor) CollectData(ctx context.Context, rows chan *R
 		return errors.Wrap(err, 0)
 	}
 
-	rows <- contractRow.ViewCall("NumRates", "numRates", numRates)
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case rows <- contractRow.ViewCall("NumRates", "numRates", numRates):
+	}
 
 	// SortedOracles.NumRates
 	medianRateNumerator, medianRateDenominator, err := proc.sortedOracles.MedianRate(opts, proc.address)
@@ -125,11 +133,15 @@ func (proc sortedOraclesProcessor) CollectData(ctx context.Context, rows chan *R
 		return errors.Wrap(err, 0)
 	}
 
-	rows <- contractRow.ViewCall(
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case rows <- contractRow.ViewCall(
 		"MedianRate",
 		"medianRateNumerator", medianRateNumerator,
 		"medianRateDenominator", medianRateDenominator,
-	)
+	):
+	}
 
 	// SortedOracles.MedianTimestamp
 	medianTimestamp, err := proc.sortedOracles.MedianTimestamp(opts, proc.address)
@@ -137,7 +149,11 @@ func (proc sortedOraclesProcessor) CollectData(ctx context.Context, rows chan *R
 		return errors.Wrap(err, 0)
 	}
 
-	rows <- contractRow.ViewCall("MedianTimestamp", "medianTimestamp", medianTimestamp)
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case rows <- contractRow.ViewCall("MedianTimestamp", "medianTimestamp", medianTimestamp):
+	}
 
 	// SortedOracles.GetRates
 	rateAddresses, rateValues, medianRelations, err := proc.sortedOracles.GetRates(opts, proc.address)
@@ -146,13 +162,17 @@ func (proc sortedOraclesProcessor) CollectData(ctx context.Context, rows chan *R
 	}
 
 	for i, rateAddress := range rateAddresses {
-		rows <- contractRow.ViewCall(
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case rows <- contractRow.ViewCall(
 			"GetRates",
 			"rateAddress", rateAddress,
 			"rateValue", helpers.FromFixed(rateValues[i]),
 			"medianRelation", medianRelations[i],
 			"index", i,
-		).AppendID(fmt.Sprintf("%d", i))
+		).AppendID(fmt.Sprintf("%d", i)):
+		}
 	}
 
 	// SortedOracles.GetTimestamps
@@ -162,13 +182,17 @@ func (proc sortedOraclesProcessor) CollectData(ctx context.Context, rows chan *R
 	}
 
 	for i, timestampAddress := range timestampAddresses {
-		rows <- contractRow.ViewCall(
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case rows <- contractRow.ViewCall(
 			"GetTimestamps",
 			"timestampAddress", timestampAddress,
 			"reportedTimestamp", timestamp[i],
 			"medianRelation", medianRelations[i],
 			"index", i,
-		).AppendID(fmt.Sprintf("%d", i))
+		).AppendID(fmt.Sprintf("%d", i)):
+		}
 	}
 
 	celoBucketSize, stableBucketSize, err := proc.exchange.GetBuyAndSellBuckets(opts, true)
@@ -177,11 +201,15 @@ func (proc sortedOraclesProcessor) CollectData(ctx context.Context, rows chan *R
 		return errors.Wrap(err, 0)
 	}
 
-	rows <- proc.blockRow.Contract(string(proc.exchangeRegistryID)).ViewCall(
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case rows <- proc.blockRow.Contract(string(proc.exchangeRegistryID)).ViewCall(
 		"getBuyAndSellBuckets",
 		"celoBucketSize", celoBucketSize,
 		"stableBucketSize", stableBucketSize,
-	)
+	):
+	}
 
 	return nil
 }

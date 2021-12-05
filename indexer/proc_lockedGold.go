@@ -58,7 +58,11 @@ func (proc lockedGoldProcessor) CollectData(ctx context.Context, rows chan *Row)
 		return errors.Wrap(err, 0)
 	}
 
-	rows <- contractRow.ViewCall("getNonvotingLockedGold", "totalNonvoting", totalNonvoting.String())
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case rows <- contractRow.ViewCall("getNonvotingLockedGold", "totalNonvoting", totalNonvoting.String()):
+	}
 
 	// LockedGold.getTotalLockedGold
 	totalLockedGold, err := proc.lockedGold.GetTotalLockedGold(opts)

@@ -60,10 +60,14 @@ func (proc electionProcessor) CollectData(ctx context.Context, rows chan *Row) e
 		return errors.Wrap(err, 0)
 	}
 
-	rows <- contractRow.ViewCall(
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case rows <- contractRow.ViewCall(
 		"getActiveVotes",
 		"activeVotes", activeVotes.String(),
-	)
+	):
+	}
 
 	// Election.getTotalVotes
 	totalVotes, err := proc.election.GetTotalVotes(opts)
@@ -71,10 +75,14 @@ func (proc electionProcessor) CollectData(ctx context.Context, rows chan *Row) e
 		return errors.Wrap(err, 0)
 	}
 
-	rows <- contractRow.ViewCall(
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case rows <- contractRow.ViewCall(
 		"getTotalVotes",
 		"totalVotes", totalVotes.String(),
-	)
+	):
+	}
 
 	// Election.getElectableValidators
 	electableValidatorsMin, electableValidatorsMax, err := proc.election.GetElectableValidators(opts)
@@ -82,11 +90,15 @@ func (proc electionProcessor) CollectData(ctx context.Context, rows chan *Row) e
 		return errors.Wrap(err, 0)
 	}
 
-	rows <- contractRow.ViewCall(
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case rows <- contractRow.ViewCall(
 		"getElectableValidators",
 		"electableValidatorsMin", electableValidatorsMin.Uint64(),
 		"electableValidatorsMax", electableValidatorsMax.Uint64(),
-	)
+	):
+	}
 
 	return nil
 }
