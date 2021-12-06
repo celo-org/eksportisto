@@ -89,6 +89,7 @@ func (proc *sortedOraclesProcessor) ShouldCollect() bool {
 }
 
 func (proc sortedOraclesProcessor) CollectData(ctx context.Context, rows chan *Row) error {
+	proc.logger.Info("SortedOracles.CollectData")
 	opts := &bind.CallOpts{
 		BlockNumber: proc.blockNumber,
 		Context:     ctx,

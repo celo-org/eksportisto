@@ -46,6 +46,7 @@ func (proc *lockedGoldProcessor) ShouldCollect() bool {
 }
 
 func (proc lockedGoldProcessor) CollectData(ctx context.Context, rows chan *Row) error {
+	proc.logger.Info("LockedGold.CollectData")
 	opts := &bind.CallOpts{
 		BlockNumber: proc.blockNumber,
 		Context:     ctx,

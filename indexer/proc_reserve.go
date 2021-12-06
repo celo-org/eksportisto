@@ -48,6 +48,7 @@ func (proc *reserveProcessor) ShouldCollect() bool {
 }
 
 func (proc reserveProcessor) CollectData(ctx context.Context, rows chan *Row) error {
+	proc.logger.Info("Reserve.CollectData")
 	opts := &bind.CallOpts{
 		BlockNumber: proc.blockNumber,
 		Context:     ctx,

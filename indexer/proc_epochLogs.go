@@ -39,6 +39,7 @@ func (proc *epochLogsProcessor) ShouldCollect() bool {
 }
 
 func (proc *epochLogsProcessor) CollectData(ctx context.Context, rows chan *Row) error {
+	proc.logger.Info("EpochLogs.CollectData")
 	filterLogs, err := proc.celoClient.Eth.FilterLogs(ctx, celo.FilterQuery{
 		FromBlock: proc.blockNumber,
 		ToBlock:   proc.blockNumber,

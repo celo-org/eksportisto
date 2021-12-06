@@ -49,6 +49,7 @@ func (proc *epochRewardsProcessor) ShouldCollect() bool {
 }
 
 func (proc epochRewardsProcessor) CollectData(ctx context.Context, rows chan *Row) error {
+	proc.logger.Info("EpochRewards.CollectData")
 	opts := &bind.CallOpts{
 		BlockNumber: proc.blockNumber,
 		Context:     ctx,

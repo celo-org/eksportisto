@@ -46,6 +46,7 @@ func (proc *chaindataProcessor) ShouldCollect() bool {
 }
 
 func (proc *chaindataProcessor) CollectData(ctx context.Context, rows chan *Row) error {
+	proc.logger.Info("ChainData.CollectData")
 	select {
 	case <-ctx.Done():
 		return ctx.Err()

@@ -47,6 +47,7 @@ func (proc *electionProcessor) ShouldCollect() bool {
 }
 
 func (proc electionProcessor) CollectData(ctx context.Context, rows chan *Row) error {
+	proc.logger.Info("Election.CollectData")
 	opts := &bind.CallOpts{
 		BlockNumber: proc.blockNumber,
 		Context:     ctx,

@@ -108,6 +108,7 @@ func (proc *exchangeProcessor) ShouldCollect() bool {
 }
 
 func (proc exchangeProcessor) CollectData(ctx context.Context, rows chan *Row) error {
+	proc.logger.Info("Exchange.CollectData")
 	opts := &bind.CallOpts{
 		BlockNumber: proc.blockNumber,
 		Context:     ctx,

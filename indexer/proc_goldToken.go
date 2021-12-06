@@ -48,6 +48,7 @@ func (proc *goldTokenProcessor) ShouldCollect() bool {
 }
 
 func (proc goldTokenProcessor) CollectData(ctx context.Context, rows chan *Row) error {
+	proc.logger.Info("GoldToken.CollectData")
 	opts := &bind.CallOpts{
 		BlockNumber: proc.blockNumber,
 		Context:     ctx,

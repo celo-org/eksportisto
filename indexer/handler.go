@@ -33,6 +33,7 @@ type blockHandler struct {
 // NewBlockHandler is called to instantiate a handler for a current
 // block height. The struct lives as long as a block is being processed.
 func (w *Worker) NewBlockHandler(block uint64) (*blockHandler, error) {
+	w.logger.Info("Creating new BlockHandler", "block", block)
 	r, err := registry.New(w.celoClient)
 	if err != nil {
 		return nil, err
@@ -54,9 +55,11 @@ func (w *Worker) NewBlockHandler(block uint64) (*blockHandler, error) {
 // Run starts the processing of a block by firing all processors
 // and a routine to collect rows from a channel
 func (handler *blockHandler) Run(ctx context.Context) (err error) {
+	handler.logger.Info("Running block handler")
 	group, ctx := errgroup.WithContext(ctx)
 	rowsChan := make(chan *Row, 1000)
 
+	handler.logger.Info("Loading block")
 	err = metrics.RecordStepDuration(
 		func() error { return handler.loadBlock(ctx) },
 		"loadBlock",
@@ -75,12 +78,14 @@ func (handler *blockHandler) Run(ctx context.Context) (err error) {
 				return ctx.Err()
 			case row, hasMore := <-rowsChan:
 				if !hasMore {
+					handler.logger.Info("Rows received", "count", len(rows))
 					break Loop
 				}
 				rows = append(rows, row)
 			}
 		}
 
+		handler.logger.Info("Writing to output")
 		return metrics.RecordStepDuration(func() error {
 			return handler.output.Write(rows)
 		}, "bigquery.write")
@@ -114,11 +119,13 @@ func (handler *blockHandler) loadBlock(ctx context.Context) error {
 // spawnProcessors initializes all processors by using the Factories, and execute
 // extract data methods collecting all rows in the provided channel.
 func (handler *blockHandler) spawnProcessors(ctx context.Context, rowsChan chan *Row) error {
+	handler.logger.Info("Spawning processors", "concurrency", handler.concurrency)
 	group, ctx := errgroup.WithContextN(ctx, handler.concurrency, 2*handler.concurrency)
 	processors, err := handler.initializeProcessors(ctx)
 	if err != nil {
 		return err
 	}
+	handler.logger.Info("Processors initialized")
 
 	for _, processor := range processors {
 		func(processor Processor) {
@@ -153,6 +160,7 @@ func (handler *blockHandler) spawnProcessors(ctx context.Context, rowsChan chan 
 // This is parallelized because factory initialization sometimes talks to nodes
 // as well and that blocks execution if we do it sequentially.
 func (handler *blockHandler) initializeProcessors(ctx context.Context) ([]Processor, error) {
+	handler.logger.Info("Initializing processors")
 	processorChan := make(chan Processor, 100)
 	group, ctx := errgroup.WithContext(ctx)
 
