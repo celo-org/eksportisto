@@ -54,10 +54,6 @@ func (w *Worker) NewBlockHandler(block uint64) (*blockHandler, error) {
 // Run starts the processing of a block by firing all processors
 // and a routine to collect rows from a channel
 func (handler *blockHandler) Run(ctx context.Context) (err error) {
-	err = handler.registry.EnableCaching(ctx, handler.blockNumber)
-	if err != nil {
-		return err
-	}
 	group, ctx := errgroup.WithContext(ctx)
 	rowsChan := make(chan *Row, 1000)
 
