@@ -136,6 +136,8 @@ github.com/celo-org/kliento v0.2.1-0.20210406112616-a86363193f81 h1:UbtKXrYZUJVC
 github.com/celo-org/kliento v0.2.1-0.20210406112616-a86363193f81/go.mod h1:M/HTJUVMSAdqynAJHQD3mwsE8lAl6vT/EXED6jqEKSo=
 github.com/celo-org/kliento v0.2.1-0.20210512182137-971739185f65 h1:AcOSCTFxvymRMpUUXbiIVsnA36dWVJ0h2dzjR8sOIAM=
 github.com/celo-org/kliento v0.2.1-0.20210512182137-971739185f65/go.mod h1:6aoUqGKc/g1blbbJeYi/ZXnbyrk5Yujyt5QTcukeTs4=
+github.com/celo-org/kliento v0.2.1-0.20211201165252-37af78cb0d3f h1:sbj56IwdCAwP2jtit7nVeJn3yUkPBd/noHPW3LnQpVs=
+github.com/celo-org/kliento v0.2.1-0.20211201165252-37af78cb0d3f/go.mod h1:6aoUqGKc/g1blbbJeYi/ZXnbyrk5Yujyt5QTcukeTs4=
 github.com/census-instrumentation/opencensus-proto v0.2.1/go.mod h1:f6KPmirojxKA12rnyqOA5BBL4O983OfeGPqjHWSTneU=
 github.com/cespare/cp v0.1.0 h1:SE+dxFebS7Iik5LK0tsi1k9ZCxEaFX4AjQmoyA+1dJk=
 github.com/cespare/cp v0.1.0/go.mod h1:SOGHArjBr4JWaSDEVpWpo/hNg6RoKrls6Oh40hiwW+s=
