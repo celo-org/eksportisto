@@ -37,7 +37,6 @@ func init() {
 
 	rootCmd.AddCommand(publisherCmd)
 	rootCmd.AddCommand(indexerCmd)
-	rootCmd.AddCommand(legacyCmd)
 	rootCmd.AddCommand(monitorCmd)
 }
 
