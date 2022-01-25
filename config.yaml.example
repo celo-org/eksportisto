@@ -1,3 +1,11 @@
+# Determines the timeout used when making debug_TraceTransaction calls to the
+# blockchain node. 
+#
+# The timeout was previously hardcoded to 50s in kliento but was too small to
+# trace all transactions.  A value of 120s should safely trace all transactions
+# that we have seen so far (Jan 2022).
+traceTransactionTimeout: "120s"
+
 monitoring:
   port: 8080
   address: localhost
