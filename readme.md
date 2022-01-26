@@ -43,7 +43,7 @@ traceTransactionTimeout: "120s"
 monitoring:
   port: 8080
   address: localhost
-  # Controls timeout for requests made to the exportisto service
+  # Controls timeout for requests made to the eksportisto service
   requestTimeoutSeconds: 25
 
 celoNodeURI: ws://localhost:8546
