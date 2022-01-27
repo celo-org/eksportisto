@@ -35,9 +35,15 @@ The services use [spf13/viper](https://github.com/spf13/viper) and [spf13/cobra]
 ##### global
 
 ```yaml
+
+# Controls timeout for trace transaction requests made by eksportisto to the
+# blockchain node. 120s is a big enough timeout that it should support tracing
+# of all transactions seen so far (Jan 2022).
+traceTransactionTimeout: "120s"
 monitoring:
   port: 8080
   address: localhost
+  # Controls timeout for requests made to the eksportisto service
   requestTimeoutSeconds: 25
 
 celoNodeURI: ws://localhost:8546

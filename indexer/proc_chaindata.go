@@ -6,11 +6,14 @@ import (
 
 	"github.com/celo-org/celo-blockchain/common"
 	"github.com/celo-org/celo-blockchain/core/types"
+	"github.com/celo-org/celo-blockchain/eth"
 	"github.com/celo-org/celo-blockchain/log"
 	"github.com/celo-org/eksportisto/metrics"
+	"github.com/celo-org/kliento/client/debug"
 	"github.com/celo-org/kliento/registry"
 	"github.com/go-errors/errors"
 	"github.com/neilotoole/errgroup"
+	"github.com/spf13/viper"
 )
 
 type chaindataProcessorFactory struct{}
@@ -99,7 +102,10 @@ func (proc *chaindataProcessor) extractInternalTransactions(
 	txRow *Row,
 	rows chan *Row,
 ) error {
-	internalTransfers, err := proc.celoClient.Debug.TransactionTransfers(ctx, txHash)
+	res := debug.TransferTracerResponse{}
+	timeout := viper.GetDuration("traceTransactionTimeout").String()
+	cfg := &eth.TraceConfig{Tracer: &debug.TransferTracer, Timeout: &timeout}
+	err := proc.celoClient.Debug.TraceTransaction(ctx, &res, txHash, cfg)
 	if err != nil {
 		return errors.Wrap(err, 0)
 	}
@@ -109,7 +115,7 @@ func (proc *chaindataProcessor) extractInternalTransactions(
 	// } else if err != nil {
 	// 	return err
 	// }
-	for index, internalTransfer := range internalTransfers {
+	for index, internalTransfer := range res.Transfers {
 		rows <- txRow.Extend(
 			"type", "Transfer",
 			"currencySymbol", "CELO",
