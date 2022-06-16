@@ -232,7 +232,7 @@ func (proc sortedOraclesProcessor) ObserveMetrics(ctx context.Context) error {
 	}
 	sortedOraclesMedianRateGauge.Set(medianRateMetric)
 
-	_, rateValues, _, err := proc.sortedOracles.GetRates(opts, proc.address)
+	rateAddresses, rateValues, _, err := proc.sortedOracles.GetRates(opts, proc.address)
 	if err != nil {
 		return errors.Wrap(err, 0)
 	}
@@ -264,6 +264,15 @@ func (proc sortedOraclesProcessor) ObserveMetrics(ctx context.Context) error {
 	if proc.block != nil {
 		blockTime := proc.block.Time()
 		sortedOraclesMedianTimestampGauge.Set(float64(blockTime - medianTimestamp.Uint64()))
+	}
+
+	// Export each individual report value as a metric.
+	for i := range rateValues {
+		sortedOraclesReportValue, err := metrics.SortedOraclesReportValue.GetMetricWithLabelValues(stableTokenStr, rateAddresses[i].String())
+		if err != nil {
+			return errors.Wrap(err, 0)
+		}
+		sortedOraclesReportValue.Set(helpers.FromFixed(rateValues[i]))
 	}
 
 	celoBucketSize, stableBucketSize, err := proc.exchange.GetBuyAndSellBuckets(opts, true)
