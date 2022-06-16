@@ -275,6 +275,19 @@ func (proc sortedOraclesProcessor) ObserveMetrics(ctx context.Context) error {
 		sortedOraclesReportValue.Set(helpers.FromFixed(rateValues[i]))
 	}
 
+	// Export each individual report timestamp as a metric.
+	timestampAddresses, timestamps, _, err := proc.sortedOracles.GetTimestamps(opts, proc.address)
+	if err != nil {
+		return errors.Wrap(err, 0)
+	}
+	for i := range timestamps {
+		sortedOraclesReportTimestamp, err := metrics.SortedOraclesReportTimestamp.GetMetricWithLabelValues(stableTokenStr, timestampAddresses[i].String())
+		if err != nil {
+			return errors.Wrap(err, 0)
+		}
+		sortedOraclesReportTimestamp.Set(float64(timestamps[i].Uint64()))
+	}
+
 	celoBucketSize, stableBucketSize, err := proc.exchange.GetBuyAndSellBuckets(opts, true)
 
 	if err != nil {
