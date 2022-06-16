@@ -112,6 +112,10 @@ var (
 		Name: "sortedoracles_timestamp_median",
 		Help: "The median timestamp difference with the last blocktime",
 	}, []string{"token"})
+	SortedOraclesReportValue = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "sortedoracles_report_value",
+		Help: "The value of each report.",
+	}, []string{"token", "oracle"})
 )
 
 func init() {
@@ -141,6 +145,7 @@ func init() {
 	registerer.MustRegister(SortedOraclesMedianRate)
 	registerer.MustRegister(SortedOraclesRateMaxDeviation)
 	registerer.MustRegister(SortedOraclesMedianTimestamp)
+	registerer.MustRegister(SortedOraclesReportValue)
 
 	// Add Go module build info with the default registry
 	prometheus.MustRegister(prometheus.NewBuildInfoCollector())
